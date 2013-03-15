@@ -1,26 +1,20 @@
 package natureoverhaul;
 //Author: Clinton Alexander
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 import net.minecraft.block.Block;
-import net.minecraft.client.Minecraft;
-import net.minecraft.entity.item.EntityItem;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.src.ModLoader;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
-import net.minecraftforge.common.ConfigCategory;
 import net.minecraftforge.common.Configuration;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.Event.Result;
 import net.minecraftforge.event.ForgeSubscribe;
-import net.minecraftforge.event.entity.item.ItemEvent;
 import net.minecraftforge.event.entity.player.BonemealEvent;
 import net.minecraftforge.event.terraingen.SaplingGrowTreeEvent;
-import sun.jdbc.odbc.ee.ConnectionHandler;
+import cpw.mods.fml.common.DummyModContainer;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.Init;
 import cpw.mods.fml.common.Mod.Instance;
@@ -30,20 +24,42 @@ import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.network.NetworkMod;
 import cpw.mods.fml.common.network.NetworkMod.SidedPacketHandler;
-import cpw.mods.fml.common.registry.GameRegistry;
-import cpw.mods.fml.common.registry.LanguageRegistry;
 
-@Mod(modid = "NatureOverhaul", name = "Nature Overhaul", version = "0.0.1")
-@NetworkMod(clientSideRequired = false, serverSideRequired = false,
-clientPacketHandlerSpec = @SidedPacketHandler(channels = { "NatureOverhaul" }, packetHandler = ClientPacketHandler.class),
-serverPacketHandlerSpec = @SidedPacketHandler(channels = { "NatureOverhaul" }, packetHandler = ServerPacketHandler.class))
-public class NatureOverhaul
+//@Mod(modid = "NatureOverhaul", name = "Nature Overhaul", version = "0.0.1")
+//@NetworkMod(clientSideRequired = false, serverSideRequired = false,
+//clientPacketHandlerSpec = @SidedPacketHandler(channels = { "NatureOverhaul" }, packetHandler = ClientPacketHandler.class),
+//serverPacketHandlerSpec = @SidedPacketHandler(channels = { "NatureOverhaul" }, packetHandler = ServerPacketHandler.class))
+public class NatureOverhaul extends DummyModContainer
 {	@Instance ("NatureOverhaul")
 	public static NatureOverhaul instance;
 	
     @SidedProxy(clientSide = "natureoverhaul.ClientProxy", serverSide = "natureoverhaul.CommonProxy")
     public static CommonProxy proxy;
-	
+    @Override
+    public String getModId()
+    {
+        return "NatureOverhaul";
+    }
+    @Override
+    public String getName()
+    {
+        return "Nature Overhaul";
+    }
+    @Override
+    public String getVersion()
+    {
+        return "0.0.1";
+    }
+    @Override
+    public boolean isNetworkMod()
+    {
+        return true;
+    }
+    @Override
+    public String getDisplayVersion()
+    {
+        return getVersion();
+    }
     @PreInit
     public void preInit(FMLPreInitializationEvent event)
     {
@@ -124,9 +140,9 @@ public class NatureOverhaul
     }
     @ForgeSubscribe
     public void onBoneMealUse(BonemealEvent event){
-    	if (event.hasResult()){
+    	if (event.hasResult() && applyBonemeal(event.world, event.X, event.Y, event.Z, event.ID)){
 		event.setResult(Result.ALLOW);//BoneMeal is consumed, but doesn't act vanilla
-    	}
+		}
     }
     @ForgeSubscribe
     public void onGrowingSapling(SaplingGrowTreeEvent event){
@@ -134,24 +150,44 @@ public class NatureOverhaul
     		event.setResult(Result.DENY);//Sapling doesn't grow vanilla
     	}
     }
-    @ForgeSubscribe
-    public void onItemEvent(ItemEvent event){
-    	final EntityItem entityItem=event.entityItem;
-    	
-    }
-	
-	public void updateTick(World world, int i, int j, int k, Random random)	{
+    /**
+	* Apply bonemeal to the item clicked
+	* 
+	* @param	id 	Item ID
+	* @return	true if item is applied
+	*/
+	private boolean applyBonemeal(World world, int i, int j, int k, int id) {
+		// Items affected; cactii, reeds, leaves, flowers and shrooms
+		if(Block.blocksList[id] instanceof IGrowable) {
+			((IGrowable) Block.blocksList[id]).grow(world, i, j, k);
+			return true;
+		} else {
+			return false;
+		}
+	}
+	public void onUpdateTick(World world, int x, int y, int z, Random random)	{
+		System.out.println("tick done");
 		if(!world.isRemote) {
-			int id=world.getBlockId(i,j,k);
+			int id=world.getBlockId(x,y,z);
 			String name=Block.blocksList[id].getBlockName();			
-			if(isGrowing(name) && Math.random()<getGrowthProb(world, i, j, k)) {
+			if(isGrowing(name) && Math.random()<getGrowthProb(world, x, y, z)) {
 			/*	grow(world, i, j, k);
 			}
 			if(isMortal(name) && hasDied(world, i, j, k)) {
 				death(world, i, j, k);*/
 			}
-		}	System.out.println("tick done");
+		}	
 	}
+	/*
+	public static Map IDToGrowingMapping = new HashMap();
+    public static Map IDToDyingMapping = new HashMap();
+	
+    public static void addMapping(int id, boolean isGrowing, boolean isMortal)
+    {
+    	IDToGrowingMapping.put(Integer.valueOf(id), isGrowing);
+        IDToDyingMapping.put(Integer.valueOf(id), isMortal);     
+    }*/
+
 	private boolean isMortal(String name) {
 		if(name.contains("sapling"))
 			return saplingDie;
@@ -379,6 +415,10 @@ public class NatureOverhaul
 	public static final int mossGrowthRate=0;
 	public static final int wildAnimalBreedRate=0,reproductionRate=0;
 	public static final int growthType=0;
+	
+	/*public static World tickedWorld;
+	public static int tickX,tickY,tickZ;
+	public static Random tickRand;*/
 	
 	// Default labels
 	public static String[] labels = {"AVERAGE", "FAST", "SUPERFAST", "INSANE", "SUPERSLOW", "SLOW"};

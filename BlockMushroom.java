@@ -148,4 +148,29 @@ public class BlockMushroom extends BlockFlower
 	//=====================
 	// END NATURE OVERHAUL
 	//=====================
+	public boolean fertilizeMushroom(World par1World, int par2, int par3, int par4, Random par5Random)
+    {
+        int var6 = par1World.getBlockMetadata(par2, par3, par4);
+        par1World.setBlock(par2, par3, par4, 0);
+        WorldGenBigMushroom var7 = null;
+
+        if (this.blockID == Block.mushroomBrown.blockID)
+        {
+            var7 = new WorldGenBigMushroom(0);
+        }
+        else if (this.blockID == Block.mushroomRed.blockID)
+        {
+            var7 = new WorldGenBigMushroom(1);
+        }
+
+        if (var7 != null && var7.generate(par1World, par5Random, par2, par3, par4))
+        {
+            return true;
+        }
+        else
+        {
+            par1World.setBlockAndMetadata(par2, par3, par4, this.blockID, var6);
+            return false;
+        }
+    }
 }

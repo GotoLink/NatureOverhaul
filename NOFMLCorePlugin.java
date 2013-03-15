@@ -4,7 +4,7 @@ import java.util.Map;
 
 import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
 import cpw.mods.fml.relauncher.IFMLLoadingPlugin.TransformerExclusions;
-@TransformerExclusions({"natureoverhaul"})
+@TransformerExclusions(value={"natureoverhaul."})
 public class NOFMLCorePlugin implements IFMLLoadingPlugin{
 
 	@Override
@@ -19,7 +19,7 @@ public class NOFMLCorePlugin implements IFMLLoadingPlugin{
 
 	@Override
 	public String getModContainerClass() {
-		return null;
+		return "natureoverhaul.NatureOverhaul";
 	}
 
 	@Override

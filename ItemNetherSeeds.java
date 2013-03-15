@@ -84,6 +84,6 @@ public class ItemNetherSeeds extends ItemSeeds implements IPlantable {
 	}
 	
 	static {
-		Item.itemsList[Item.netherStalkSeeds.itemID]= (new ItemNetherSeeds(Item.netherStalkSeeds.itemID - Block.blocksList.length, Block.netherStalk.blockID, Block.slowSand.blockID)).setIconCoord(13, 7).setItemName("netherStalkSeeds").setPotionModifier("+4");
+		Item.itemsList[Item.netherStalkSeeds.itemID]= (new ItemNetherSeeds(Item.netherStalkSeeds.itemID - Block.blocksList.length, Block.netherStalk.blockID, Block.slowSand.blockID)).setIconCoord(13, 7).setItemName("netherStalkSeeds").setPotionEffect("+4");
 	}
 }
