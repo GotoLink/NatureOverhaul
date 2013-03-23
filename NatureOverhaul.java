@@ -13,6 +13,8 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.Event.Result;
 import net.minecraftforge.event.ForgeSubscribe;
 import net.minecraftforge.event.entity.player.BonemealEvent;
+import net.minecraftforge.event.terraingen.DecorateBiomeEvent.Decorate;
+import net.minecraftforge.event.terraingen.DecorateBiomeEvent.Decorate.EventType;
 import net.minecraftforge.event.terraingen.SaplingGrowTreeEvent;
 import cpw.mods.fml.common.DummyModContainer;
 import cpw.mods.fml.common.Mod;
@@ -25,41 +27,22 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.network.NetworkMod;
 import cpw.mods.fml.common.network.NetworkMod.SidedPacketHandler;
 
-//@Mod(modid = "NatureOverhaul", name = "Nature Overhaul", version = "0.0.1")
-//@NetworkMod(clientSideRequired = false, serverSideRequired = false,
-//clientPacketHandlerSpec = @SidedPacketHandler(channels = { "NatureOverhaul" }, packetHandler = ClientPacketHandler.class),
-//serverPacketHandlerSpec = @SidedPacketHandler(channels = { "NatureOverhaul" }, packetHandler = ServerPacketHandler.class))
-public class NatureOverhaul extends DummyModContainer
+@Mod(modid = "NatureOverhaul", name = "Nature Overhaul", version = "0.0.1")
+@NetworkMod(clientSideRequired = false, serverSideRequired = false,
+clientPacketHandlerSpec = @SidedPacketHandler(channels = { "NatureOverhaul" }, packetHandler = ClientPacketHandler.class),
+serverPacketHandlerSpec = @SidedPacketHandler(channels = { "NatureOverhaul" }, packetHandler = ServerPacketHandler.class))
+public class NatureOverhaul
 {	@Instance ("NatureOverhaul")
 	public static NatureOverhaul instance;
 	
     @SidedProxy(clientSide = "natureoverhaul.ClientProxy", serverSide = "natureoverhaul.CommonProxy")
     public static CommonProxy proxy;
-    @Override
-    public String getModId()
-    {
-        return "NatureOverhaul";
-    }
-    @Override
-    public String getName()
-    {
-        return "Nature Overhaul";
-    }
-    @Override
-    public String getVersion()
-    {
-        return "0.0.1";
-    }
-    @Override
-    public boolean isNetworkMod()
-    {
-        return true;
-    }
-    @Override
-    public String getDisplayVersion()
-    {
-        return getVersion();
-    }
+    private static String[] optionsCategory=new String[]//TODO: Use this
+    		{
+    	"Sapling Options","Tree Options","Flower Options","Netherwort Options","Grass Options",
+    	"Reed Options","Cactus Options","Mushroom Options","Misc Options"
+    		};
+    
     @PreInit
     public void preInit(FMLPreInitializationEvent event)
     {
@@ -68,13 +51,13 @@ public class NatureOverhaul extends DummyModContainer
         Configuration config = new Configuration(cfile,true);
         config.load();
         
-        //config.addCustomCategoryComment("","The lower the rate, the faster the changes happen.");
+        //config.addCustomCategoryComment("README","The lower the rate, the faster the changes happen.");
         
         final Boolean saplingDie=config.get("Sapling Options","SaplingDie",true).getBoolean(true);
         final Boolean saplingGrow=config.get("Sapling Options","SaplingGrow",true).getBoolean(true);
         final Boolean autoSapling=config.get("Sapling Options","AutoSapling",true).getBoolean(true);
         final int saplingDeathRate=config.get("Sapling Options","SaplingDeathRate",2500).getInt(2500);
-        final String saplingGrowthRate=config.get("Sapling Options","SaplingGrowthRate","AVERAGE").value; 
+        final String saplingGrowthRate=config.get("Sapling Options","SaplingGrowthRate","AVERAGE").getString(); 
         //look at labels for other values    
         final int growthType=config.get("Sapling Options","Growth Occurs On",3).getInt(3);
        
@@ -121,17 +104,18 @@ public class NatureOverhaul extends DummyModContainer
         final Boolean shroomGrow=config.get("Mushroom Options","ShroomGrow",true).getBoolean(true);
         final int shroomGrowthRate=config.get("Mushroom Options","ShroomGrowthRate",1200).getInt(1200);       
         final int shroomTreeGrowthRate=config.get("Mushroom Options","ShroomTreeGrowthRate",1200).getInt(1200);
-        //Water fix changes BlockFlowing ,unnecessary ?
+        
         final Boolean biomeModifiedGrowth=config.get("Misc Options","BiomeModifiedGrowth",true).getBoolean(true);
         final Boolean mossGrow=config.get("Misc Options","MossGrow",true).getBoolean(true);
         final int mossGrowthRate=config.get("Misc Options","MossGrowthRate",2400).getInt(2400);
-        //final Boolean infiniteFire=config.get("Misc Options","InfiniteFire",true).getBoolean(true);
-        final Boolean waterFix=config.get("Misc Options","WaterFix",true).getBoolean(true);
+        //Not sure if the following can be implemented
         final int reproductionRate=config.get("Misc Options","ReproductionRate",1).getInt(1);
         final Boolean wildAnimalsBreed=config.get("Misc Options","WildAnimalsBreed",true).getBoolean(true);
         final int wildAnimalBreedRate=config.get("Misc Options","WildAnimalBreedRate",16000).getInt(16000);
-        
-        config.save();
+      if (config.hasChanged())
+      {        
+    	  config.save();     	
+      }    
         //proxy.preInit(cfile);
     }
     @Init
@@ -150,6 +134,44 @@ public class NatureOverhaul extends DummyModContainer
     		event.setResult(Result.DENY);//Sapling doesn't grow vanilla
     	}
     }
+    @ForgeSubscribe
+    public void onDecoratingBiome(Decorate event)
+    {
+    	switch(event.type){
+    	case BIG_SHROOM:
+    		break;
+		case CACTUS:
+			break;
+		case CLAY:
+			break;
+		case CUSTOM://not sure what this one does
+			break;
+		case DEAD_BUSH:
+			break;
+		case FLOWERS:
+			break;
+		case GRASS:
+			break;
+		case LAKE:
+			break;
+		case LILYPAD:
+			break;
+		case PUMPKIN:
+			break;
+		case REED:
+			break;
+		case SAND:
+			break;
+		case SAND_PASS2:
+			break;
+		case SHROOM:
+			break;
+		case TREE:
+			break;
+		default:
+			break;
+    	}
+    }
     /**
 	* Apply bonemeal to the item clicked
 	* 
@@ -165,12 +187,12 @@ public class NatureOverhaul extends DummyModContainer
 			return false;
 		}
 	}
-	public void onUpdateTick(World world, int x, int y, int z, Random random)	{
+	public void onUpdateTick(World world, int[] data)	{
 		System.out.println("tick done");
+		Random random = new Random(world.getSeed());
 		if(!world.isRemote) {
-			int id=world.getBlockId(x,y,z);
-			String name=Block.blocksList[id].getBlockName();			
-			if(isGrowing(name) && Math.random()<getGrowthProb(world, x, y, z)) {
+			String name=Block.blocksList[data[3]].getUnlocalizedName();			
+			if(isGrowing(name) && Math.random()<getGrowthProb(world, data[0], data[1], data[2])) {
 			/*	grow(world, i, j, k);
 			}
 			if(isMortal(name) && hasDied(world, i, j, k)) {
@@ -240,7 +262,7 @@ public class NatureOverhaul extends DummyModContainer
 	public float getGrowthProb(World world, int i, int j, int k) {
 		BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
 		int id=world.getBlockId(i,j,k);
-		String name=Block.blocksList[id].getBlockName();
+		String name=Block.blocksList[id].getUnlocalizedName();
 		float freq = getGrowthRate(name);
 		if(NatureOverhaul.biomeModifiedGrowth && freq!=-1) {
 			if((biome.rainfall == 0) || (biome.temperature > 1.5F)) {

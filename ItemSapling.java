@@ -18,16 +18,6 @@ public class ItemSapling extends ItemPlantable {
         setHasSubtypes(true);
     }
 
-    public int getMetadata(int i)
-    {
-        return i;
-    }
-
-    public int getIconFromDamage(int i)
-    {
-        return Block.sapling.getBlockTextureFromSideAndMetadata(0, i);
-    }
-	
 	/**
 	* Check if the item can be planted on top of the 
 	* block with the idBelow at i, j, k
