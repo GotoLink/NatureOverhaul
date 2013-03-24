@@ -5,6 +5,7 @@ import java.util.Random;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
+import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemAxe;
@@ -12,7 +13,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 
-public class BlockLog extends Block implements IBlockDeath
+public class Log extends Block implements IBlockDeath
 {
 	//=====================
 	// BEGIN NATURE OVERHAUL
@@ -34,11 +35,10 @@ public class BlockLog extends Block implements IBlockDeath
 	//=====================
 	// END NATURE OVERHAUL
 	//=====================
-    protected BlockLog(int i)
+    protected Log(int i)
     {
         super(i, Material.wood);
         setTickRandomly(true);
-        blockIndexInTexture = 20;
     }
 
 	//=======================
@@ -289,7 +289,7 @@ public class BlockLog extends Block implements IBlockDeath
 			
 			//System.out.println("Kill Leaf: (" + lI + ", " + lJ + ", " + lK + "");
 			if(!hasNearbyWood(world, lI, lJ, lK, leafDeathRadius)) {
-				world.setBlockWithNotify(lI, lJ, lK, 0);
+				world.setBlock(lI, lJ, lK, 0);
 			}
 		}
 	}
@@ -467,7 +467,7 @@ public class BlockLog extends Block implements IBlockDeath
 	private void killLog(World world, int i, int j, int k, boolean treeDeath) {
 		// For 0.9.1, temporarily stop turning to wood. Consider alternate
 		ItemStack blockWood = new ItemStack(this, 1, world.getBlockMetadata(i,j,k));
-		world.setBlockWithNotify(i, j, k, 0);
+		world.setBlock(i, j, k, 0);
 		
 		// Create a new block entity
 		EntityItem ent = new EntityItem(world, i, j, k, blockWood);

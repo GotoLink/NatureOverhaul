@@ -1,21 +1,14 @@
 package natureoverhaul;
 
-import java.util.ArrayList;
 import java.util.Random;
 
 import net.minecraft.block.Block;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.block.BlockFlower;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.stats.StatList;
-import net.minecraft.world.ColorizerFoliage;
-import net.minecraft.world.ColorizerGrass;
-import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
-import net.minecraftforge.common.ForgeHooks;
 
-public class BlockTallGrass extends BlockFlower
+public class TallGrass extends BlockFlower
 {
 	//====================
 	// BEGIN NATURE OVERHAUL
@@ -25,7 +18,7 @@ public class BlockTallGrass extends BlockFlower
 	//====================
 	// END NATURE OVERHAUL
 	//====================
-    protected BlockTallGrass(int i, int j)
+    protected TallGrass(int i, int j)
     {
         super(i, j);
         float f = 0.4F;

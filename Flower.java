@@ -9,7 +9,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 
 
-public class BlockFlower extends BlockMortal
+public class Flower extends BlockMortal
 {
 	//=====================
 	// BEGIN NATURE OVERHAUL
@@ -19,10 +19,9 @@ public class BlockFlower extends BlockMortal
 	//=====================
 	// END NATURE OVERHAUL
 	//=====================
-    protected BlockFlower(int i, int j)
+    protected Flower(int i, int j)
     {
         super(i, Material.plants);
-        blockIndexInTexture = j;
         setTickRandomly(true);
         float f = 0.2F;
         setBlockBounds(0.5F - f, 0.0F, 0.5F - f, 0.5F + f, f * 3F, 0.5F + f);

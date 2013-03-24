@@ -10,7 +10,7 @@ import net.minecraftforge.common.EnumPlantType;
 
 // Referenced classes of package net.minecraft.src:
 //            Block, BlockFlower, Material
-public class BlockMushroomCap extends BlockGrowable
+public class MushroomCap extends BlockGrowable
 {
 	//=====================
 	// BEGIN NATURE OVERHAUL
@@ -22,7 +22,7 @@ public class BlockMushroomCap extends BlockGrowable
 	//=====================
     private int mushroomType;
 
-    public BlockMushroomCap(int i, Material material, int j, int k)
+    public MushroomCap(int i, Material material, int j, int k)
     {
         super(i, j, material);
         mushroomType = k;

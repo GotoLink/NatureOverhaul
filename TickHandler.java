@@ -29,19 +29,20 @@ public class TickHandler implements ITickHandler{
 			if (chunk!=null)
 			list=world.getPendingBlockUpdates(chunk, false);
 			else break;
-			Iterator itr=list.iterator();
-			while(itr.hasNext())
+			if (list!=null)
 			{
-				nextTickEntry=(NextTickListEntry) itr.next();
-				int data[]={nextTickEntry.xCoord,nextTickEntry.yCoord,nextTickEntry.zCoord,nextTickEntry.blockID};
-				no.onUpdateTick(world,data);
+				Iterator itr=list.iterator();
+				while(itr.hasNext())
+				{
+					nextTickEntry=(NextTickListEntry) itr.next();
+					no.onUpdateTick(world,nextTickEntry.xCoord,nextTickEntry.yCoord,nextTickEntry.zCoord,nextTickEntry.blockID);
+				}
 			}
 		}
 	}
 
 	@Override
 	public void tickEnd(EnumSet<TickType> type, Object... tickData) {
-		// TODO Auto-generated method stub
 		
 	}
 
@@ -52,8 +53,7 @@ public class TickHandler implements ITickHandler{
 
 	@Override
 	public String getLabel() {
-		// TODO Auto-generated method stub
-		return null;
+		return "Nature Overhaul Tick";
 	}
 
 }

@@ -2,6 +2,7 @@ package natureoverhaul;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
+import net.minecraft.entity.item.EntityItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
@@ -23,7 +24,7 @@ public abstract class BlockGrowable extends Block implements IGrowable {
 	* See parent constructor
 	*/
     protected BlockGrowable(int i, int j, Material material) {
-		super(i, j, material);
+		this(i, material);
 	}
 	
 	/**
@@ -103,7 +104,7 @@ public abstract class BlockGrowable extends Block implements IGrowable {
 			} else {
 				stack = new ItemStack(id, 1, 0);
 			}
-			EntityItem entityitem = new EntityItem(world, i, j, k, stack, true);
+			EntityItem entityitem = new EntityItem(world, i, j, k, stack);
 			world.spawnEntityInWorld(entityitem);
 		}
 	}

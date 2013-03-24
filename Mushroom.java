@@ -7,7 +7,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.gen.feature.WorldGenBigMushroom;
 
-public class BlockMushroom extends BlockFlower
+public class Mushroom extends BlockFlower
 {
 	//=====================
 	// BEGIN NATURE OVERHAUL
@@ -17,7 +17,7 @@ public class BlockMushroom extends BlockFlower
 	//=====================
 	// END NATURE OVERHAUL
 	//=====================
-    protected BlockMushroom(int i, int j)
+    protected Mushroom(int i, int j)
     {
         super(i, j);
         float f = 0.2F;
@@ -67,7 +67,7 @@ public class BlockMushroom extends BlockFlower
 
             if (world.isAirBlock(j1, l1, j2) && canBlockStay(world, j1, l1, j2))
             {
-                world.setBlockWithNotify(j1, l1, j2, blockID);
+                world.setBlock(j1, l1, j2, blockID);
             }
         }
 		if(!world.isRemote) {

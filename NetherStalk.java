@@ -16,9 +16,9 @@ import net.minecraft.world.biome.WorldChunkManager;
 //            BlockFlower, Block, World, WorldChunkManager, 
 //            BiomeGenHell, ItemStack, Item
 
-public class BlockNetherStalk extends BlockFlower
+public class NetherStalk extends BlockFlower
 {
-    protected BlockNetherStalk(int i)
+    protected NetherStalk(int i)
     {
         super(i, 226);
         setTickRandomly(true);
@@ -43,7 +43,7 @@ public class BlockNetherStalk extends BlockFlower
                 if ((biomegenbase instanceof BiomeGenHell) && random.nextInt(15) == 0)
                 {
                     l++;
-                    world.setBlockMetadataWithNotify(i, j, k, l);
+                    world.setBlockMetadataWithNotify(i, j, k, l, 2);
                 }
             }
         }

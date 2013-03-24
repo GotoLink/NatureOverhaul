@@ -148,6 +148,6 @@ public abstract class BlockMortal extends BlockGrowable implements IBlockDeath {
 	* @param	k
 	*/
 	public void death(World world, int i, int j, int k) {
-		world.setBlockWithNotify(i, j, k, 0);
+		world.setBlock(i, j, k, 0);
 	}
 }

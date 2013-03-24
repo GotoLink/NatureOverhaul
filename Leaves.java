@@ -6,6 +6,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockLeavesBase;
 import net.minecraft.block.material.Material;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -15,14 +16,14 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 
-public class BlockLeaves extends BlockLeavesBase implements IGrowable
+public class Leaves extends BlockLeavesBase implements IGrowable
 {
     private int baseIndexInPNG;
     int adjacentTreeBlocks[];
 
-    protected BlockLeaves(int i, int j)
+    protected Leaves(int i, int j)
     {
-        super(i, j, Material.leaves, false);
+        super(i, Material.leaves, false);
         baseIndexInPNG = j;
         setTickRandomly(true);
     }
@@ -135,8 +136,8 @@ public class BlockLeaves extends BlockLeavesBase implements IGrowable
 		
 		// The values for BOTH and GROWTH are odd
 		boolean growSaps 	= (((int) NatureOverhaul.growthType % 2) == 1);
-		boolean appleGrowth = NatureOverhaul.appleGrows;
-		boolean cocoaGrowth = NatureOverhaul.cocoaGrows;
+		boolean appleGrowth = NatureOverhaul.appleGrow;
+		boolean cocoaGrowth = NatureOverhaul.cocoaGrow;
 								
 		// Sapling growth frequency
 		float sapFreq 		= getSaplingGrowthProb(world, i, j, k);
@@ -173,7 +174,7 @@ public class BlockLeaves extends BlockLeavesBase implements IGrowable
 	* @param item	Item to emit
 	*/
 	private void emitItem(World world, int i, int j, int k, ItemStack item) {
-		EntityItem entityitem = new EntityItem(world, i, j, k, item, true);
+		EntityItem entityitem = new EntityItem(world, i, j, k, item);
 		world.spawnEntityInWorld(entityitem);
 	}
 	
@@ -336,7 +337,7 @@ public class BlockLeaves extends BlockLeavesBase implements IGrowable
 	*/
     private void removeLeaves(World world, int i, int j, int k) {
 		if(!world.isRemote) {
-			boolean appleGrowth = NatureOverhaul.appleGrows;
+			boolean appleGrowth = NatureOverhaul.appleGrow;
 			// The values for BOTH and DECAY are the higher ones
 			boolean growSaps 	= ((int) NatureOverhaul.growthType > 1);
 			if(growSaps) {
@@ -356,7 +357,7 @@ public class BlockLeaves extends BlockLeavesBase implements IGrowable
 		} else {
         dropBlockAsItem(world, i, j, k, world.getBlockMetadata(i, j, k), 0);
 		}
-        world.setBlockWithNotify(i, j, k, 0);
+        world.setBlock(i, j, k, 0);
     }
 
 	/**

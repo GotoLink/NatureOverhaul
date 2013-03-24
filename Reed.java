@@ -10,7 +10,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraftforge.common.EnumPlantType;
 
-public class BlockReed extends BlockMortal
+public class Reed extends BlockMortal
 {
 	//=====================
 	// BEGIN NATURE OVERHAUL
@@ -20,10 +20,9 @@ public class BlockReed extends BlockMortal
 	//=====================
 	// END NATURE OVERHAUL
 	//=====================
-    protected BlockReed(int i, int j)
+    protected Reed(int i, int j)
     {
         super(i, Material.plants);
-        blockIndexInTexture = j;
         float f = 0.375F;
         setBlockBounds(0.5F - f, 0.0F, 0.5F - f, 0.5F + f, 1.0F, 0.5F + f);
         setTickRandomly(true);
@@ -40,12 +39,12 @@ public class BlockReed extends BlockMortal
                 int i1 = world.getBlockMetadata(i, j, k);
                 if (i1 == 15)
                 {
-                    world.setBlockWithNotify(i, j + 1, k, blockID);
-                    world.setBlockMetadataWithNotify(i, j, k, 0);
+                    world.setBlock(i, j + 1, k, blockID);
+                    world.setBlockMetadataWithNotify(i, j, k, 0, 2);
                 }
                 else
                 {
-                    world.setBlockMetadataWithNotify(i, j, k, i1 + 1);
+                    world.setBlockMetadataWithNotify(i, j, k, i1 + 1, 2);
                 }
             }
         }
@@ -131,7 +130,7 @@ public class BlockReed extends BlockMortal
 		}
 		// Now scan back down and delete
 		while(world.getBlockId(i, y, k) == blockID) {
-			world.setBlockWithNotify(i, y, k, 0);
+			world.setBlock(i, y, k, 0);
 			y--;
 		}
 	}

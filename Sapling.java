@@ -15,9 +15,9 @@ import net.minecraft.world.gen.feature.WorldGenerator;
 // BEGIN NATURE OVERHAUL
 //====================
 
-public class BlockSapling extends BlockFlower
+public class Sapling extends BlockFlower
 {
-    protected BlockSapling(int i, int j)
+    protected Sapling(int i, int j)
     {
         super(i, j);
         float f = 0.4F;
@@ -43,27 +43,10 @@ public class BlockSapling extends BlockFlower
 			// specific growth
 			//System.out.println(l);
 			if((((l & 8) == 0)) && (bound > 0)) {
-                world.setBlockMetadataWithNotify(i, j, k, l | 8);
+                world.setBlockMetadataWithNotify(i, j, k, l | 8, 2);
 			} else {
 				growTree(world, i, j, k, random, false);
             }
-        }
-    }
-
-    public int getBlockTextureFromSideAndMetadata(int i, int j)
-    {
-        j &= 3;
-        if (j == 1)
-        {
-            return 63;
-        }
-        if (j == 2)
-        {
-            return 79;
-        }
-        else
-        {
-            return super.getBlockTextureFromSideAndMetadata(i, j);
         }
     }
 
@@ -108,7 +91,7 @@ public class BlockSapling extends BlockFlower
 				obj = new WorldGenTrees(true);
 			}
 		}
-		world.setBlockWithNotify(i, j, k, 0); 
+		world.setBlock(i, j, k, 0); 
 		
 		// Ignore death of saplings
 		if(ignoreDeath) {

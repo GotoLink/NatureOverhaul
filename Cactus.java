@@ -17,11 +17,11 @@ import net.minecraftforge.common.EnumPlantType;
 import net.minecraftforge.common.ForgeDirection;
 import net.minecraftforge.common.IPlantable;
 
-public class BlockCactus extends BlockMortal
+public class Cactus extends BlockMortal
 {
 	protected float optRain = 0.2F;
 	protected float optTemp = 1.5F;
-    protected BlockCactus(int i, int j)
+    protected Cactus(int i, int j)
     {
         super(i, j, Material.cactus);
         setTickRandomly(true);
@@ -48,12 +48,12 @@ public class BlockCactus extends BlockMortal
 
                 if (var7 == 15)
                 {
-                    world.setBlockWithNotify(i, j + 1, k, this.blockID);
-                    world.setBlockMetadataWithNotify(i, j, k, 0);
+                    world.setBlock(i, j + 1, k, this.blockID);
+                    world.setBlock(i, j, k, 0);
                 }
                 else
                 {
-                    world.setBlockMetadataWithNotify(i, j, k, var7 + 1);
+                    world.setBlockMetadata(i, j, k, var7 + 1);
                 }
             }
         }
@@ -133,7 +133,7 @@ public class BlockCactus extends BlockMortal
 		}
 		// Now scan back down and delete
 		while(world.getBlockId(i, y, k) == blockID) {
-			world.setBlockWithNotify(i, y, k, 0);
+			world.setBlock(i, y, k, 0);
 			y--;
 		}
 	}
