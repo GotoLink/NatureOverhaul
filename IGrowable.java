@@ -3,7 +3,7 @@ package natureoverhaul;
 import net.minecraft.world.World;
 
 /**
-* An interface to explain that an object is growable.
+* An interface to explain that a block is growable.
 * This means that bonemeal can affect it
 *
 * @author	Clinton Alexander
@@ -12,9 +12,8 @@ import net.minecraft.world.World;
 
 public interface IGrowable {
 	/**
-	* Grows a copy of this item at this location
+	* Grows a copy of this block at this location
 	*
-	* Overload if it requires a differnet item type
 	*/
 	abstract void grow(World world, int i, int j, int k);
 }

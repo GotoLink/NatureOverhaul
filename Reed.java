@@ -10,7 +10,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraftforge.common.EnumPlantType;
 
-public class Reed extends BlockMortal
+public class Reed extends BlockOverhauled
 {
 	//=====================
 	// BEGIN NATURE OVERHAUL

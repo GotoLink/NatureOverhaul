@@ -17,7 +17,7 @@ import net.minecraftforge.common.EnumPlantType;
 import net.minecraftforge.common.ForgeDirection;
 import net.minecraftforge.common.IPlantable;
 
-public class Cactus extends BlockMortal
+public class Cactus extends BlockOverhauled
 {
 	protected float optRain = 0.2F;
 	protected float optTemp = 1.5F;

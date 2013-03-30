@@ -9,7 +9,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 
 
-public class Flower extends BlockMortal
+public class Flower extends BlockOverhauled
 {
 	//=====================
 	// BEGIN NATURE OVERHAUL

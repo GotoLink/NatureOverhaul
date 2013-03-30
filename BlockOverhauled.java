@@ -1,29 +1,26 @@
 package natureoverhaul;
 
-import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.world.World;
 
 /**
-* Specifies a block which is mortal and can die
-* (not in the sense of sentient, but the sense of is not forever like most blocks)
-* 
+* Specifies a block which can grow and can die 
 *
 * @author	Clinton Alexander
 */
-public abstract class BlockMortal extends Block implements IBlockDeath {
+public abstract class BlockOverhauled extends BlockGrowable implements IBlockDeath {
 	
 	/**
-	* See parent constructor
+	* Constructor to interface subblocks with block growable
 	*/
-    protected BlockMortal(int i, Material material) {
+    protected BlockOverhauled(int i, Material material) {
 		super(i, material);
 	}
 	/**
 	* See parent constructor
 	*/
-    protected BlockMortal(int i, int j, Material material) {
-		this(i, material);
+    protected BlockOverhauled(int i, int j, Material material) {
+		super(i, j, material);
 	}
 	
 	/**

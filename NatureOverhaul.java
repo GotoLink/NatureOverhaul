@@ -2,9 +2,12 @@ package natureoverhaul;
 //Author: Clinton Alexander
 import java.io.File;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockCactus;
@@ -20,15 +23,22 @@ import net.minecraft.block.BlockNetherStalk;
 import net.minecraft.block.BlockReed;
 import net.minecraft.block.BlockSapling;
 import net.minecraft.block.BlockTallGrass;
+import net.minecraft.world.ChunkCoordIntPair;
+import net.minecraft.world.NextTickListEntry;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 import net.minecraft.world.biome.BiomeGenBase;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import net.minecraftforge.common.Configuration;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.Event.Result;
 import net.minecraftforge.event.ForgeSubscribe;
 import net.minecraftforge.event.entity.player.BonemealEvent;
 import net.minecraftforge.event.terraingen.SaplingGrowTreeEvent;
+import cpw.mods.fml.common.ITickHandler;
 import cpw.mods.fml.common.Mod;
+import cpw.mods.fml.common.TickType;
 import cpw.mods.fml.common.Mod.Init;
 import cpw.mods.fml.common.Mod.Instance;
 import cpw.mods.fml.common.Mod.PostInit;
@@ -46,8 +56,8 @@ import cpw.mods.fml.relauncher.Side;
 @NetworkMod(clientSideRequired = false, serverSideRequired = false,
 clientPacketHandlerSpec = @SidedPacketHandler(channels = { "NatureOverhaul" }, packetHandler = ClientPacketHandler.class),
 serverPacketHandlerSpec = @SidedPacketHandler(channels = { "NatureOverhaul" }, packetHandler = ServerPacketHandler.class))
-public class NatureOverhaul
-{	@Instance ("NatureOverhaul")
+public class NatureOverhaul implements ITickHandler{
+	@Instance ("NatureOverhaul")
 	public static NatureOverhaul instance;
 public static Boolean saplingDie=false,saplingGrow=false,treeDie=false,treeGrow=false;
 public static Boolean flowerDie=false,flowerGrow=false,wortDie=false,wortGrow=false;
@@ -66,18 +76,19 @@ public static int shroomDeathRate=0,shroomTreeGrowthRate=0,shroomGrowthRate=0,sh
 public static int cocoaGrowthRate=0,appleGrowthRate=0,mossGrowthRate=0;
 public static int wildAnimalBreedRate=0,reproductionRate=0;
 public static int growthType=0;
-public static List<Integer> validID=new ArrayList<Integer>();
+private static WorldServer world;
+protected int updateLCG = (new Random()).nextInt();
 
 // Default labels
 public static String[] labels = {"AVERAGE", "FAST", "SUPERFAST", "INSANE", "SUPERSLOW", "SLOW"};
-public static Map StringToRateMapping = new HashMap();//TODO: Use this
+public static Map stringToRateMapping = new HashMap();//TODO: Use this
 static{
-	StringToRateMapping.put("INSANE", 5);
-	StringToRateMapping.put("SUPERFAST", 250);
-	StringToRateMapping.put("FAST", 1250);
-	StringToRateMapping.put("AVERAGE", 2500);
-	StringToRateMapping.put("SLOW", 5000);
-	StringToRateMapping.put("SUPERSLOW", 10000);
+	stringToRateMapping.put("INSANE", 5);
+	stringToRateMapping.put("SUPERFAST", 250);
+	stringToRateMapping.put("FAST", 1250);
+	stringToRateMapping.put("AVERAGE", 2500);
+	stringToRateMapping.put("SLOW", 5000);
+	stringToRateMapping.put("SUPERSLOW", 10000);
 }
 public static Map IDToGrowingMapping = new HashMap(),IDToDyingMapping = new HashMap();
 public static Map IDToOptTempMapping = new HashMap(),IDToOptRainMapping = new HashMap();
@@ -168,8 +179,9 @@ public static Map IDToGrowthRateMapping= new HashMap(),IDToDeathRateMapping= new
     }
     @Init
     public void load(FMLInitializationEvent event)
-    {	  MinecraftForge.EVENT_BUS.register(this); 
-    	TickRegistry.registerTickHandler(new TickHandler(), Side.SERVER);
+    {	  
+    	MinecraftForge.EVENT_BUS.register(this); 
+    	TickRegistry.registerTickHandler(this, Side.SERVER);
     }
     @ForgeSubscribe
     public void onBoneMealUse(BonemealEvent event){
@@ -199,10 +211,10 @@ public static Map IDToGrowthRateMapping= new HashMap(),IDToDeathRateMapping= new
 		}
 	}
 	public void onUpdateTick(World world, int i, int j, int k, int id)	
-	{
-		if(isValid(id) /*&& isGrowing(id) && Math.random()<getGrowthProb(world, i, j, k, id)*/) 
+	{	
+		if( isGrowing(id) && world.rand.nextFloat() < getGrowthProb(world, i, j, k, id)) 
 		{
-				System.out.println("condition checked");
+				System.out.println("second condition checked");
 				/*	grow(world, i, j, k);
 				}
 				if(isMortal(data[3]) && hasDied(world, i, j, k)) {
@@ -220,7 +232,7 @@ public static Map IDToGrowthRateMapping= new HashMap(),IDToDeathRateMapping= new
 	private float getGrowthProb(World world, int i, int j, int k, int id) {
 		BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
 		float freq = getGrowthRate(id);
-		if(NatureOverhaul.biomeModifiedGrowth && freq!=-1) {
+		if(biomeModifiedGrowth && freq!=-1) {
 			if((biome.rainfall == 0) || (biome.temperature > 1.5F)) {
 				return 0.01F;
 			} else {
@@ -248,8 +260,8 @@ public static Map IDToGrowthRateMapping= new HashMap(),IDToDeathRateMapping= new
 	private boolean isMortal(int id){
 		return (boolean) IDToDyingMapping.get(Integer.valueOf(id));
 	}
-	private boolean isValid(int id){
-		return id>0 && id<4096 && validID.contains(Integer.valueOf(id));
+	public boolean isValid(int id){
+		return id>0 && id<4096 && Block.blocksList[id]!=null && Block.blocksList[id].getTickRandomly() && IDToGrowingMapping.containsKey(Integer.valueOf(id));
 	}
 	/**
 	* Setup sapling options
@@ -314,65 +326,128 @@ public static Map IDToGrowthRateMapping= new HashMap(),IDToDeathRateMapping= new
     	{
     		if (Block.blocksList[i]!=null)
     			if (Block.blocksList[i] instanceof BlockGrass||Block.blocksList[i] instanceof BlockTallGrass||Block.blocksList[i] instanceof BlockMycelium)
-    				{
+    			{
     				addMapping(i, grassGrow, grassGrowthRate, grassDie, grassDeathRate, 0.7F, 0.5F);
-    				validID.add(Integer.valueOf(i));
-    				}
+    			}
     			else if(Block.blocksList[i] instanceof BlockSapling)
     			{
     				addMapping(i, saplingGrow, 0, saplingDie,saplingDeathRate, 1.0F, 1.0F);
-    				validID.add(Integer.valueOf(i));
     			}
     			else if(Block.blocksList[i] instanceof BlockLog)
     			{
     				addMapping(i,treeGrow,treeGrowthRate,treeDie,treeDeathRate, 1.0F, 1.0F);
-    				validID.add(Integer.valueOf(i));
     			}
     			else if(Block.blocksList[i] instanceof BlockLeaves)
-    				{
+    			{
     				addMapping(i, false, 0, leafDecay,leafDeathRate, 1.0F, 1.0F );
-    				validID.add(Integer.valueOf(i));
-    				}
+    			}
     			else if(Block.blocksList[i] instanceof BlockFlower)
     			{
     				addMapping(i,flowerGrow,flowerGrowthRate,flowerDie,flowerDeathRate,0.6F,0.7F);
-    				validID.add(Integer.valueOf(i)); 			 	
     			}
     			else if (Block.blocksList[i] instanceof BlockMushroom)
     			{
     				addMapping(i,shroomGrow,shroomGrowthRate,shroomDie,shroomDeathRate,0.9F,1.0F);
-    				validID.add(Integer.valueOf(i));
     			}			
     			else if(i==Block.cobblestoneMossy.blockID)
     			{
-    				addMapping(i,mossGrow,mossGrowthRate,false,0,1.0F,1.0F);
-    				validID.add(Integer.valueOf(i));			
+    				addMapping(i,mossGrow,mossGrowthRate,false,0,1.0F,1.0F);			
     			}
     			else if(Block.blocksList[i] instanceof BlockCactus)
     			{
     				addMapping(i, cactiiGrow,cactiiGrowthRate, cactiiDie,cactiiDeathRate, 1.5F, 0.2F);
-    		    	validID.add(Integer.valueOf(i));
     			}
     			else if(Block.blocksList[i] instanceof BlockReed)
     			{
     				addMapping(i,reedGrow,reedGrowthRate,reedDie,reedDeathRate,0.8F,0.8F);
-    		    	validID.add(Integer.valueOf(i));
     			}
     			else if(Block.blocksList[i] instanceof BlockMushroomCap)
     				{
     				addMapping(i,shroomTreeGrow,shroomTreeGrowthRate,shroomTreeDie,shroomTreeDeathRate,1.0F,1.0F);				
-    				validID.add(Integer.valueOf(i));
     				}	
     			else if(Block.blocksList[i] instanceof BlockNetherStalk)
     			{
     				addMapping(i,wortGrow,wortGrowthRate,wortDie,wortDeathRate,1.0F,1.0F);
-    		    	validID.add(Integer.valueOf(i));
     			}
     			else if(Block.blocksList[i] instanceof BlockCocoa)
     			{
     				addMapping(i,cocoaGrow,cocoaGrowthRate,false,0,1.0F,1.0F);
-    			    validID.add(Integer.valueOf(i));
     			}		
     	}
     }
+    @Override
+	public void tickStart(EnumSet<TickType> type, Object... tickData) 
+	{	
+		if(tickData[0] instanceof WorldServer)
+		{
+			world=(WorldServer) tickData[0];
+			if (world.provider.dimensionId==0 /*&& world.getWorldInfo().getWorldTime()%5==0*/);
+			{//In overworld, every 5 tick
+				Iterator it=world.activeChunkSet.iterator();			
+				while (it.hasNext())
+				{
+					ChunkCoordIntPair chunkIntPair = (ChunkCoordIntPair) it.next();
+					int k = chunkIntPair.chunkXPos * 16;
+		            int l = chunkIntPair.chunkZPos * 16;
+					Chunk chunk=null;
+					if(world.getChunkProvider().chunkExists(chunkIntPair.chunkXPos,chunkIntPair.chunkZPos))
+					{
+						chunk=world.getChunkFromChunkCoords(chunkIntPair.chunkXPos,chunkIntPair.chunkZPos);
+					}
+					if (chunk!=null && chunk.isChunkLoaded && chunk.isTerrainPopulated)
+					{			
+						int i2;
+						for (ExtendedBlockStorage blockStorage:chunk.getBlockStorageArray())
+							if (blockStorage!=null && !blockStorage.isEmpty() && blockStorage.getNeedsRandomTick())
+								{
+								for (int j2 = 0; j2 < 3; ++j2)
+			                    	{
+			                        	this.updateLCG = this.updateLCG * 3 + 1013904223;
+			                        	i2 = this.updateLCG >> 2;
+			                        	int k2 = i2 & 15;
+			                        	int l2 = i2 >> 8 & 15;
+			                        	int i3 = i2 >> 16 & 15;
+			                        	int j3 = blockStorage.getExtBlockID(k2, i3, l2);
+			                        	Block block = Block.blocksList[j3];
+
+			                        	if (isValid(j3))
+			                        	{
+			                        		onUpdateTick(world, k2 + k, i3 + blockStorage.getYLocation(), l2 + l, j3);
+			                        	}
+			                    	}
+							/*List list= world.getPendingBlockUpdates(chunk, false);FIXME
+							if (list!=null)
+							{			
+								Iterator itr=list.iterator();						
+								while(itr.hasNext())				
+								{						
+									NextTickListEntry nextTickEntry=(NextTickListEntry) itr.next();					
+									if ( nextTickEntry.scheduledTime == world.getWorldInfo().getWorldTotalTime() && isValid(nextTickEntry.blockID))						
+									{						
+										System.out.println("first conditions checked");							
+										//onUpdateTick(world,nextTickEntry.xCoord,nextTickEntry.yCoord,nextTickEntry.zCoord,nextTickEntry.blockID);						
+									}						
+								}	
+							}*/
+						}
+					}
+				}
+			}
+		}
+	}
+
+	@Override
+	public void tickEnd(EnumSet<TickType> type, Object... tickData) {
+		
+	}
+
+	@Override
+	public EnumSet<TickType> ticks() {
+		return EnumSet.of(TickType.WORLD);
+	}
+
+	@Override
+	public String getLabel() {
+		return "Nature Overhaul Tick";
+	}
 }
