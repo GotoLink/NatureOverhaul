@@ -160,7 +160,6 @@ public class Leaves extends BlockLeavesBase implements IGrowable
 			}
 		} else if((cocoaGrowth) && (growth(cocoaFreq))) {
 			if((world.getBlockId(i, j - 1, k) == 0) && (cocoaCanGrow(world,i,j,k))) {
-				//System.out.println("COCOA GROWTH IN RAINFOREST ("+i+","+j+","+k+")");
 				emitItem(world, i, j - 1, k, new ItemStack(Item.dyePowder, 1, 3));
 				return true;
 			}
@@ -359,23 +358,6 @@ public class Leaves extends BlockLeavesBase implements IGrowable
 		}
         world.setBlock(i, j, k, 0);
     }
-
-	/**
-	* Calculate an optimal distance coefficient. This is for cases
-	* where a larger number is desired the furhter you get from
-	* the optimal value. The minimum is 1, so multiplying any number "r"
-	* by the result of this operation will result in "r" if r is equal to "opt".
-	* If r is extremely far from opt, the coefficient will be extremely large
-	*
-	* @param	rain		Current value
-	* @param	opt		Optimal value
-	* @param	tol		tolerance (lower = Higher probability)
-	* @return The modifier. Output always >= 1, where 1 is "just as likely" and
-	* 		higher is "less likely"
-	*/
-	protected float getOptValueMult(float rain, float opt, float tol) {
-		return tol * (float) Math.pow(opt - rain, 2) + 1;
-	}
 	
 	//========
 	// END NATURE OVERHAUL

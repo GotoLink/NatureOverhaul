@@ -16,4 +16,6 @@ public interface IGrowable {
 	*
 	*/
 	abstract void grow(World world, int i, int j, int k);
+
+	abstract int getGrowthRate();
 }

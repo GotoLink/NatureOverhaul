@@ -20,7 +20,7 @@ public class TallGrass extends BlockFlower
 	//====================
     protected TallGrass(int i, int j)
     {
-        super(i, j);
+        super(i);
         float f = 0.4F;
         setBlockBounds(0.5F - f, 0.0F, 0.5F - f, 0.5F + f, 0.8F, 0.5F + f);
 		setTickRandomly(true);

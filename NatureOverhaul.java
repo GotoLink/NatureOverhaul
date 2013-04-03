@@ -59,48 +59,44 @@ serverPacketHandlerSpec = @SidedPacketHandler(channels = { "NatureOverhaul" }, p
 public class NatureOverhaul implements ITickHandler{
 	@Instance ("NatureOverhaul")
 	public static NatureOverhaul instance;
-public static Boolean saplingDie=false,saplingGrow=false,treeDie=false,treeGrow=false;
-public static Boolean flowerDie=false,flowerGrow=false,wortDie=false,wortGrow=false;
-public static Boolean grassDie=false,grassGrow=false,reedDie=false,reedGrow=false;
-public static Boolean cactiiDie=false,cactiiGrow=false,shroomDie=false,shroomGrow=false;
-public static Boolean shroomTreeGrow=false,shroomTreeDie=false,cocoaGrow=false,appleGrow=false;
-public static Boolean autoSapling=false,lumberjack=false,leafDecay=true;
-public static Boolean defaultShroomSpread=true,biomeModifiedGrowth=true,mossGrow=true;
-public static Boolean wildAnimalsBreed=true;
-public static int saplingDeathRate=60000,leafDeathRate=0;
-public static String saplingGrowthRate="";
-public static int treeDeathRate=0,treeGrowthRate=0,flowerDeathRate=0,flowerGrowthRate=0;
-public static int wortDeathRate=0,wortGrowthRate=0,grassDeathRate=0,grassGrowthRate=0;
-public static int reedDeathRate=0,reedGrowthRate=0,cactiiDeathRate=0,cactiiGrowthRate=0;
-public static int shroomDeathRate=0,shroomTreeGrowthRate=0,shroomGrowthRate=0,shroomTreeDeathRate=0;
-public static int cocoaGrowthRate=0,appleGrowthRate=0,mossGrowthRate=0;
-public static int wildAnimalBreedRate=0,reproductionRate=0;
-public static int growthType=0;
-private static WorldServer world;
-protected int updateLCG = (new Random()).nextInt();
+	public static Boolean autoSapling=false,lumberjack=false;
+	public static Boolean defaultShroomSpread=true,biomeModifiedGrowth=true;
+	public static Boolean wildAnimalsBreed=true;
+	public static int wildAnimalBreedRate=0,reproductionRate=0;
+	public static int growthType=0;//For sapling-> tree behaviour
+	public static boolean[] dieSets=new boolean[10],growSets=new boolean[13];
+	public static int[] deathRates=new int[10],growthRates=new int[13];
+	private static WorldServer world;
+	protected int updateLCG = (new Random()).nextInt();
 
 // Default labels
-public static String[] labels = {"AVERAGE", "FAST", "SUPERFAST", "INSANE", "SUPERSLOW", "SLOW"};
-public static Map stringToRateMapping = new HashMap();//TODO: Use this
-static{
+	public static String[] labels = {"AVERAGE", "FAST", "SUPERFAST", "INSANE", "SUPERSLOW", "SLOW"};
+	public static HashMap<String,Integer> stringToRateMapping = new HashMap();//TODO: Use this ?
+	static{
 	stringToRateMapping.put("INSANE", 5);
 	stringToRateMapping.put("SUPERFAST", 250);
 	stringToRateMapping.put("FAST", 1250);
 	stringToRateMapping.put("AVERAGE", 2500);
 	stringToRateMapping.put("SLOW", 5000);
 	stringToRateMapping.put("SUPERSLOW", 10000);
-}
-public static Map IDToGrowingMapping = new HashMap(),IDToDyingMapping = new HashMap();
-public static Map IDToOptTempMapping = new HashMap(),IDToOptRainMapping = new HashMap();
-public static Map IDToGrowthRateMapping= new HashMap(),IDToDeathRateMapping= new HashMap();
+	}
+	public static HashMap<Integer,Boolean> IDToGrowingMapping = new HashMap(),IDToDyingMapping = new HashMap();
+	public static HashMap<Integer,Float> IDToOptTempMapping = new HashMap(),IDToOptRainMapping = new HashMap();
+	public static HashMap<Integer,Integer> IDToGrowthRateMapping= new HashMap(),IDToDeathRateMapping= new HashMap();
     @SidedProxy(clientSide = "natureoverhaul.ClientProxy", serverSide = "natureoverhaul.CommonProxy")
-    public static CommonProxy proxy;
-    private static String[] optionsCategory=new String[]//TODO: Use this more
+    public static CommonProxy proxy; 
+    private static String[] names=new String[]
+    	{
+    	"Sapling","Tree","Flower","Netherwort","Grass","Reed","Cactus","Mushroom","Mushroom Tree","Leaf"
+    	};
+    private static String[] optionsCategory=new String[names.length+1];
+    		static{
+    		for(int i=0;i<names.length;i++)
     		{
-    	"Sapling Options","Tree Options","Flower Options","Netherwort Options","Grass Options",
-    	"Reed Options","Cactus Options","Mushroom Options","Misc Options"
+    			optionsCategory[i]=names[i]+" Options";
+    		}
+    		optionsCategory[names.length]="Misc Options";
     		};
-    
     @PreInit
     public void preInit(FMLPreInitializationEvent event)
     {
@@ -109,69 +105,35 @@ public static Map IDToGrowthRateMapping= new HashMap(),IDToDeathRateMapping= new
         Configuration config = new Configuration(cfile,true);
         config.load();
         for(String name:optionsCategory)
-        config.addCustomCategoryComment(name,"The lower the rate, the faster the changes happen.");
-        
-        saplingDie=config.get("Sapling Options","SaplingDie",true).getBoolean(true);
-        saplingGrow=config.get("Sapling Options","SaplingGrow",true).getBoolean(true);
-        autoSapling=config.get("Sapling Options","AutoSapling",true).getBoolean(true);
-        saplingDeathRate=config.get("Sapling Options","SaplingDeathRate",2500).getInt(2500);
-        saplingGrowthRate=config.get("Sapling Options","SaplingGrowthRate","AVERAGE").getString(); 
-        //look at labels for other values    
-        growthType=config.get("Sapling Options","Growth Occurs On",3).getInt(3);
+        {
+        	config.addCustomCategoryComment(name,"The lower the rate, the faster the changes happen.");
+        }
+        for (int i=0;i<10;i++)
+        {     
+        	dieSets[i]=config.get(optionsCategory[i],names[i]+"Die",true).getBoolean(true);
+        	growSets[i]=config.get(optionsCategory[i],names[i]+"Grow",true).getBoolean(true);
+        	deathRates[i]=config.get(optionsCategory[i],names[i]+"DeathRate",1200).getInt(1200);
+        	growthRates[i]=config.get(optionsCategory[i],names[i]+"GrowthRate",1200).getInt(1200);
+        }
+        autoSapling=config.get(optionsCategory[0],"AutoSapling",true).getBoolean(true);
+        growthType=config.get(optionsCategory[0],"Growth Occurs On",3).getInt(3);
        
-        treeDie=config.get("Tree Options","TreeDie",true).getBoolean(true);
-        treeGrow=config.get("Tree Options","TreeGrow",true).getBoolean(true);
-        lumberjack=config.get("Tree Options","Lumberjack",true).getBoolean(true);
-        leafDecay=config.get("Tree Options","LeafDecay",true).getBoolean(true);
-        cocoaGrow=config.get("Tree Options","CocoaGrows",true).getBoolean(true);
-        appleGrow=config.get("Tree Options","AppleGrows",true).getBoolean(true);
-        treeDeathRate=config.get("Tree Options","TreeDeathRate",2500).getInt(2500);
-        treeGrowthRate=config.get("Tree Options","TreeGrowthRate",5).getInt(5);
-        leafDeathRate=config.get("Tree Options","LeafDeathRate",2500).getInt(2500);
-        cocoaGrowthRate=config.get("Tree Options","CocoaGrowthRate",3000).getInt(3000);
-        appleGrowthRate=config.get("Tree Options","AppleGrowthRate",3000).getInt(3000);
-       
-        flowerDie=config.get("Flower Options","FlowerDie",true).getBoolean(true);
-        flowerGrow=config.get("Flower Options","FlowerGrow",true).getBoolean(true);
-        flowerDeathRate=config.get("Flower Options","FlowerDeathRate",1200).getInt(1200);
-        flowerGrowthRate=config.get("Flower Options","FlowerGrowthRate",1200).getInt(1200);
+        lumberjack=config.get(optionsCategory[1],"Lumberjack",true).getBoolean(true);
+        deathRates[9]=config.get(optionsCategory[9],names[9]+"DeathRate",2500).getInt(2500);//Leaves
+        growSets[10]=config.get(optionsCategory[1],"CocoaGrows",true).getBoolean(true);//Cocoa
+        growthRates[10]=config.get(optionsCategory[1],"CocoaGrowthRate",3000).getInt(3000);
+        growSets[11]=config.get(optionsCategory[1],"AppleGrows",true).getBoolean(true);//Apple
+        growthRates[11]=config.get(optionsCategory[1],"AppleGrowthRate",3000).getInt(3000);            
         
-        wortDie=config.get("Netherwort Options","WortDie",true).getBoolean(true);
-        wortGrow=config.get("Netherwort Options","WortGrow",true).getBoolean(true);
-        wortDeathRate=config.get("Netherwort Options","WortDeathRate",1200).getInt(1200);
-        wortGrowthRate=config.get("Netherwort Options","WortGrowthRate",1200).getInt(1200);
-       
-        grassDie=config.get("Grass Options","GrassDie",true).getBoolean(true);
-        grassGrow=config.get("Grass Options","GrassGrow",true).getBoolean(true);
-        grassDeathRate=config.get("Grass Options","GrassDeathRate",1200).getInt(1200); 
-        grassGrowthRate=config.get("Grass Options","GrassGrowthRate",1200).getInt(1200); 
+        defaultShroomSpread=config.get(optionsCategory[7],"default"+names[7]+"Spread",false).getBoolean(false);
         
-        reedDie=config.get("Reed Options","ReedDie",true).getBoolean(true);
-        reedGrow=config.get("Reed Options","ReedGrow",true).getBoolean(true);
-        reedDeathRate=config.get("Reed Options","ReedDeathRate",1200).getInt(1200);
-        reedGrowthRate=config.get("Reed Options","ReedGrowthRate",1200).getInt(1200);
-        
-        cactiiDie=config.get("Cactus Options","CactiiDie",true).getBoolean(true);
-        cactiiGrow=config.get("Cactus Options","CactiiGrow",true).getBoolean(true);
-        cactiiDeathRate=config.get("Cactus Options","CactiiDeathRate",1200).getInt(1200);
-        cactiiGrowthRate=config.get("Cactus Options","CactiiGrowthRate",1200).getInt(1200);
-       
-        shroomDie=config.get("Mushroom Options","ShroomDie",true).getBoolean(true);
-        defaultShroomSpread=config.get("Mushroom Options","defaultShroomSpread",false).getBoolean(false);
-        shroomTreeGrow=config.get("Mushroom Options","ShroomTreeGrow",true).getBoolean(true);
-        shroomTreeDie=config.get("Mushroom Options","ShroomTreeDie",true).getBoolean(true);
-        shroomDeathRate=config.get("Mushroom Options","ShroomDeathRate",1200).getInt(1200);
-        shroomGrow=config.get("Mushroom Options","ShroomGrow",true).getBoolean(true);
-        shroomGrowthRate=config.get("Mushroom Options","ShroomGrowthRate",1200).getInt(1200);       
-        shroomTreeGrowthRate=config.get("Mushroom Options","ShroomTreeGrowthRate",1200).getInt(1200);
-        shroomTreeDeathRate=config.get("Mushroom Options","ShroomTreeDeathRate",1200).getInt(1200);
-        biomeModifiedGrowth=config.get("Misc Options","BiomeModifiedGrowth",true).getBoolean(true);
-        mossGrow=config.get("Misc Options","MossGrow",true).getBoolean(true);
-        mossGrowthRate=config.get("Misc Options","MossGrowthRate",2400).getInt(2400);
+        biomeModifiedGrowth=config.get(optionsCategory[10],"BiomeModifiedGrowth",true).getBoolean(true);
+        growSets[12]=config.get(optionsCategory[10],"MossGrow",true).getBoolean(true);//Moss
+        growthRates[12]=config.get(optionsCategory[10],"MossGrowthRate",2400).getInt(2400);
         //Not sure if the following can be implemented
-        reproductionRate=config.get("Misc Options","ReproductionRate",1).getInt(1);
-        wildAnimalsBreed=config.get("Misc Options","WildAnimalsBreed",true).getBoolean(true);
-        wildAnimalBreedRate=config.get("Misc Options","WildAnimalBreedRate",16000).getInt(16000);
+        //reproductionRate=config.get(optionsCategory[9],"ReproductionRate",1).getInt(1);
+        //wildAnimalsBreed=config.get(optionsCategory[9],"WildAnimalsBreed",true).getBoolean(true);
+        //wildAnimalBreedRate=config.get(optionsCategory[9],"WildAnimalBreedRate",16000).getInt(16000);
       if (config.hasChanged())
       {        
     	  config.save();     	
@@ -217,7 +179,7 @@ public static Map IDToGrowthRateMapping= new HashMap(),IDToDeathRateMapping= new
 				System.out.println("second condition checked");
 				/*	grow(world, i, j, k);
 				}
-				if(isMortal(data[3]) && hasDied(world, i, j, k)) {
+				if(isMortal(id) && hasDied(world, i, j, k)) {
 				death(world, i, j, k);*/
 		}
 	}
@@ -229,19 +191,43 @@ public static Map IDToGrowthRateMapping= new HashMap(),IDToDeathRateMapping= new
 	* @param	k third coordinate
 	* @return	Growth probability as a float
 	*/
-	private float getGrowthProb(World world, int i, int j, int k, int id) {
-		BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
+	private float getGrowthProb(World world, int i, int j, int k, int id) {	
 		float freq = getGrowthRate(id);
-		if(biomeModifiedGrowth && freq!=-1) {
+		if(biomeModifiedGrowth && freq>0) {
+			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
 			if((biome.rainfall == 0) || (biome.temperature > 1.5F)) {
 				return 0.01F;
 			} else {
-			freq = (int) freq * BlockGrowable.getOptValueMult(biome.rainfall, getOptRain(id), 0.5F);
-			freq = (int) freq * BlockGrowable.getOptValueMult(biome.temperature, getOptTemp(id), 0.5F);
+			freq = freq * Utils.getOptValueMult(biome.rainfall, getOptRain(id), 0.5F);
+			freq = freq * Utils.getOptValueMult(biome.temperature, getOptTemp(id), 0.5F);
 			}
 		}
 		return 1F / freq;
 	}
+	/**
+	* Get the death probability
+	* @param	world
+	* @param	i
+	* @param	j
+	* @param	k
+	* @return	Death probability
+	*/
+	private float getDeathProb(World world, int i, int j, int k, int id) {			
+		float freq = getDeathRate(id);
+		if(biomeModifiedGrowth) {
+			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
+			if((biome.rainfall == 0) || (biome.temperature > 1.5F)) {
+				return 1F;
+			} else {
+			freq = freq * Utils.getOptValueMult(biome.rainfall, getOptRain(id), 10F);
+			freq = freq * Utils.getOptValueMult(biome.temperature, getOptTemp(id), 10F);
+			return 1F / freq;
+			}
+		} else {
+			return 1F / freq;
+		}
+	}
+	
 	private float getOptTemp(int id) {
 		return (float) IDToOptTempMapping.get(Integer.valueOf(id));
 	}
@@ -325,53 +311,65 @@ public static Map IDToGrowthRateMapping= new HashMap(),IDToDeathRateMapping= new
     	for (int i=1;i<Block.blocksList.length;i++)
     	{
     		if (Block.blocksList[i]!=null)
-    			if (Block.blocksList[i] instanceof BlockGrass||Block.blocksList[i] instanceof BlockTallGrass||Block.blocksList[i] instanceof BlockMycelium)
+    			if (Block.blocksList[i] instanceof BlockOverhauled)//Priority to Blocks using the API
     			{
-    				addMapping(i, grassGrow, grassGrowthRate, grassDie, grassDeathRate, 0.7F, 0.5F);
+    				addMapping(i,true,((IGrowable)Block.blocksList[i]).getGrowthRate(),true, ((IBlockDeath)Block.blocksList[i]).getDeathRate(),1.0F,1.0F);      			
+    			}
+    			else if (Block.blocksList[i] instanceof BlockGrowable || Block.blocksList[i] instanceof IGrowable)
+    			{
+    				addMapping(i,true,((IGrowable)Block.blocksList[i]).getGrowthRate(),false,-1,1.0F,1.0F);
+    			}
+    			else if (Block.blocksList[i] instanceof BlockMortal||Block.blocksList[i] instanceof IBlockDeath)
+    			{
+    				addMapping(i, false, -1, true, ((IBlockDeath)Block.blocksList[i]).getDeathRate(), 1.0F, 1.0F);
+    			} 			
+    			else if (Block.blocksList[i] instanceof BlockGrass||Block.blocksList[i] instanceof BlockTallGrass||Block.blocksList[i] instanceof BlockMycelium)
+    			{
+    				addMapping(i, growSets[4], growthRates[4], dieSets[4], deathRates[4], 0.7F, 0.5F);
     			}
     			else if(Block.blocksList[i] instanceof BlockSapling)
     			{
-    				addMapping(i, saplingGrow, 0, saplingDie,saplingDeathRate, 1.0F, 1.0F);
+    				addMapping(i, growSets[0], 0, dieSets[0],deathRates[0], 1.0F, 1.0F);
     			}
     			else if(Block.blocksList[i] instanceof BlockLog)
     			{
-    				addMapping(i,treeGrow,treeGrowthRate,treeDie,treeDeathRate, 1.0F, 1.0F);
+    				addMapping(i,growSets[1],growthRates[1],dieSets[1],deathRates[1], 1.0F, 1.0F);
     			}
     			else if(Block.blocksList[i] instanceof BlockLeaves)
     			{
-    				addMapping(i, false, 0, leafDecay,leafDeathRate, 1.0F, 1.0F );
+    				addMapping(i, growSets[9], growthRates[9], dieSets[9],deathRates[9], 1.0F, 1.0F );
     			}
     			else if(Block.blocksList[i] instanceof BlockFlower)
     			{
-    				addMapping(i,flowerGrow,flowerGrowthRate,flowerDie,flowerDeathRate,0.6F,0.7F);
+    				addMapping(i,growSets[2],growthRates[2],dieSets[2],deathRates[2],0.6F,0.7F);
     			}
     			else if (Block.blocksList[i] instanceof BlockMushroom)
     			{
-    				addMapping(i,shroomGrow,shroomGrowthRate,shroomDie,shroomDeathRate,0.9F,1.0F);
+    				addMapping(i,growSets[7],growthRates[7],dieSets[7],deathRates[7],0.9F,1.0F);
     			}			
     			else if(i==Block.cobblestoneMossy.blockID)
     			{
-    				addMapping(i,mossGrow,mossGrowthRate,false,0,1.0F,1.0F);			
+    				addMapping(i,growSets[12],growthRates[12],false,-1,1.0F,1.0F);			
     			}
     			else if(Block.blocksList[i] instanceof BlockCactus)
     			{
-    				addMapping(i, cactiiGrow,cactiiGrowthRate, cactiiDie,cactiiDeathRate, 1.5F, 0.2F);
+    				addMapping(i, growSets[6],growthRates[6], dieSets[6],deathRates[6], 1.5F, 0.2F);
     			}
     			else if(Block.blocksList[i] instanceof BlockReed)
     			{
-    				addMapping(i,reedGrow,reedGrowthRate,reedDie,reedDeathRate,0.8F,0.8F);
+    				addMapping(i,growSets[5],growthRates[5],dieSets[5],deathRates[5],0.8F,0.8F);
     			}
     			else if(Block.blocksList[i] instanceof BlockMushroomCap)
-    				{
-    				addMapping(i,shroomTreeGrow,shroomTreeGrowthRate,shroomTreeDie,shroomTreeDeathRate,1.0F,1.0F);				
-    				}	
+    			{
+    				addMapping(i,growSets[8],growthRates[8],dieSets[8],deathRates[8],1.0F,1.0F);				
+    			}	
     			else if(Block.blocksList[i] instanceof BlockNetherStalk)
     			{
-    				addMapping(i,wortGrow,wortGrowthRate,wortDie,wortDeathRate,1.0F,1.0F);
+    				addMapping(i,growSets[3],growthRates[3],dieSets[3],deathRates[3],1.0F,1.0F);
     			}
     			else if(Block.blocksList[i] instanceof BlockCocoa)
     			{
-    				addMapping(i,cocoaGrow,cocoaGrowthRate,false,0,1.0F,1.0F);
+    				addMapping(i,growSets[10],growthRates[10],false,-1,1.0F,1.0F);
     			}		
     	}
     }
@@ -381,8 +379,8 @@ public static Map IDToGrowthRateMapping= new HashMap(),IDToDeathRateMapping= new
 		if(tickData[0] instanceof WorldServer)
 		{
 			world=(WorldServer) tickData[0];
-			if (world.provider.dimensionId==0 /*&& world.getWorldInfo().getWorldTime()%5==0*/);
-			{//In overworld, every 5 tick
+			if (world.provider.dimensionId==0);
+			{//In overworld
 				Iterator it=world.activeChunkSet.iterator();			
 				while (it.hasNext())
 				{

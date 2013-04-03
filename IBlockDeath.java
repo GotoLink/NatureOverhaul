@@ -20,7 +20,7 @@ public interface IBlockDeath {
 	* @param	k
 	* @return	True if plant has died
 	*/
-	public boolean hasDied(World world, int i, int j, int k);
+	abstract boolean hasDied(World world, int i, int j, int k);
 	
 	/**
 	* Checks whether this block has starved on this tick
@@ -32,7 +32,7 @@ public interface IBlockDeath {
 	* @param	k
 	* @return	True if plant has starved
 	*/
-	public boolean hasStarved(World world, int i, int j, int k);
+	abstract boolean hasStarved(World world, int i, int j, int k);
 	
 	/**
 	* Checks whether this block has died from natural random causes
@@ -44,7 +44,7 @@ public interface IBlockDeath {
 	* @param	prob	Probability of death this tick
 	* @return	True if plant has randomly died
 	*/
-	public boolean hasRandomlyDied(World world, int i, int j, int k, float prob);
+	abstract boolean hasRandomlyDied(World world, int i, int j, int k, float prob);
 	
 	/**
 	* The action to take upon death
@@ -54,5 +54,7 @@ public interface IBlockDeath {
 	* @param	j
 	* @param	k
 	*/
-	public void death(World world, int i, int j, int k);
+	abstract void death(World world, int i, int j, int k);
+
+	abstract int getDeathRate();
 }

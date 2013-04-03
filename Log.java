@@ -13,7 +13,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 
-public class Log extends Block implements IBlockDeath
+public class Log extends BlockMortal
 {
 	//=====================
 	// BEGIN NATURE OVERHAUL
@@ -101,58 +101,6 @@ public class Log extends Block implements IBlockDeath
 		return false;
 	}
 	
-	/**
-	* Checks whether this block has died from natural random causes
-	* 
-	* @param	world
-	* @param	i
-	* @param	j
-	* @param	k
-	* @return	True if plant has randomly died
-	*/
-	public boolean hasRandomlyDied(World world, int i, int j, int k) {
-		float prob = getDeathProb(world, i, j, k);
-		
-		return hasRandomlyDied(world, i, j, k, prob);
-	}
-	
-	/**
-	* Checks whether this block has died from natural random causes
-	* 
-	* @param	world
-	* @param	i
-	* @param	j
-	* @param	k
-	* @param	prob	Probability of death this tick
-	* @return	True if plant has randomly died
-	*/
-	public boolean hasRandomlyDied(World world, int i, int j, int k, float prob) {
-		return (Math.random() < prob);
-	}
-	
-	/**
-	* Calculate an optimal distance coefficient. This is for cases
-	* where a larger number is desired the furhter you get from
-	* the optimal value. The minimum is 1, so multiplying any number "r"
-	* by the result of this operation will result in "r" if r is equal to "opt".
-	* If r is extremely far from opt, the coefficient will be extremely large
-	*
-	* @param	rain		Current value
-	* @param	opt		Optimal value
-	* @param	tol		tolerance (lower = Higher probability)
-	* @return The modifier. Output always >= 1, where 1 is "just as likely" and
-	* 		higher is "less likely"
-	*/
-	protected float getOptValueMult(float rain, float opt, float tol) {
-		return tol * (float) Math.pow(opt - rain, 2) + 1;
-	}
-	
-	//=======================
-	// END NATURE OVERHAUL
-	//=======================
-	//=======================
-	// START NATURE OVERHAUL
-	//=======================
 	/**
 	* Check if current block is a part of tree trunk
 	* Does not ignore current block

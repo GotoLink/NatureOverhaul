@@ -2,14 +2,11 @@ package natureoverhaul;
 
 import java.util.Random;
 
-import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
-import net.minecraftforge.common.EnumPlantType;
 
-// Referenced classes of package net.minecraft.src:
-//            Block, BlockFlower, Material
+
 public class MushroomCap extends BlockGrowable
 {
 	//=====================
