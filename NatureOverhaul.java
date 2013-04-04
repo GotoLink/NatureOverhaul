@@ -80,6 +80,7 @@ public class NatureOverhaul implements ITickHandler{
 	stringToRateMapping.put("SLOW", 5000);
 	stringToRateMapping.put("SUPERSLOW", 10000);
 	}
+	public static HashMap<Integer,NOType> IDToTypeMapping = new HashMap();
 	public static HashMap<Integer,Boolean> IDToGrowingMapping = new HashMap(),IDToDyingMapping = new HashMap();
 	public static HashMap<Integer,Float> IDToOptTempMapping = new HashMap(),IDToOptRainMapping = new HashMap();
 	public static HashMap<Integer,Integer> IDToGrowthRateMapping= new HashMap(),IDToDeathRateMapping= new HashMap();
@@ -176,7 +177,7 @@ public class NatureOverhaul implements ITickHandler{
 	{	
 		if( isGrowing(id) && world.rand.nextFloat() < getGrowthProb(world, i, j, k, id)) 
 		{
-				System.out.println("second condition checked");
+				System.out.println("Block "+id+" growing at "+i+","+j+","+k);
 				/*	grow(world, i, j, k);
 				}
 				if(isMortal(id) && hasDied(world, i, j, k)) {
@@ -195,14 +196,18 @@ public class NatureOverhaul implements ITickHandler{
 		float freq = getGrowthRate(id);
 		if(biomeModifiedGrowth && freq>0) {
 			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
+			NOType type=getType(id);
 			if((biome.rainfall == 0) || (biome.temperature > 1.5F)) {
 				return 0.01F;
-			} else {
-			freq = freq * Utils.getOptValueMult(biome.rainfall, getOptRain(id), 0.5F);
-			freq = freq * Utils.getOptValueMult(biome.temperature, getOptTemp(id), 0.5F);
+			} else if(type!=NOType.CUSTOM){
+			freq *= Utils.getOptValueMult(biome.rainfall, getOptRain(id), type.getRainGrowth());
+			freq *= Utils.getOptValueMult(biome.temperature, getOptTemp(id), type.getTempGrowth());
 			}
 		}
-		return 1F / freq;
+		if(freq>0)
+			return 1F / freq;
+		else
+			return -1F;
 	}
 	/**
 	* Get the death probability
@@ -214,57 +219,62 @@ public class NatureOverhaul implements ITickHandler{
 	*/
 	private float getDeathProb(World world, int i, int j, int k, int id) {			
 		float freq = getDeathRate(id);
-		if(biomeModifiedGrowth) {
+		if(biomeModifiedGrowth && freq>0) {
 			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
+			NOType type=getType(id);
 			if((biome.rainfall == 0) || (biome.temperature > 1.5F)) {
 				return 1F;
-			} else {
-			freq = freq * Utils.getOptValueMult(biome.rainfall, getOptRain(id), 10F);
-			freq = freq * Utils.getOptValueMult(biome.temperature, getOptTemp(id), 10F);
-			return 1F / freq;
+			} else if(type!=NOType.CUSTOM){
+			freq *= Utils.getOptValueMult(biome.rainfall, getOptRain(id), type.getRainDeath());
+			freq *= Utils.getOptValueMult(biome.temperature, getOptTemp(id), type.getTempDeath());		
 			}
-		} else {
-			return 1F / freq;
 		}
+		if(freq>0)
+			return 1F / freq;
+		else
+			return -1F;
 	}
 	
 	private float getOptTemp(int id) {
-		return (float) IDToOptTempMapping.get(Integer.valueOf(id));
+		return IDToOptTempMapping.get(Integer.valueOf(id));
 	}
 	private float getOptRain(int id) {
-		return (float) IDToOptRainMapping.get(Integer.valueOf(id));
+		return IDToOptRainMapping.get(Integer.valueOf(id));
 	}
 	private int getGrowthRate(int id) {
-		return (int) IDToGrowthRateMapping.get(Integer.valueOf(id));
+		return IDToGrowthRateMapping.get(Integer.valueOf(id));
 	}
 	private int getDeathRate(int id) {
-		return (int) IDToDeathRateMapping.get(Integer.valueOf(id));
+		return IDToDeathRateMapping.get(Integer.valueOf(id));
 	}
 	private boolean isGrowing(int id){
-		return (boolean) IDToGrowingMapping.get(Integer.valueOf(id));	
+		return IDToGrowingMapping.get(Integer.valueOf(id));	
 	}
 	private boolean isMortal(int id){
-		return (boolean) IDToDyingMapping.get(Integer.valueOf(id));
+		return IDToDyingMapping.get(Integer.valueOf(id));
 	}
-	public boolean isValid(int id){
+	private boolean isValid(int id){
 		return id>0 && id<4096 && Block.blocksList[id]!=null && Block.blocksList[id].getTickRandomly() && IDToGrowingMapping.containsKey(Integer.valueOf(id));
+	}
+	private NOType getType(int id){
+		return IDToTypeMapping.get(Integer.valueOf(id));
 	}
 	/**
 	* Setup sapling options
 	*/
-	private static float getSaplingGrowthRate() {
+	/*private static float getSaplingGrowthRate() {
 		String[] 	growthLabels = {"Both", "Decay", "Growth", "Neither"};
 		int[]	growthValues = {3, 2, 1, 0};
 		int[] dKeys 	= {2500, 1250, 250, 5, 10000, 5000};
 		
 		return 0;
 		
-		//saps.addMappedOption("DeathRate", dKeys, labels);
-		//saps.addMultiOption("GrowthRate", labels);
-		//saps.addMappedOption("Growth Occurs On", growthValues, growthLabels);
-		//growthType = (Float) saps.getOption("Growth Occurs On");
+		saps.addMappedOption("DeathRate", dKeys, labels);
+		saps.addMultiOption("GrowthRate", labels);
+		saps.addMappedOption("Growth Occurs On", growthValues, growthLabels);
+		growthType = (Float) saps.getOption("Growth Occurs On");
 		
-	}
+	}*/
 	
 	/**
 	* Setup tree options
@@ -297,7 +307,7 @@ public class NatureOverhaul implements ITickHandler{
 		Integer[] rKeys = { 16000, 1600, 160, 16, 64000, 32000 };
 		public static final Float breedRate = new Float("Wild Birth Rate", rKeys, labels);*/
 	
-    public static void addMapping(int id, boolean isGrowing,int growthRate, boolean isMortal,int deathRate, float optTemp, float optRain)
+    private static void addMapping(int id, boolean isGrowing,int growthRate, boolean isMortal,int deathRate, float optTemp, float optRain, NOType type)
     {
     	IDToGrowingMapping.put(Integer.valueOf(id), isGrowing);
     	IDToGrowthRateMapping.put(Integer.valueOf(id),growthRate);
@@ -305,6 +315,7 @@ public class NatureOverhaul implements ITickHandler{
         IDToDeathRateMapping.put(Integer.valueOf(id),deathRate);
         IDToOptTempMapping.put(Integer.valueOf(id), optTemp);
         IDToOptRainMapping.put(Integer.valueOf(id), optRain);
+        IDToTypeMapping.put(Integer.valueOf(id), type);
     }
     @PostInit
     public void modsLoaded(FMLPostInitializationEvent event){
@@ -313,63 +324,63 @@ public class NatureOverhaul implements ITickHandler{
     		if (Block.blocksList[i]!=null)
     			if (Block.blocksList[i] instanceof BlockOverhauled)//Priority to Blocks using the API
     			{
-    				addMapping(i,true,((IGrowable)Block.blocksList[i]).getGrowthRate(),true, ((IBlockDeath)Block.blocksList[i]).getDeathRate(),1.0F,1.0F);      			
+    				addMapping(i,true,((IGrowable)Block.blocksList[i]).getGrowthRate(),true, ((IBlockDeath)Block.blocksList[i]).getDeathRate(),-1.0F,-1.0F,NOType.CUSTOM);      			
     			}
     			else if (Block.blocksList[i] instanceof BlockGrowable || Block.blocksList[i] instanceof IGrowable)
     			{
-    				addMapping(i,true,((IGrowable)Block.blocksList[i]).getGrowthRate(),false,-1,1.0F,1.0F);
+    				addMapping(i,true,((IGrowable)Block.blocksList[i]).getGrowthRate(),false,-1,-1.0F,-1.0F,NOType.CUSTOM);
     			}
     			else if (Block.blocksList[i] instanceof BlockMortal||Block.blocksList[i] instanceof IBlockDeath)
     			{
-    				addMapping(i, false, -1, true, ((IBlockDeath)Block.blocksList[i]).getDeathRate(), 1.0F, 1.0F);
+    				addMapping(i, false, -1, true, ((IBlockDeath)Block.blocksList[i]).getDeathRate(), -1.0F, -1.0F,NOType.CUSTOM);
     			} 			
     			else if (Block.blocksList[i] instanceof BlockGrass||Block.blocksList[i] instanceof BlockTallGrass||Block.blocksList[i] instanceof BlockMycelium)
     			{
-    				addMapping(i, growSets[4], growthRates[4], dieSets[4], deathRates[4], 0.7F, 0.5F);
+    				addMapping(i, growSets[4], growthRates[4], dieSets[4], deathRates[4], 0.7F, 0.5F,NOType.GRASS);
     			}
     			else if(Block.blocksList[i] instanceof BlockSapling)
     			{
-    				addMapping(i, growSets[0], 0, dieSets[0],deathRates[0], 1.0F, 1.0F);
+    				addMapping(i, growSets[0], 0, dieSets[0],deathRates[0], 1.0F, 1.0F,NOType.CUSTOM);
     			}
     			else if(Block.blocksList[i] instanceof BlockLog)
     			{
-    				addMapping(i,growSets[1],growthRates[1],dieSets[1],deathRates[1], 1.0F, 1.0F);
+    				addMapping(i,growSets[1],growthRates[1],dieSets[1],deathRates[1], 1.0F, 1.0F,NOType.LOG);
     			}
     			else if(Block.blocksList[i] instanceof BlockLeaves)
     			{
-    				addMapping(i, growSets[9], growthRates[9], dieSets[9],deathRates[9], 1.0F, 1.0F );
+    				addMapping(i, growSets[9], growthRates[9], dieSets[9],deathRates[9], 1.0F, 1.0F,NOType.CUSTOM );
     			}
     			else if(Block.blocksList[i] instanceof BlockFlower)
     			{
-    				addMapping(i,growSets[2],growthRates[2],dieSets[2],deathRates[2],0.6F,0.7F);
+    				addMapping(i,growSets[2],growthRates[2],dieSets[2],deathRates[2],0.6F,0.7F,NOType.FLOWER);
     			}
     			else if (Block.blocksList[i] instanceof BlockMushroom)
     			{
-    				addMapping(i,growSets[7],growthRates[7],dieSets[7],deathRates[7],0.9F,1.0F);
+    				addMapping(i,growSets[7],growthRates[7],dieSets[7],deathRates[7],0.9F,1.0F,NOType.MUSHROOM);
     			}			
     			else if(i==Block.cobblestoneMossy.blockID)
     			{
-    				addMapping(i,growSets[12],growthRates[12],false,-1,1.0F,1.0F);			
+    				addMapping(i,growSets[12],growthRates[12],false,-1,0.7F,1.0F,NOType.MOSS);			
     			}
     			else if(Block.blocksList[i] instanceof BlockCactus)
     			{
-    				addMapping(i, growSets[6],growthRates[6], dieSets[6],deathRates[6], 1.5F, 0.2F);
+    				addMapping(i, growSets[6],growthRates[6], dieSets[6],deathRates[6], 1.5F, 0.2F,NOType.CACTUS);
     			}
     			else if(Block.blocksList[i] instanceof BlockReed)
     			{
-    				addMapping(i,growSets[5],growthRates[5],dieSets[5],deathRates[5],0.8F,0.8F);
+    				addMapping(i,growSets[5],growthRates[5],dieSets[5],deathRates[5],0.8F,0.8F,NOType.REED);
     			}
     			else if(Block.blocksList[i] instanceof BlockMushroomCap)
     			{
-    				addMapping(i,growSets[8],growthRates[8],dieSets[8],deathRates[8],1.0F,1.0F);				
+    				addMapping(i,growSets[8],growthRates[8],dieSets[8],deathRates[8],0.9F,1.0F,NOType.MUSHROOMCAP);				
     			}	
-    			else if(Block.blocksList[i] instanceof BlockNetherStalk)
+    			else if(Block.blocksList[i] instanceof BlockNetherStalk)//In the Nether,TODO: check how biome temp and rain are set
     			{
-    				addMapping(i,growSets[3],growthRates[3],dieSets[3],deathRates[3],1.0F,1.0F);
+    				addMapping(i,growSets[3],growthRates[3],dieSets[3],deathRates[3],1.0F,1.0F,NOType.NETHERSTALK);
     			}
     			else if(Block.blocksList[i] instanceof BlockCocoa)
     			{
-    				addMapping(i,growSets[10],growthRates[10],false,-1,1.0F,1.0F);
+    				addMapping(i,growSets[10],growthRates[10],false,-1,1.0F,1.0F,NOType.COCOA);
     			}		
     	}
     }
@@ -413,14 +424,14 @@ public class NatureOverhaul implements ITickHandler{
 			                        		onUpdateTick(world, k2 + k, i3 + blockStorage.getYLocation(), l2 + l, j3);
 			                        	}
 			                    	}
-							/*List list= world.getPendingBlockUpdates(chunk, false);FIXME
+							/*List list= world.getPendingBlockUpdates(chunk, false);//FIXME
 							if (list!=null)
 							{			
 								Iterator itr=list.iterator();						
 								while(itr.hasNext())				
 								{						
 									NextTickListEntry nextTickEntry=(NextTickListEntry) itr.next();					
-									if ( nextTickEntry.scheduledTime == world.getWorldInfo().getWorldTotalTime() && isValid(nextTickEntry.blockID))						
+									if ( nextTickEntry.scheduledTime == world.getTotalWorldTime() && isValid(nextTickEntry.blockID))						
 									{						
 										System.out.println("first conditions checked");							
 										//onUpdateTick(world,nextTickEntry.xCoord,nextTickEntry.yCoord,nextTickEntry.zCoord,nextTickEntry.blockID);						

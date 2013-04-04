@@ -14,7 +14,7 @@ public class Utils {
 	* @return The modifier. Output always >= 1, where 1 is "just as likely" and
 	* 		higher is "less likely"
 	*/
-	protected static float getOptValueMult(float rain, float opt, float tol) {	
+	public static float getOptValueMult(float rain, float opt, float tol) {	
 		return tol * (float) Math.pow(opt - rain, 2) + 1;
 	}
 }
