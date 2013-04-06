@@ -18,8 +18,6 @@ public class Log extends BlockMortal
 	//=====================
 	// BEGIN NATURE OVERHAUL
 	//=====================
-	protected float optRain = 0.8F;
-	protected float optTemp = 0.6F;
 	
 	private static final int MAX_TREE_HEIGHT = 16;
 	// Flag controls
@@ -32,18 +30,7 @@ public class Log extends BlockMortal
 	* and there is no wood within this radius
 	*/
 	public int leafDeathRadius = 2;
-	//=====================
-	// END NATURE OVERHAUL
-	//=====================
-    protected Log(int i)
-    {
-        super(i, Material.wood);
-        setTickRandomly(true);
-    }
-
-	//=======================
-	// START NATURE OVERHAUL
-	//=======================
+	
 	public void updateTick(World world, int i, int j, int k, Random random) {
 		if(!world.isRemote) {
 			boolean treeDeath = NatureOverhaul.treeDie;
@@ -91,7 +78,7 @@ public class Log extends BlockMortal
 	* Check if this tree has died
 	*/
 	public boolean hasDied(World world, int i, int j, int k) {
-		return hasRandomlyDied(world, i, j, k);
+		return Math.random()<getDeathProb(world, i, j, k);
 	}
 	
 	/**

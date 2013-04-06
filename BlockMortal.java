@@ -37,7 +37,7 @@ public abstract class BlockMortal extends Block implements IBlockDeath {
 	* @return	True if plant has died
 	*/
 	public boolean hasDied(World world, int i, int j, int k) {
-		return (hasStarved(world, i, j, k) || hasRandomlyDied(world, i, j, k));
+		return (hasStarved(world, i, j, k));
 	}
 	
 	/**
@@ -104,41 +104,6 @@ public abstract class BlockMortal extends Block implements IBlockDeath {
 	}
 	
 	/**
-	* Get the probably of this mortal block's death
-	*
-	* @return	The probability of this block dying at the current tick
-	*/
-	public abstract float getDeathProb(World world, int i, int j, int k);
-	
-	/**
-	* Checks whether this block has died from natural random causes using
-	* inbuilt probability measure
-	* 
-	* @param	world
-	* @param	i
-	* @param	j
-	* @param	k
-	* @return	True if plant has randomly died
-	*/
-	public boolean hasRandomlyDied(World world, int i, int j, int k) {
-		return hasRandomlyDied(world, i, j, k, getDeathProb(world, i, j, k));
-	}
-	
-	/**
-	* Checks whether this block has died from natural random causes
-	* 
-	* @param	world
-	* @param	i
-	* @param	j
-	* @param	k
-	* @param	prob	Probability of death this tick
-	* @return	True if plant has randomly died
-	*/
-	public boolean hasRandomlyDied(World world, int i, int j, int k, float prob) {
-		return (Math.random() < prob);
-	}
-	
-	/**
 	* The action to take upon death
 	*
 	* @param	world
@@ -147,6 +112,6 @@ public abstract class BlockMortal extends Block implements IBlockDeath {
 	* @param	k
 	*/
 	public void death(World world, int i, int j, int k) {
-		world.setBlock(i, j, k, 0);
+		world.setBlockToAir(i, j, k);
 	}
 }

@@ -18,15 +18,7 @@ import net.minecraft.world.biome.BiomeGenBase;
 
 public class Leaves extends BlockLeavesBase implements IGrowable
 {
-    private int baseIndexInPNG;
     int adjacentTreeBlocks[];
-
-    protected Leaves(int i, int j)
-    {
-        super(i, Material.leaves, false);
-        baseIndexInPNG = j;
-        setTickRandomly(true);
-    }
 
     public void updateTick(World world, int i, int j, int k, Random random)
     {

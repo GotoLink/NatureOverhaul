@@ -11,21 +11,6 @@ import net.minecraft.world.biome.BiomeGenBase;
 
 public class Flower extends BlockOverhauled
 {
-	//=====================
-	// BEGIN NATURE OVERHAUL
-	//=====================
-	protected float optRain = 0.7F;
-	protected float optTemp = 0.6F;
-	//=====================
-	// END NATURE OVERHAUL
-	//=====================
-    protected Flower(int i, int j)
-    {
-        super(i, Material.plants);
-        setTickRandomly(true);
-        float f = 0.2F;
-        setBlockBounds(0.5F - f, 0.0F, 0.5F - f, 0.5F + f, f * 3F, 0.5F + f);
-    }
 	//========
 	// BEGIN NATURE OVERHAUL
 	//========
@@ -33,10 +18,9 @@ public class Flower extends BlockOverhauled
 	public void updateTick(World world, int i, int j, int k, Random random) {
 		if((!world.isRemote) && ((this.blockID == Block.plantYellow.blockID) || (this.blockID == Block.plantRed.blockID))) {
 			// ATTEMPT REPRODUCTION
-			//flowers = NatureOverhaul.flowers;
 			boolean grow = NatureOverhaul.flowerGrow;
 			if(grow) {
-				attemptGrowth(world, i, j, k);
+				grow(world, i, j, k);
 			}
 			
 			// ATTEMPT DEATH

@@ -12,10 +12,14 @@ import net.minecraft.world.World;
 
 public interface IGrowable {
 	/**
-	* Grows a copy of this block at this location
-	*
+	* Grows a block at given location
+	*@return true only if the growing could occur
 	*/
-	abstract void grow(World world, int i, int j, int k);
+	abstract boolean grow(World world, int i, int j, int k);
 
+	/**
+	 * 
+	 * @return The rate used for randomizing growth
+	 */
 	abstract int getGrowthRate();
 }

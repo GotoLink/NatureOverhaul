@@ -53,14 +53,12 @@ import cpw.mods.fml.common.registry.TickRegistry;
 import cpw.mods.fml.relauncher.Side;
 
 @Mod(modid = "NatureOverhaul", name = "Nature Overhaul", version = "0.0.1")
-@NetworkMod(clientSideRequired = false, serverSideRequired = false,
-clientPacketHandlerSpec = @SidedPacketHandler(channels = { "NatureOverhaul" }, packetHandler = ClientPacketHandler.class),
-serverPacketHandlerSpec = @SidedPacketHandler(channels = { "NatureOverhaul" }, packetHandler = ServerPacketHandler.class))
+@NetworkMod(clientSideRequired = false, serverSideRequired = false)
 public class NatureOverhaul implements ITickHandler{
 	@Instance ("NatureOverhaul")
 	public static NatureOverhaul instance;
 	public static Boolean autoSapling=false,lumberjack=false;
-	public static Boolean defaultShroomSpread=true,biomeModifiedGrowth=true;
+	public static Boolean biomeModifiedGrowth=true;
 	public static Boolean wildAnimalsBreed=true;
 	public static int wildAnimalBreedRate=0,reproductionRate=0;
 	public static int growthType=0;//For sapling-> tree behaviour
@@ -80,12 +78,10 @@ public class NatureOverhaul implements ITickHandler{
 	stringToRateMapping.put("SLOW", 5000);
 	stringToRateMapping.put("SUPERSLOW", 10000);
 	}
-	public static HashMap<Integer,NOType> IDToTypeMapping = new HashMap();
-	public static HashMap<Integer,Boolean> IDToGrowingMapping = new HashMap(),IDToDyingMapping = new HashMap();
-	public static HashMap<Integer,Float> IDToOptTempMapping = new HashMap(),IDToOptRainMapping = new HashMap();
-	public static HashMap<Integer,Integer> IDToGrowthRateMapping= new HashMap(),IDToDeathRateMapping= new HashMap();
-    @SidedProxy(clientSide = "natureoverhaul.ClientProxy", serverSide = "natureoverhaul.CommonProxy")
-    public static CommonProxy proxy; 
+	private static HashMap<Integer,NOType> IDToTypeMapping = new HashMap();
+	private static HashMap<Integer,Boolean> IDToGrowingMapping = new HashMap(),IDToDyingMapping = new HashMap();
+	private static HashMap<Integer,Float> IDToOptTempMapping = new HashMap(),IDToOptRainMapping = new HashMap();
+	private static HashMap<Integer,Integer> IDToGrowthRateMapping= new HashMap(),IDToDeathRateMapping= new HashMap();
     private static String[] names=new String[]
     	{
     	"Sapling","Tree","Flower","Netherwort","Grass","Reed","Cactus","Mushroom","Mushroom Tree","Leaf"
@@ -102,8 +98,7 @@ public class NatureOverhaul implements ITickHandler{
     public void preInit(FMLPreInitializationEvent event)
     {
         instance = this;
-        File cfile = event.getSuggestedConfigurationFile();
-        Configuration config = new Configuration(cfile,true);
+        Configuration config = new Configuration(event.getSuggestedConfigurationFile(),true);
         config.load();
         for(String name:optionsCategory)
         {
@@ -125,9 +120,7 @@ public class NatureOverhaul implements ITickHandler{
         growthRates[10]=config.get(optionsCategory[1],"CocoaGrowthRate",3000).getInt(3000);
         growSets[11]=config.get(optionsCategory[1],"AppleGrows",true).getBoolean(true);//Apple
         growthRates[11]=config.get(optionsCategory[1],"AppleGrowthRate",3000).getInt(3000);            
-        
-        defaultShroomSpread=config.get(optionsCategory[7],"default"+names[7]+"Spread",false).getBoolean(false);
-        
+         
         biomeModifiedGrowth=config.get(optionsCategory[10],"BiomeModifiedGrowth",true).getBoolean(true);
         growSets[12]=config.get(optionsCategory[10],"MossGrow",true).getBoolean(true);//Moss
         growthRates[12]=config.get(optionsCategory[10],"MossGrowthRate",2400).getInt(2400);
@@ -159,29 +152,174 @@ public class NatureOverhaul implements ITickHandler{
     	}
     }
     /**
-	* Apply bonemeal to the item clicked
+	* Apply bonemeal to the location clicked
 	* 
-	* @param	id 	Item ID
+	* @param	id 	block ID
 	* @return	true if item is applied
 	*/
 	private boolean applyBonemeal(World world, int i, int j, int k, int id) {
 		// Items affected; cactii, reeds, leaves, flowers and shrooms
 		if(Block.blocksList[id] instanceof IGrowable) {
-			((IGrowable) Block.blocksList[id]).grow(world, i, j, k);
-			return true;
+			return ((IGrowable) Block.blocksList[id]).grow(world, i, j, k);
 		} else {
 			return false;
 		}
 	}
-	public void onUpdateTick(World world, int i, int j, int k, int id)	
+	private void onUpdateTick(World world, int i, int j, int k, int id)	
 	{	
-		if( isGrowing(id) && world.rand.nextFloat() < getGrowthProb(world, i, j, k, id)) 
+		NOType type=getType(id);
+		if( isGrowing(id) && world.rand.nextFloat() < getGrowthProb(world, i, j, k, id, type)) 
 		{
-				System.out.println("Block "+id+" growing at "+i+","+j+","+k);
-				/*	grow(world, i, j, k);
+			System.out.println("Block "+id+" growing at "+i+","+j+","+k);
+			grow(world, i, j, k, id, type);				
+		}
+		if (isMortal(id) && (hasDied(world, i, j, k, id, type) || world.rand.nextFloat() < getDeathProb(world, i, j, k, id, type)))
+		{
+			System.out.println("Block "+id+" dying at "+i+","+j+","+k);		
+			death(world, i, j, k, id, type);
+		}
+	}
+	/**
+	* Check whether this block has died on this tick for any reason
+	*
+	* @return	True if plant has died
+	*/
+	private boolean hasDied(World world, int i, int j, int k, int id, NOType type) {
+		switch(type){
+		case CUSTOM:
+			if (Block.blocksList[id] instanceof IBlockDeath)
+				return ((IBlockDeath)Block.blocksList[id]).hasDied(world,i,j,k);
+			else return hasStarved(world, i, j, k, type);
+		case CACTUS:case GRASS:case FLOWER:case MUSHROOM:
+			case MOSS:case MUSHROOMCAP:case NETHERSTALK:case REED:
+				return hasStarved(world, i, j, k, type);
+		case COCOA:
+			break;
+		case LOG:
+			return true;	
+		default:
+			return false;	
+		}
+		return false;
+	}
+	/**
+	* Checks whether this block has starved on this tick
+	* by being surrounded by too many of it's kind
+	*
+	* @return	True if plant has starved
+	*/
+	private boolean hasStarved(World world, int i, int j, int k, NOType type) {
+		int radius = 1;
+		int maxNeighbours = 9;
+		int foundNeighbours = 0;	
+		if((radius > 0) && (radius < 10)) {
+			for(int x = i - radius; x < i + radius; x++) {
+				for(int y = j - radius; y < j + radius; y++) {
+					for(int z = k - radius; z < k + radius; z++) {
+						if((i != x) || (j != y) || (k != z)) {
+							int blockID = world.getBlockId(x, y, z);
+							if(isValid(blockID) && getType(blockID) == type) {
+								foundNeighbours++;
+							}
+						}
+					}
 				}
-				if(isMortal(id) && hasDied(world, i, j, k)) {
-				death(world, i, j, k);*/
+			}
+		}
+		
+		return (foundNeighbours > maxNeighbours);
+	}
+	private void death(World world, int i, int j, int k, int id, NOType type) {
+		switch(type){
+		case CUSTOM:
+			if (Block.blocksList[id] instanceof IBlockDeath)
+				((IBlockDeath)Block.blocksList[id]).death(world, i, j, k);
+			else world.setBlockToAir(i, j, k);
+			return;
+		case CACTUS:
+			int y = j;
+			// Put y to the top so to avoid any reeds being dropped since this is death
+			while(world.getBlockId(i, y + 1, k) == id) {
+				y = y + 1;
+			}
+			// Now scan back down and delete
+			while(world.getBlockId(i, y, k) == id) {
+				world.setBlockToAir(i, y, k);
+				y--;
+			}
+			break;
+		case COCOA:
+			break;		
+		case LOG:
+			break;
+		case MOSS://set block to cobblestone ?
+			world.setBlock(i,j,k,Block.cobblestone.blockID);
+			break;
+		case MUSHROOMCAP:
+			break;
+		case REED:
+			break;
+		case NETHERSTALK:case FLOWER:case GRASS:case MUSHROOM:
+			world.setBlockToAir(i, j, k);
+			return;
+		default:
+			break;		
+		}
+	}
+	private void grow(World world, int i, int j, int k, int id, NOType type) {
+		int scanSize;
+		switch(type){
+		case CUSTOM:
+			if (Block.blocksList[id] instanceof IGrowable)
+				((IGrowable)Block.blocksList[id]).grow(world, i, j, k);
+			else break;
+			return;
+		case CACTUS:case REED:case NETHERSTALK:case FLOWER:
+			break;
+		case COCOA:
+			break;
+		case LOG:case MUSHROOMCAP:
+			break;
+		case GRASS:
+			scanSize = 2;
+			for(int x = i - scanSize; x <= i + scanSize; x++) {
+				for(int y = j - scanSize; y <= j + scanSize; y++) {
+					for(int z = k - scanSize; z <= k + scanSize; z++) {
+						// Check for air above grass for tall grass
+						if(Block.blocksList[id] instanceof BlockTallGrass){
+							if(world.getBlockId(x, y+1, z) == 0
+									&& world.getBlockId(x, y, z) == Block.grass.blockID) {
+								world.setBlock(x, y+1, z, id, 1, 3);
+								return;
+							}
+						}
+						else if(world.getBlockId(x, y, z) == Block.dirt.blockID){
+							world.setBlock(x, y, z, id);
+							return;
+						}
+					}
+				}
+			}
+			break;
+		case MOSS:
+			scanSize = 1;	
+			for(int x = i - scanSize; x <= i + scanSize; x++) {
+				for(int y = j - scanSize; y <= j + scanSize; y++) {
+					for(int z = k - scanSize; z <= k + scanSize; z++) {
+						if(world.getBlockId(x, y, z) == Block.cobblestone.blockID) {
+							world.setBlock(x, y, z, id);
+						}
+					}
+				}
+			}
+			break;
+		case MUSHROOM:
+			((BlockMushroom) Block.blocksList[id]).fertilizeMushroom(world, i, j, k, world.rand);
+			break;
+		
+		default:
+			break;
+		
 		}
 	}
 	/**
@@ -190,13 +328,13 @@ public class NatureOverhaul implements ITickHandler{
 	* @param	i first coordinate
 	* @param	j second coordinate
 	* @param	k third coordinate
+	* @param 	type the NOType
 	* @return	Growth probability as a float
 	*/
-	private float getGrowthProb(World world, int i, int j, int k, int id) {	
+	private float getGrowthProb(World world, int i, int j, int k, int id, NOType type) {	
 		float freq = getGrowthRate(id);
 		if(biomeModifiedGrowth && freq>0) {
 			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
-			NOType type=getType(id);
 			if((biome.rainfall == 0) || (biome.temperature > 1.5F)) {
 				return 0.01F;
 			} else if(type!=NOType.CUSTOM){
@@ -215,13 +353,13 @@ public class NatureOverhaul implements ITickHandler{
 	* @param	i
 	* @param	j
 	* @param	k
+	 * @param type 
 	* @return	Death probability
 	*/
-	private float getDeathProb(World world, int i, int j, int k, int id) {			
+	private float getDeathProb(World world, int i, int j, int k, int id, NOType type) {			
 		float freq = getDeathRate(id);
 		if(biomeModifiedGrowth && freq>0) {
 			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
-			NOType type=getType(id);
 			if((biome.rainfall == 0) || (biome.temperature > 1.5F)) {
 				return 1F;
 			} else if(type!=NOType.CUSTOM){
@@ -326,11 +464,11 @@ public class NatureOverhaul implements ITickHandler{
     			{
     				addMapping(i,true,((IGrowable)Block.blocksList[i]).getGrowthRate(),true, ((IBlockDeath)Block.blocksList[i]).getDeathRate(),-1.0F,-1.0F,NOType.CUSTOM);      			
     			}
-    			else if (Block.blocksList[i] instanceof BlockGrowable || Block.blocksList[i] instanceof IGrowable)
+    			else if (Block.blocksList[i] instanceof IGrowable)
     			{
     				addMapping(i,true,((IGrowable)Block.blocksList[i]).getGrowthRate(),false,-1,-1.0F,-1.0F,NOType.CUSTOM);
     			}
-    			else if (Block.blocksList[i] instanceof BlockMortal||Block.blocksList[i] instanceof IBlockDeath)
+    			else if (Block.blocksList[i] instanceof IBlockDeath)
     			{
     				addMapping(i, false, -1, true, ((IBlockDeath)Block.blocksList[i]).getDeathRate(), -1.0F, -1.0F,NOType.CUSTOM);
     			} 			
@@ -446,15 +584,11 @@ public class NatureOverhaul implements ITickHandler{
 	}
 
 	@Override
-	public void tickEnd(EnumSet<TickType> type, Object... tickData) {
-		
-	}
-
+	public void tickEnd(EnumSet<TickType> type, Object... tickData) {}
 	@Override
 	public EnumSet<TickType> ticks() {
 		return EnumSet.of(TickType.WORLD);
 	}
-
 	@Override
 	public String getLabel() {
 		return "Nature Overhaul Tick";

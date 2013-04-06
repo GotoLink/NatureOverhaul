@@ -25,36 +25,7 @@ public abstract class EntityAnimal extends EntityCreature
     }
 
     public void onLivingUpdate()
-    {
-        super.onLivingUpdate();
-        int i = getDelay();
-        if (i < 0)
-        {
-            i++;
-            setDelay(i);
-        }
-        else if (i > 0)
-        {
-            i--;
-            setDelay(i);
-        }
-        if (inLove > 0)
-        {
-            inLove--;
-            String s = "heart";
-            if (inLove % 10 == 0)
-            {
-                double d = rand.nextGaussian() * 0.02D;
-                double d1 = rand.nextGaussian() * 0.02D;
-                double d2 = rand.nextGaussian() * 0.02D;
-                worldObj.spawnParticle(s, (posX + (double)(rand.nextFloat() * width * 2.0F)) - (double)width, posY + 0.5D + (double)(rand.nextFloat() * height), (posZ + (double)(rand.nextFloat() * width * 2.0F)) - (double)width, d, d1, d2);
-            }
-        }
-        else
-        {
-            breeding = 0;
-        }
-        
+    {   
 		//========
 		// BEGIN NATURE OVERHAUL
 		//========

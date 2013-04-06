@@ -8,24 +8,8 @@ import net.minecraft.item.Item;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 
-public class TallGrass extends BlockFlower
+public class TallGrass
 {
-	//====================
-	// BEGIN NATURE OVERHAUL
-	//====================
-	protected float optRain = 0.5F;
-	protected float optTemp = 0.7F;
-	//====================
-	// END NATURE OVERHAUL
-	//====================
-    protected TallGrass(int i, int j)
-    {
-        super(i);
-        float f = 0.4F;
-        setBlockBounds(0.5F - f, 0.0F, 0.5F - f, 0.5F + f, 0.8F, 0.5F + f);
-		setTickRandomly(true);
-    }
-
 	//====================
 	// BEGIN NATURE OVERHAUL
 	//====================
@@ -33,7 +17,7 @@ public class TallGrass extends BlockFlower
     	if(!world.isRemote) {
     		boolean grow = NatureOverhaul.grassGrow;
 			if(grow){
-				attemptGrowth(world, i, j, k);
+				grow(world, i, j, k);
 			}
 			
 			// ATTEMPT DEATH
@@ -99,21 +83,17 @@ public class TallGrass extends BlockFlower
 	*/
 	public void grow(World world, int i, int j, int k) {
 		int scanSize = 2;
-		int metadata = world.getBlockMetadata(i, j, k);
-		int id = idDropped(metadata, world.rand, 0);
-		if((id >= 0) && (id < Item.itemsList.length)) {
 			for(int x = i - scanSize; x <= i + scanSize; x++) {
 				for(int y = j - scanSize; y <= j + scanSize; y++) {
 					for(int z = k - scanSize; z <= k + scanSize; z++) {
 						// Check for air above grass
-						if((world.getBlockId(x, y, z) == 0) 
-							&& (world.getBlockId(x, y - 1, z) == Block.grass.blockID)) {
-							world.setBlockAndMetadataWithNotify(x, y, z, blockID, 1);
+						if((world.getBlockId(x, y+1, z) == 0) 
+							&& (world.getBlockId(x, y, z) == Block.grass.blockID)) {
+							world.setBlock(x, y+1, z, blockID, 1, 3);
 							return;
 						}
 					}
 				}
-			}
 		}
 	}
 	

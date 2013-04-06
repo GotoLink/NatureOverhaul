@@ -11,42 +11,10 @@ import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.biome.BiomeGenHell;
 import net.minecraft.world.biome.WorldChunkManager;
 
-
-// Referenced classes of package net.minecraft.src:
-//            BlockFlower, Block, World, WorldChunkManager, 
-//            BiomeGenHell, ItemStack, Item
-
-public class NetherStalk extends BlockFlower
+public class NetherStalk 
 {
-    protected NetherStalk(int i)
-    {
-        super(i, 226);
-        setTickRandomly(true);
-        float f = 0.5F;
-        setBlockBounds(0.5F - f, 0.0F, 0.5F - f, 0.5F + f, 0.25F, 0.5F + f);
-    }
-
-    protected boolean canThisPlantGrowOnThisBlockID(int i)
-    {
-        return i == Block.slowSand.blockID;
-    }
-
     public void updateTick(World world, int i, int j, int k, Random random)
     {
-        int l = world.getBlockMetadata(i, j, k);
-        if (l < 3)
-        {
-            WorldChunkManager worldchunkmanager = world.getWorldChunkManager();
-            if (worldchunkmanager != null)
-            {
-                BiomeGenBase biomegenbase = worldchunkmanager.getBiomeGenAt(i, k);
-                if ((biomegenbase instanceof BiomeGenHell) && random.nextInt(15) == 0)
-                {
-                    l++;
-                    world.setBlockMetadataWithNotify(i, j, k, l, 2);
-                }
-            }
-        }
 		//========
 		// BEGIN NATURE OVERHAUL
 		//========
@@ -54,7 +22,7 @@ public class NetherStalk extends BlockFlower
 		if(!world.isRemote) {
 			boolean grow = NatureOverhaul.wortGrow;
 			if(grow) {
-				attemptGrowth(world, i, j, k);
+				grow(world, i, j, k);
 			}
 		
 			// ATTEMPT DEATH

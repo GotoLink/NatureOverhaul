@@ -19,52 +19,20 @@ import net.minecraftforge.common.IPlantable;
 
 public class Cactus extends BlockOverhauled
 {
-	protected float optRain = 0.2F;
-	protected float optTemp = 1.5F;
-    protected Cactus(int i, int j)
-    {
-        super(i, j, Material.cactus);
-        setTickRandomly(true);
-        this.setCreativeTab(CreativeTabs.tabDecorations);
-    }
-
+	
     /**
      * Ticks the block if it's been scheduled
      */
     public void updateTick(World world, int i, int j, int k, Random par5Random)
     {
-        if (world.isAirBlock(i, j + 1, k))
-        {
-            int var6;
-
-            for (var6 = 1; world.getBlockId(i, j - var6, k) == this.blockID; ++var6)
-            {
-                ;
-            }
-
-            if (var6 < 3)
-            {
-                int var7 = world.getBlockMetadata(i, j, k);
-
-                if (var7 == 15)
-                {
-                    world.setBlock(i, j + 1, k, this.blockID);
-                    world.setBlock(i, j, k, 0);
-                }
-                else
-                {
-                    world.setBlockMetadata(i, j, k, var7 + 1);
-                }
-            }
-        }
-    
+        
 		//========
 		// BEGIN NATURE OVERHAUL
 		//========
 		if(!world.isRemote) {
 			boolean grow= NatureOverhaul.cactiiGrow;
 			if(grow) {
-				attemptGrowth(world, i, j, k);
+				grow(world, i, j, k);
 			}
 			// ATTEMPT DEATH
 			boolean death=NatureOverhaul.cactiiDie;
@@ -127,13 +95,13 @@ public class Cactus extends BlockOverhauled
 	public void death(World world, int i, int j, int k) {
 		int y = j;
 		// Put y to the top so to avoid any reeds being dropped
-		// since this is deat
+		// since this is death
 		while(world.getBlockId(i, y + 1, k) == blockID) {
 			y = y + 1;
 		}
 		// Now scan back down and delete
 		while(world.getBlockId(i, y, k) == blockID) {
-			world.setBlock(i, y, k, 0);
+			world.setBlockToAir(i, y, k);
 			y--;
 		}
 	}

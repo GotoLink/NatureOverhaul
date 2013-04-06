@@ -15,39 +15,9 @@ public class Reed extends BlockOverhauled
 	//=====================
 	// BEGIN NATURE OVERHAUL
 	//=====================
-	protected float optRain = 0.8F;
-	protected float optTemp = 0.8F;
-	//=====================
-	// END NATURE OVERHAUL
-	//=====================
-    protected Reed(int i, int j)
-    {
-        super(i, Material.plants);
-        float f = 0.375F;
-        setBlockBounds(0.5F - f, 0.0F, 0.5F - f, 0.5F + f, 1.0F, 0.5F + f);
-        setTickRandomly(true);
-    }
 
     public void updateTick(World world, int i, int j, int k, Random random)
     {
-        if (world.isAirBlock(i, j + 1, k))
-        {
-            int l;
-            for (l = 1; world.getBlockId(i, j - l, k) == blockID; l++) { }
-            if (l < 3)
-            {
-                int i1 = world.getBlockMetadata(i, j, k);
-                if (i1 == 15)
-                {
-                    world.setBlock(i, j + 1, k, blockID);
-                    world.setBlockMetadataWithNotify(i, j, k, 0, 2);
-                }
-                else
-                {
-                    world.setBlockMetadataWithNotify(i, j, k, i1 + 1, 2);
-                }
-            }
-        }
 		//========
 		// BEGIN NATURE OVERHAUL
 		//========
@@ -130,7 +100,7 @@ public class Reed extends BlockOverhauled
 		}
 		// Now scan back down and delete
 		while(world.getBlockId(i, y, k) == blockID) {
-			world.setBlock(i, y, k, 0);
+			world.setBlockToAir(i, y, k);
 			y--;
 		}
 	}

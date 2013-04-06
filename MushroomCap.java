@@ -9,23 +9,6 @@ import net.minecraft.world.biome.BiomeGenBase;
 
 public class MushroomCap extends BlockGrowable
 {
-	//=====================
-	// BEGIN NATURE OVERHAUL
-	//=====================
-	protected float optRain = 1.0F;
-	protected float optTemp = 0.9F;
-	//=====================
-	// END NATURE OVERHAUL
-	//=====================
-    private int mushroomType;
-
-    public MushroomCap(int i, Material material, int j, int k)
-    {
-        super(i, j, material);
-        mushroomType = k;
-        setTickRandomly(true);
-    }
-
 	//======================
 	// BEGIN NATURE OVERHAUL
 	//======================
@@ -34,7 +17,7 @@ public class MushroomCap extends BlockGrowable
 		if(!world.isRemote) {
 			boolean grow = NatureOverhaul.shroomGrow;
 			if(grow && (world.getBlockId(i, j + 1, k) == 0)) {
-				attemptGrowth(world, i, j, k);
+				grow(world, i, j, k);
 			}
 		}
 	}
