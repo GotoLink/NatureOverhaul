@@ -16,12 +16,6 @@ public abstract class BlockOverhauled extends BlockGrowable implements IBlockDea
     protected BlockOverhauled(int i, Material material) {
 		super(i, material);
 	}
-	/**
-	* See parent constructor
-	*/
-    protected BlockOverhauled(int i, int j, Material material) {
-		super(i, j, material);
-	}
 	
 	/**
 	* Check whether this block has died on this tick for any 

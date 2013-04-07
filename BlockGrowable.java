@@ -20,12 +20,6 @@ public abstract class BlockGrowable extends Block implements IGrowable {
     protected BlockGrowable(int i, Material material) {
 		super(i, material);
 	}
-	/**
-	* See parent constructor
-	*/
-    protected BlockGrowable(int i, int j, Material material) {
-		this(i, material);
-	}
 	
 	/**
 	* Get the probability of growth occuring on this block

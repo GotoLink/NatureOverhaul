@@ -1,12 +1,8 @@
 package natureoverhaul;
 //Author: Clinton Alexander
-import java.io.File;
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 import net.minecraft.block.Block;
@@ -24,7 +20,6 @@ import net.minecraft.block.BlockReed;
 import net.minecraft.block.BlockSapling;
 import net.minecraft.block.BlockTallGrass;
 import net.minecraft.world.ChunkCoordIntPair;
-import net.minecraft.world.NextTickListEntry;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.biome.BiomeGenBase;
@@ -38,33 +33,31 @@ import net.minecraftforge.event.entity.player.BonemealEvent;
 import net.minecraftforge.event.terraingen.SaplingGrowTreeEvent;
 import cpw.mods.fml.common.ITickHandler;
 import cpw.mods.fml.common.Mod;
-import cpw.mods.fml.common.TickType;
 import cpw.mods.fml.common.Mod.Init;
 import cpw.mods.fml.common.Mod.Instance;
 import cpw.mods.fml.common.Mod.PostInit;
 import cpw.mods.fml.common.Mod.PreInit;
-import cpw.mods.fml.common.SidedProxy;
+import cpw.mods.fml.common.TickType;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.network.NetworkMod;
-import cpw.mods.fml.common.network.NetworkMod.SidedPacketHandler;
 import cpw.mods.fml.common.registry.TickRegistry;
 import cpw.mods.fml.relauncher.Side;
 
-@Mod(modid = "NatureOverhaul", name = "Nature Overhaul", version = "0.0.1")
+@Mod(modid = "NatureOverhaul", name = "Nature Overhaul", version = "alpha")
 @NetworkMod(clientSideRequired = false, serverSideRequired = false)
 public class NatureOverhaul implements ITickHandler{
 	@Instance ("NatureOverhaul")
 	public static NatureOverhaul instance;
 	public static Boolean autoSapling=false,lumberjack=false;
 	public static Boolean biomeModifiedGrowth=true;
-	public static Boolean wildAnimalsBreed=true;
-	public static int wildAnimalBreedRate=0,reproductionRate=0;
+	//public static Boolean wildAnimalsBreed=true;
+	//public static int wildAnimalBreedRate=0,reproductionRate=0;
 	public static int growthType=0;//For sapling-> tree behaviour
 	public static boolean[] dieSets=new boolean[10],growSets=new boolean[13];
 	public static int[] deathRates=new int[10],growthRates=new int[13];
-	private static WorldServer world;
+	private static World world;
 	protected int updateLCG = (new Random()).nextInt();
 
 // Default labels
@@ -168,14 +161,15 @@ public class NatureOverhaul implements ITickHandler{
 	private void onUpdateTick(World world, int i, int j, int k, int id)	
 	{	
 		NOType type=getType(id);
+		//String name=Block.blocksList[id].getLocalizedName();
 		if( isGrowing(id) && world.rand.nextFloat() < getGrowthProb(world, i, j, k, id, type)) 
 		{
-			System.out.println("Block "+id+" growing at "+i+","+j+","+k);
+			//System.out.println("Block "+name+" growing at "+i+","+j+","+k);
 			grow(world, i, j, k, id, type);				
 		}
 		if (isMortal(id) && (hasDied(world, i, j, k, id, type) || world.rand.nextFloat() < getDeathProb(world, i, j, k, id, type)))
 		{
-			System.out.println("Block "+id+" dying at "+i+","+j+","+k);		
+			//System.out.println("Block "+name+" dying at "+i+","+j+","+k);		
 			death(world, i, j, k, id, type);
 		}
 	}
@@ -190,17 +184,14 @@ public class NatureOverhaul implements ITickHandler{
 			if (Block.blocksList[id] instanceof IBlockDeath)
 				return ((IBlockDeath)Block.blocksList[id]).hasDied(world,i,j,k);
 			else return hasStarved(world, i, j, k, type);
-		case CACTUS:case GRASS:case FLOWER:case MUSHROOM:
+		case CACTUS:case GRASS:case FLOWER:case MUSHROOM:case COCOA:
 			case MOSS:case MUSHROOMCAP:case NETHERSTALK:case REED:
 				return hasStarved(world, i, j, k, type);
-		case COCOA:
-			break;
-		case LOG:
-			return true;	
+		case LOG://Trees are only randomly dying for now
+			return false;	
 		default:
 			return false;	
-		}
-		return false;
+		}	
 	}
 	/**
 	* Checks whether this block has starved on this tick
@@ -211,7 +202,22 @@ public class NatureOverhaul implements ITickHandler{
 	private boolean hasStarved(World world, int i, int j, int k, NOType type) {
 		int radius = 1;
 		int maxNeighbours = 9;
-		int foundNeighbours = 0;	
+		int foundNeighbours = 0;
+		switch(type){
+		case CACTUS:case REED:
+			radius = 2;
+			break;
+		case MOSS:
+			maxNeighbours = 15;
+			break;
+		case MUSHROOMCAP:
+			break;
+		case NETHERSTALK:case COCOA:case GRASS:case MUSHROOM:case FLOWER:
+			maxNeighbours = 5;
+			break;	
+		default:
+			break;
+		}	
 		if((radius > 0) && (radius < 10)) {
 			for(int x = i - radius; x < i + radius; x++) {
 				for(int y = j - radius; y < j + radius; y++) {
@@ -236,31 +242,31 @@ public class NatureOverhaul implements ITickHandler{
 				((IBlockDeath)Block.blocksList[id]).death(world, i, j, k);
 			else world.setBlockToAir(i, j, k);
 			return;
-		case CACTUS:
+		case CACTUS:case REED:
 			int y = j;
-			// Put y to the top so to avoid any reeds being dropped since this is death
+			// Get to the top so to avoid any being dropped since this is death
 			while(world.getBlockId(i, y + 1, k) == id) {
 				y = y + 1;
 			}
-			// Now scan back down and delete
+			// Scan back down and delete
 			while(world.getBlockId(i, y, k) == id) {
 				world.setBlockToAir(i, y, k);
 				y--;
 			}
-			break;
-		case COCOA:
 			break;		
-		case LOG:
+		case LOG:case MUSHROOMCAP:
 			break;
-		case MOSS://set block to cobblestone ?
+		case MOSS:
 			world.setBlock(i,j,k,Block.cobblestone.blockID);
 			break;
-		case MUSHROOMCAP:
-			break;
-		case REED:
-			break;
-		case NETHERSTALK:case FLOWER:case GRASS:case MUSHROOM:
+		case NETHERSTALK:case FLOWER:case MUSHROOM:case COCOA:
 			world.setBlockToAir(i, j, k);
+			return;
+		case GRASS:
+			if( Block.blocksList[id] instanceof BlockTallGrass){
+				world.setBlockToAir(i, j, k);			
+			}
+			else world.setBlock(i,j,k,Block.dirt.blockID);
 			return;
 		default:
 			break;		
@@ -274,19 +280,42 @@ public class NatureOverhaul implements ITickHandler{
 				((IGrowable)Block.blocksList[id]).grow(world, i, j, k);
 			else break;
 			return;
-		case CACTUS:case REED:case NETHERSTALK:case FLOWER:
+		case CACTUS:case REED:
+			int height = j;
+			// Get to the top
+			while(world.getBlockId(i, height + 1, k) == id) {
+				height = height + 1;
+			}
+			if(height-j>1)
+			{
+				scanSize = 2;
+				for(int x = i - scanSize; x <= i + scanSize; x++) {
+					for(int y = j - scanSize; y <= j + scanSize; y++) {
+						for(int z = k - scanSize; z <= k + scanSize; z++) {
+							//Check for air above sand for cactus
+							if(world.getBlockId(x, y+1, z) == 0
+									&& world.getBlockId(x, y, z) == Block.sand.blockID){
+								world.setBlock(x, y+1, z, id);
+								return;
+							}
+						}	
+					}		
+				}
+			}
+			else if (world.getBlockId(i, height + 1, k) == 0)
+				world.setBlock(i, height + 1, k, id);
 			break;
-		case COCOA:
+		case COCOA:case NETHERSTALK:
 			break;
 		case LOG:case MUSHROOMCAP:
 			break;
-		case GRASS:
+		case GRASS:case FLOWER:
 			scanSize = 2;
 			for(int x = i - scanSize; x <= i + scanSize; x++) {
 				for(int y = j - scanSize; y <= j + scanSize; y++) {
 					for(int z = k - scanSize; z <= k + scanSize; z++) {
-						// Check for air above grass for tall grass
-						if(Block.blocksList[id] instanceof BlockTallGrass){
+						// Check for air above grass for tall grass or flower
+						if(type== NOType.FLOWER || Block.blocksList[id] instanceof BlockTallGrass){
 							if(world.getBlockId(x, y+1, z) == 0
 									&& world.getBlockId(x, y, z) == Block.grass.blockID) {
 								world.setBlock(x, y+1, z, id, 1, 3);
@@ -306,8 +335,10 @@ public class NatureOverhaul implements ITickHandler{
 			for(int x = i - scanSize; x <= i + scanSize; x++) {
 				for(int y = j - scanSize; y <= j + scanSize; y++) {
 					for(int z = k - scanSize; z <= k + scanSize; z++) {
-						if(world.getBlockId(x, y, z) == Block.cobblestone.blockID) {
+						int iD = world.getBlockId(x, y, z);
+						if(iD==Block.stone.blockID || iD == Block.cobblestone.blockID) {
 							world.setBlock(x, y, z, id);
+							return;
 						}
 					}
 				}
@@ -353,7 +384,7 @@ public class NatureOverhaul implements ITickHandler{
 	* @param	i
 	* @param	j
 	* @param	k
-	 * @param type 
+	* @param type 
 	* @return	Death probability
 	*/
 	private float getDeathProb(World world, int i, int j, int k, int id, NOType type) {			

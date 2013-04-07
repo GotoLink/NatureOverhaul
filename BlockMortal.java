@@ -19,12 +19,6 @@ public abstract class BlockMortal extends Block implements IBlockDeath {
     protected BlockMortal(int i, Material material) {
 		super(i, material);
 	}
-	/**
-	* See parent constructor
-	*/
-    protected BlockMortal(int i, int j, Material material) {
-		this(i, material);
-	}
 	
 	/**
 	* Check whether this block has died on this tick for any 

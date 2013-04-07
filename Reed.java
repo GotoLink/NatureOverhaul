@@ -24,7 +24,7 @@ public class Reed extends BlockOverhauled
         if(!world.isRemote) {
         	boolean grow =  NatureOverhaul.reedGrow;
 			if(grow) {
-				attemptGrowth(world, i, j, k, getGrowthProb(world, i, j, k));
+				grow(world, i, j, k);
     }
 
 			// ATTEMPT DEATH
