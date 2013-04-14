@@ -1,120 +1,19 @@
-package natureoverhaul;
+package mods.natureoverhaul;
 
 import java.util.Random;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockLeavesBase;
-import net.minecraft.block.material.Material;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.item.EntityItem;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.stats.StatList;
-import net.minecraft.world.ColorizerFoliage;
-import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 
-public class Leaves extends BlockLeavesBase implements IGrowable
+public class Leaves implements IGrowable
 {
-    int adjacentTreeBlocks[];
 
     public void updateTick(World world, int i, int j, int k, Random random)
     {
-        if (world.isRemote)
-        {
-            return;
-        }
-        int l = world.getBlockMetadata(i, j, k);
-        if ((l & 8) != 0 && (l & 4) == 0)
-        {
-            byte byte0 = 4;
-            int i1 = byte0 + 1;
-            byte byte1 = 32;
-            int j1 = byte1 * byte1;
-            int k1 = byte1 / 2;
-            if (adjacentTreeBlocks == null)
-            {
-                adjacentTreeBlocks = new int[byte1 * byte1 * byte1];
-            }
-            if (world.checkChunksExist(i - i1, j - i1, k - i1, i + i1, j + i1, k + i1))
-            {
-                for (int l1 = -byte0; l1 <= byte0; l1++)
-                {
-                    for (int k2 = -byte0; k2 <= byte0; k2++)
-                    {
-                        for (int i3 = -byte0; i3 <= byte0; i3++)
-                        {
-                            int k3 = world.getBlockId(i + l1, j + k2, k + i3);
-                            if (k3 == Block.wood.blockID)
-                            {
-                                adjacentTreeBlocks[(l1 + k1) * j1 + (k2 + k1) * byte1 + (i3 + k1)] = 0;
-                                continue;
-                            }
-                            if (k3 == Block.leaves.blockID)
-                            {
-                                adjacentTreeBlocks[(l1 + k1) * j1 + (k2 + k1) * byte1 + (i3 + k1)] = -2;
-                            }
-                            else
-                            {
-                                adjacentTreeBlocks[(l1 + k1) * j1 + (k2 + k1) * byte1 + (i3 + k1)] = -1;
-                            }
-                        }
-                    }
-                }
-
-                for (int i2 = 1; i2 <= 4; i2++)
-                {
-                    for (int l2 = -byte0; l2 <= byte0; l2++)
-                    {
-                        for (int j3 = -byte0; j3 <= byte0; j3++)
-                        {
-                            for (int l3 = -byte0; l3 <= byte0; l3++)
-                            {
-                                if (adjacentTreeBlocks[(l2 + k1) * j1 + (j3 + k1) * byte1 + (l3 + k1)] != i2 - 1)
-                                {
-                                    continue;
-                                }
-                                if (adjacentTreeBlocks[((l2 + k1) - 1) * j1 + (j3 + k1) * byte1 + (l3 + k1)] == -2)
-                                {
-                                    adjacentTreeBlocks[((l2 + k1) - 1) * j1 + (j3 + k1) * byte1 + (l3 + k1)] = i2;
-                                }
-                                if (adjacentTreeBlocks[(l2 + k1 + 1) * j1 + (j3 + k1) * byte1 + (l3 + k1)] == -2)
-                                {
-                                    adjacentTreeBlocks[(l2 + k1 + 1) * j1 + (j3 + k1) * byte1 + (l3 + k1)] = i2;
-                                }
-                                if (adjacentTreeBlocks[(l2 + k1) * j1 + ((j3 + k1) - 1) * byte1 + (l3 + k1)] == -2)
-                                {
-                                    adjacentTreeBlocks[(l2 + k1) * j1 + ((j3 + k1) - 1) * byte1 + (l3 + k1)] = i2;
-                                }
-                                if (adjacentTreeBlocks[(l2 + k1) * j1 + (j3 + k1 + 1) * byte1 + (l3 + k1)] == -2)
-                                {
-                                    adjacentTreeBlocks[(l2 + k1) * j1 + (j3 + k1 + 1) * byte1 + (l3 + k1)] = i2;
-                                }
-                                if (adjacentTreeBlocks[(l2 + k1) * j1 + (j3 + k1) * byte1 + ((l3 + k1) - 1)] == -2)
-                                {
-                                    adjacentTreeBlocks[(l2 + k1) * j1 + (j3 + k1) * byte1 + ((l3 + k1) - 1)] = i2;
-                                }
-                                if (adjacentTreeBlocks[(l2 + k1) * j1 + (j3 + k1) * byte1 + (l3 + k1 + 1)] == -2)
-                                {
-                                    adjacentTreeBlocks[(l2 + k1) * j1 + (j3 + k1) * byte1 + (l3 + k1 + 1)] = i2;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            int j2 = adjacentTreeBlocks[k1 * j1 + k1 * byte1 + k1];
-            if (j2 >= 0)
-            {
-                world.setBlockMetadata(i, j, k, l & -9);
-            }
-            else
-            {
-                removeLeaves(world, i, j, k);
-            }
-        }
 		//========
 		// BEGIN NATURE OVERHAUL
 		//========
@@ -230,10 +129,6 @@ public class Leaves extends BlockLeavesBase implements IGrowable
 		// "average saplings per tree" rather than "leaf block"
 		// Since tickRate() is 10, we only use 6 as the mult.
 		double tmp = Math.random();
-		//System.out.println("Rand: " + tmp + " against " + freq);
-		/*if(tmp < 0.001D) {
-			System.out.println(tmp);
-		}*/
 		return (tmp < prob);
 	}
 	
@@ -345,13 +240,13 @@ public class Leaves extends BlockLeavesBase implements IGrowable
 					emitItem(world, i, j, k, new ItemStack(Item.appleRed));
 				}
 			}
-		} else {
+		} else {//========
+			// END NATURE OVERHAUL
+			//========
         dropBlockAsItem(world, i, j, k, world.getBlockMetadata(i, j, k), 0);
 		}
-        world.setBlock(i, j, k, 0);
+        world.setBlockToAir(i, j, k);
     }
 	
-	//========
-	// END NATURE OVERHAUL
-	//========
+	
 }

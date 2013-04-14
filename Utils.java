@@ -1,4 +1,4 @@
-package natureoverhaul;
+package mods.natureoverhaul;
 
 public class Utils {
 	/**
@@ -16,5 +16,8 @@ public class Utils {
 	*/
 	public static float getOptValueMult(float rain, float opt, float tol) {	
 		return tol * (float) Math.pow(opt - rain, 2) + 1;
+	}
+	public String toString(){
+		return "Nature Overhaul Utility Class";
 	}
 }

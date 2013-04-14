@@ -1,4 +1,4 @@
-package natureoverhaul;
+package mods.natureoverhaul;
 
 import java.util.Random;
 
@@ -143,60 +143,6 @@ public class Sapling
 			return 1F / freq;
 		}
 	}
-	
-	/**
-	* growth
-	*/
-	public float getGrowthProb(World world, int i, int j, int k) {
-		return 0F;
-	}
-	
-	/**
-	* Get the privacy radius (ie; How many blocks to scan
-	* for other saplings
-	*
-	* @return	Privacy radius
-	*/
-	protected int getPrivacyRadius(World world, int i, int j, int k) {
-		int radius = 2;
-		BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
-		
-		if(biome.temperature > 1F) {
-			radius = 4;
-		}
-		
-		if(biome.rainfall < 0.5F) {
-			radius++;
-		}
-		
-		return radius;
-	}
-	
-	/**
-	* Get the maximum number of neighbours
-	*
-	* @return	Max neighbours before starvation occurs
-	*/
-	protected int getMaxNeighbours(World world, int i, int j, int k) {
-		int max = 5;
-		BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
-		
-		if(biome.temperature <= 0F) {
-			max = 1;
-		} else if(biome.temperature > 1F) {
-			max = 1;
-		}
-		
-		int rainMod = (int) Math.ceil(biome.rainfall / 0.2) - 2;
-		
-		max = max + rainMod;
-		
-		if(max < 0) {
-			return 0;
-		} else {
-			return max;
-        }
-    }
 
     public int damageDropped(int i)
     {

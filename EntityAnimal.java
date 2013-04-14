@@ -1,4 +1,4 @@
-package natureoverhaul;
+package mods.natureoverhaul;
 
 import java.util.List;
 
