@@ -1,4 +1,4 @@
-package natureoverhaul;
+package mods.natureoverhaul;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
@@ -21,8 +21,7 @@ public abstract class BlockMortal extends Block implements IBlockDeath {
 	}
 	
 	/**
-	* Check whether this block has died on this tick for any 
-	* reason
+	* Check whether this block has died on this tick for any reason
 	*
 	* @param	world
 	* @param	i
@@ -99,7 +98,7 @@ public abstract class BlockMortal extends Block implements IBlockDeath {
 	
 	/**
 	* The action to take upon death
-	*
+	* Example:Block changes to air
 	* @param	world
 	* @param	i
 	* @param	j

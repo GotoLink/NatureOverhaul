@@ -1,4 +1,4 @@
-package natureoverhaul;
+package mods.natureoverhaul;
 
 import net.minecraft.block.material.Material;
 import net.minecraft.world.World;
@@ -18,8 +18,7 @@ public abstract class BlockOverhauled extends BlockGrowable implements IBlockDea
 	}
 	
 	/**
-	* Check whether this block has died on this tick for any 
-	* reason
+	* Check whether this block has died on this tick for any reason
 	*
 	* @param	world
 	* @param	i
@@ -96,6 +95,7 @@ public abstract class BlockOverhauled extends BlockGrowable implements IBlockDea
 	
 	/**
 	* The action to take upon death
+	* Example:Block changes to air
 	*
 	* @param	world
 	* @param	i

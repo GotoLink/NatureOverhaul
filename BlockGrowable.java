@@ -1,10 +1,7 @@
-package natureoverhaul;
+package mods.natureoverhaul;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
-import net.minecraft.entity.item.EntityItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 
 /**
@@ -22,19 +19,17 @@ public abstract class BlockGrowable extends Block implements IGrowable {
 	}
 	
 	/**
-	* Get the probability of growth occuring on this block
-	*
-	* @return	Probability of growth occuring on this tick
-	*/
-	public abstract float getGrowthProb(World world, int i, int j, int k);
-	
-	/**
-	* Grows a block
-	 * @return 
+	* Grows a block:Metadata change or block added on top
+	* This behavior is an example
+	* @return 
 	*/
 	public boolean grow(World world, int i, int j, int k) {
 		int metadata = world.getBlockMetadata(i, j, k);
 		int id = world.getBlockId(i, j, k);
+		if(metadata<15)
+			world.setBlockMetadataWithNotify(i, j, k, metadata+1, 3);
+		else 
+			world.setBlock(i, j+1, k, id);
 			return true;
 	}
 	

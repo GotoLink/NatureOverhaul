@@ -1,10 +1,9 @@
-package natureoverhaul;
+package mods.natureoverhaul;
 
 import net.minecraft.world.World;
 
 /**
-* Specifies an interface for allowing blocks
-* to die on a tick basis. 
+* Specifies an interface for allowing blocks to die.
 *
 * @author	Clinton Alexander
 */
@@ -45,7 +44,7 @@ public interface IBlockDeath {
 
 	/**
 	 * 
-	 * @return The rate used for randomizing death
+	 * @return The rate used for randomizing death, set to negative value to disable
 	 */
 	abstract int getDeathRate();
 }

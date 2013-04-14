@@ -1,4 +1,4 @@
-package natureoverhaul;
+package mods.natureoverhaul;
 
 import net.minecraft.world.World;
 
@@ -19,7 +19,7 @@ public interface IGrowable {
 
 	/**
 	 * 
-	 * @return The rate used for randomizing growth
+	 * @return The rate used for randomizing growth, set to negative value to disable
 	 */
 	abstract int getGrowthRate();
 }
