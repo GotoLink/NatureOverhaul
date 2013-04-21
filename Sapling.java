@@ -143,11 +143,6 @@ public class Sapling
 			return 1F / freq;
 		}
 	}
-
-    public int damageDropped(int i)
-    {
-        return i & 3;
-    }
 }
 //====================
 // END NATURE OVERHAUL

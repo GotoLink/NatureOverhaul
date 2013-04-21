@@ -7,10 +7,10 @@ public enum NOType {
 	CACTUS(0.5F,0.5F,10F,10F),
 	REED(1F,1F,5F,5F),
 	//Tree dependent
-	//APPLE(4F,4F,-1F,-1F),//not a block
+	APPLE(4F,4F,-1F,-1F),//not a block !
 	COCOA(15F,15F,-1F,-1F),
 	LOG(-1F,-1F,6F,9F),
-	SAPLING(2.0F,2.0F,-1F,-1F),//only as a block for now
+	SAPLING(10F,0.1F,-1F,-1F),//only as a block for now
 	LEAVES(10F,0.1F,-1F,-1F),
 	//Spread (multiply itself when growing)
 	MOSS(10F,2F,-1F,-1F),

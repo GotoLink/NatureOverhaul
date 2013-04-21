@@ -20,10 +20,10 @@ import net.minecraft.block.BlockNetherStalk;
 import net.minecraft.block.BlockReed;
 import net.minecraft.block.BlockSapling;
 import net.minecraft.block.BlockStem;
-import net.minecraft.block.BlockTallGrass;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
@@ -52,13 +52,13 @@ import cpw.mods.fml.relauncher.Side;
 public class NatureOverhaul implements ITickHandler{
 	@Instance ("NatureOverhaul")
 	public static NatureOverhaul instance;
-	public static Boolean autoSapling=false,lumberjack=false;
+	public static Boolean autoSapling=false,lumberjack=false,killLeaves=true;
 	public static Boolean biomeModifiedGrowth=true,useStarvingSystem=true,mossCorruptStone=true;
 	//public static Boolean wildAnimalsBreed=true;
 	//public static int wildAnimalBreedRate=0,reproductionRate=0;
 	public static int growthType=0;//For sapling-> tree behaviour
-	private static World world;
 	protected int updateLCG = (new Random()).nextInt();
+	//public int tickTimer=0;
 	
 // Default labels
 	public static String[] labels = {"AVERAGE", "FAST", "SUPERFAST", "INSANE", "SUPERSLOW", "SLOW"};
@@ -109,17 +109,18 @@ public class NatureOverhaul implements ITickHandler{
         	growthRates[i]=config.get(optionsCategory[i],names[i]+"Growth Rate",1200).getInt(1200);
         }
         autoSapling=config.get(optionsCategory[0],"AutoSapling",true).getBoolean(true);
-        growthType=config.get(optionsCategory[0],"Growth Occurs On",3).getInt(3);
+        growthType=config.get(optionsCategory[0],"Sapling grow tree like",3).getInt(3);
        
         lumberjack=config.get(optionsCategory[1],"Lumberjack",true).getBoolean(true);
         growSets[names.length]=config.get(optionsCategory[1],"Cocoa Grows",true).getBoolean(true);//Cocoa
         growthRates[names.length]=config.get(optionsCategory[1],"Cocoa Growth Rate",3000).getInt(3000);
-        growSets[names.length+1]=config.get(optionsCategory[1],"Apple Grows",true).getBoolean(true);//Apple
-        growthRates[names.length+1]=config.get(optionsCategory[1],"Apple Growth Rate",3000).getInt(3000);            
+        growSets[names.length+1]=config.get(optionsCategory[9],"Apple Grows",true).getBoolean(true);//Apple
+        growthRates[names.length+1]=config.get(optionsCategory[9],"Apple Growth Rate",3000).getInt(3000);            
+        killLeaves=config.get(optionsCategory[9],"Enable leaves decay on tree death",true).getBoolean(true);      
+        mossCorruptStone=config.get(optionsCategory[11],"Enable moss growing on stone",true).getBoolean(true);      
          
         useStarvingSystem=config.get(optionsCategory[names.length],"Enable starving system",true).getBoolean(true);      
         biomeModifiedGrowth=config.get(optionsCategory[names.length],"BiomeModifiedGrowth",true).getBoolean(true);
-        mossCorruptStone=config.get(optionsCategory[11],"Enable moss growing on stone",true).getBoolean(true);      
         
         //Not sure if the following can be implemented
         //reproductionRate=config.get(optionsCategory[9],"ReproductionRate",1).getInt(1);
@@ -164,7 +165,7 @@ public class NatureOverhaul implements ITickHandler{
 	}
 	private void onUpdateTick(World world, int i, int j, int k, int id)	
 	{	
-		NOType type=getType(id);
+		NOType type=Utils.getType(id);
 		if( isGrowing(id) && world.rand.nextFloat() < getGrowthProb(world, i, j, k, id, type)) 
 		{
 			//System.out.println("Block "+id+" growing at "+i+","+j+","+k);
@@ -213,8 +214,6 @@ public class NatureOverhaul implements ITickHandler{
 		case MOSS:
 			maxNeighbours = 15;
 			break;
-		case MUSHROOMCAP:
-			break;
 		case NETHERSTALK:case COCOA:case GRASS:case MUSHROOM:case PLANT:
 			maxNeighbours = 5;
 			break;
@@ -247,7 +246,7 @@ public class NatureOverhaul implements ITickHandler{
 					for(int z = k - radius; z < k + radius; z++) {
 						if((i != x) || (j != y) || (k != z)) {
 							int blockID = world.getBlockId(x, y, z);
-							if(foundNeighbours <= maxNeighbours && isValid(blockID) && getType(blockID) == type) {
+							if(foundNeighbours <= maxNeighbours && isValid(blockID) && Utils.getType(blockID) == type) {
 								foundNeighbours++;
 							}
 						}
@@ -263,7 +262,7 @@ public class NatureOverhaul implements ITickHandler{
 			if (Block.blocksList[id] instanceof IBlockDeath)
 				((IBlockDeath)Block.blocksList[id]).death(world, i, j, k);
 			return;
-		case CACTUS:case REED:
+		case CACTUS:case REED://Disappear from top to bottom
 			int y = j;
 			// Get to the top so to avoid any being dropped since this is death
 			while(world.getBlockId(i, y + 1, k) == id) {
@@ -276,21 +275,42 @@ public class NatureOverhaul implements ITickHandler{
 			}
 			return;		
 		case LOG:case MUSHROOMCAP://TODO:Define a tree death
-			break;
-		case MOSS:
+			if(TreeUtils.isTree(world, i, j, k, type, false))
+				TreeUtils.killTree(world, i, getLowestTypeJ(world, i, j, k , type), k, killLeaves);
+			return;
+		case MOSS://Return to cobblestone
 			world.setBlock(i,j,k,Block.cobblestone.blockID);
 			return;
 		case NETHERSTALK:case PLANT:case MUSHROOM:case COCOA:case LEAVES:case SAPLING:
-			world.setBlockToAir(i, j, k);
+			world.setBlockToAir(i, j, k);//Disappear
 			return;
-		case GRASS: 
+		case GRASS: //Return to dirt
 			world.setBlock(i,j,k,Block.dirt.blockID);
 			return;
-		case FERTILIZED:
-			world.setBlockMetadataWithNotify(i, j, k, world.getBlockMetadata(i, j, k)-1, 2);
+		case FERTILIZED: //Ungrow, or turn to grass if too low
+			int meta = world.getBlockMetadata(i, j, k);
+			if (meta>=1)
+				world.setBlockMetadataWithNotify(i, j, k, meta-1, 2);
+			else 
+				world.setBlock(i,j,k,Block.grass.blockID);
+			return;
 		default:
 			return;		
 		}
+	}
+
+	/**
+	* Gets the j location of the lowest block of the type specified
+	*  below the block from given coordinate
+	* @param type 
+	*
+	* @return	lowest block j location
+	*/
+	private int getLowestTypeJ(World world, int i, int j, int k, NOType type) {
+		while(Utils.getType(world.getBlockId(i, j - 1, k)) == type) {
+			j--;
+		}	
+		return j;
 	}
 	private void grow(World world, int i, int j, int k, int id, NOType type) {
 		int scanSize;
@@ -299,13 +319,8 @@ public class NatureOverhaul implements ITickHandler{
 			if (Block.blocksList[id] instanceof IGrowable)
 				((IGrowable)Block.blocksList[id]).grow(world, i, j, k);
 			return;
-		case CACTUS:case REED:
-			int height = j;
-			// Get to the top
-			while(world.getBlockId(i, height + 1, k) == id) {
-				height = height + 1;
-			}
-			if(height-j>1)
+		case CACTUS:case REED:		
+			if(TreeUtils.getTreeHeight(world, i, j, k, id)>2)
 			{//Find a neighbor spot for new one
 				scanSize = 2;
 				for(int x = i - scanSize; x <= i + scanSize; x++) {
@@ -319,14 +334,29 @@ public class NatureOverhaul implements ITickHandler{
 					}		
 				}
 			}
-			else if (world.getBlockId(i, height + 1, k) == 0)
-				world.setBlock(i, height + 1, k, id);//Grow on top
+			else{
+				int height = j;
+				// Get to the top
+				while(world.getBlockId(i, height + 1, k) == id) {
+					height = height + 1;
+				}
+				if (world.getBlockId(i, height + 1, k) == 0)
+					world.setBlock(i, height + 1, k, id);//Grow on top
+			}				
 			break;
-		case COCOA:
+		case COCOA://Emit cocoa dye
+			if((world.getBlockId(i, j - 1, k) == 0) && (cocoaCanGrow(world,i,k))) {
+				Utils.emitItem(world, i, j - 1, k, new ItemStack(Item.dyePowder, 1, 3));			
+			}
 			break;
-		case LEAVES:case SAPLING:
+		case LEAVES://Emit apples
+			if (world.getBlockId(i, j - 1, k) == 0 && appleCanGrow(world, i, k) 
+			&& Math.random()<(double)getGrowthProb( world, i, j, k, id, NOType.APPLE))
+				Utils.emitItem(world, i, j - 1, k, new ItemStack(Item.appleRed));
 			break;
-		case LOG:case MUSHROOMCAP://TODO: Define a tree grow
+		case SAPLING://Use sapling vanilla method for growing a tree
+			((BlockSapling) Block.blocksList[id]).growTree(world, i, j, k, world.rand);
+		case LOG://TODO: Define a tree grow
 			break;
 		case GRASS:
 			scanSize = 1;
@@ -368,7 +398,7 @@ public class NatureOverhaul implements ITickHandler{
 			}
 			break;
 		case MUSHROOM:
-			if (Math.random()<(double)1/growthRates[8])//Small chance of having a mushroom tree
+			if (Math.random()<(double)getGrowthProb(world, i, j, k, id+60 ,NOType.MUSHROOMCAP))//Small chance of having a mushroom tree
 				((BlockMushroom) Block.blocksList[id]).fertilizeMushroom(world, i, j, k, world.rand);
 			else
 			{
@@ -390,9 +420,9 @@ public class NatureOverhaul implements ITickHandler{
 				((BlockStem)Block.blocksList[id]).fertilizeStem(world, i, j, k);
 			else if (Block.blocksList[id] instanceof BlockCrops)
 				((BlockCrops)Block.blocksList[id]).fertilize(world, i, j, k);
+			break;
 		default:
 			break;
-		
 		}
 	}
 	/**
@@ -405,14 +435,14 @@ public class NatureOverhaul implements ITickHandler{
 	* @return	Growth probability as a float
 	*/
 	private float getGrowthProb(World world, int i, int j, int k, int id, NOType type) {	
-		float freq = getGrowthRate(id);
+		float freq = type!=NOType.APPLE?getGrowthRate(id):growSets[names.length+1]?growthRates[names.length+1]*1.5F:-1F;
 		if(biomeModifiedGrowth && freq>0 && type!=NOType.NETHERSTALK) {
 			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
 			if(type!=NOType.CACTUS && ((biome.rainfall == 0) || (biome.temperature > 1.5F))) {
 				return 0.01F;
 			} else if(type!=NOType.CUSTOM){
-			freq *= Utils.getOptValueMult(biome.rainfall, getOptRain(id), type.getRainGrowth());
-			freq *= Utils.getOptValueMult(biome.temperature, getOptTemp(id), type.getTempGrowth());
+			freq *= Utils.getOptValueMult(biome.rainfall, type!=NOType.APPLE?getOptRain(id):0.8F, type.getRainGrowth());
+			freq *= Utils.getOptValueMult(biome.temperature, type!=NOType.APPLE?getOptTemp(id):0.7F, type.getTempGrowth());
 			}
 		}
 		if(freq>0)
@@ -445,7 +475,28 @@ public class NatureOverhaul implements ITickHandler{
 		else
 			return -1F;
 	}
-	
+	/**
+	* Check if an apple can grow in this biome
+	* 
+	* @return	True if it can grow in these coordinates
+	*/
+	private boolean appleCanGrow(World world, int i, int k) {
+		BiomeGenBase biome = world.getBiomeGenForCoords(i, k);	
+		// Apples can grow in the named biomes
+		return ((biome.temperature >= 0.7F) && (biome.temperature <= 1.0F) 
+				&& (biome.rainfall > 0.4F));
+	}
+	/**
+	* Check if an cocoa can grow in this biome
+	*
+	* @return	true if can grow in these coordinates
+	*/
+	private boolean cocoaCanGrow(World world, int i, int k) {
+		BiomeGenBase biome = world.getBiomeGenForCoords(i,k);	
+		// Cocoa can grow in the named biomes
+		return ((biome.temperature >= 0.7F) && (biome.temperature <= 1.5F) 
+				&& (biome.rainfall >= 0.8F));
+	}
 	private float getOptTemp(int id) {
 		return IDToOptTempMapping.get(Integer.valueOf(id));
 	}
@@ -467,8 +518,8 @@ public class NatureOverhaul implements ITickHandler{
 	private boolean isValid(int id){
 		return id>0 && id<4096 && Block.blocksList[id]!=null && IDToGrowingMapping.containsKey(Integer.valueOf(id));
 	}
-	private NOType getType(int id){
-		return IDToTypeMapping.get(Integer.valueOf(id));
+	public HashMap<Integer, NOType> getIDToTypeMapping(){
+		return IDToTypeMapping;
 	}
 	/**
 	* Setup sapling options
@@ -509,7 +560,7 @@ public class NatureOverhaul implements ITickHandler{
     	for (int i=1;i<Block.blocksList.length;i++)
     	{
     		if (Block.blocksList[i]!=null)
-    			if (Block.blocksList[i] instanceof BlockOverhauled)//Priority to Blocks using the API
+    			if (Block.blocksList[i] instanceof IGrowable && Block.blocksList[i] instanceof IBlockDeath)//Priority to Blocks using the API
     			{
     				addMapping(i,true,((IGrowable)Block.blocksList[i]).getGrowthRate(),true, ((IBlockDeath)Block.blocksList[i]).getDeathRate(),-1.0F,-1.0F,NOType.CUSTOM);      			
     			}
@@ -520,69 +571,71 @@ public class NatureOverhaul implements ITickHandler{
     			else if (Block.blocksList[i] instanceof IBlockDeath)
     			{
     				addMapping(i, false, -1, true, ((IBlockDeath)Block.blocksList[i]).getDeathRate(), -1.0F, -1.0F,NOType.CUSTOM);
-    			} 			
-    			else if (Block.blocksList[i] instanceof BlockGrass||Block.blocksList[i] instanceof BlockMycelium)
-    			{
-    				addMapping(i, growSets[4], growthRates[4], dieSets[4], deathRates[4], 0.7F, 0.5F,NOType.GRASS);
-    			}
+    			} 
     			else if(Block.blocksList[i] instanceof BlockSapling)
     			{
-    				addMapping(i, growSets[0], 0, dieSets[0],deathRates[0], 1.0F, 1.0F,NOType.SAPLING);
+    				addMapping(i, growSets[0], 0, dieSets[0],deathRates[0], 0.8F, 0.8F,NOType.SAPLING);
     			}
     			else if(Block.blocksList[i] instanceof BlockLog)
     			{
     				addMapping(i,growSets[1],growthRates[1],dieSets[1],deathRates[1], 1.0F, 1.0F,NOType.LOG);
-    			}
-    			else if(Block.blocksList[i] instanceof BlockLeaves)
-    			{
-    				addMapping(i, growSets[9], growthRates[9], dieSets[9],deathRates[9], 1.0F, 1.0F,NOType.LEAVES );
     			}	
-    			else if (Block.blocksList[i] instanceof BlockMushroom)
+    			else if(Block.blocksList[i] instanceof BlockNetherStalk)//In the Nether, we don't use biome dependent parameter
     			{
-    				addMapping(i,growSets[7],growthRates[7],dieSets[7],deathRates[7],0.9F,1.0F,NOType.MUSHROOM);
+    				addMapping(i,growSets[3],growthRates[3],dieSets[3],deathRates[3],1.0F,1.0F,NOType.NETHERSTALK);
     			}			
-    			else if(i==Block.cobblestoneMossy.blockID)
+    			else if (Block.blocksList[i] instanceof BlockGrass||Block.blocksList[i] instanceof BlockMycelium)
     			{
-    				addMapping(i,growSets[11],growthRates[11],dieSets[11],deathRates[11],0.7F,1.0F,NOType.MOSS);			
-    			}
-    			else if(Block.blocksList[i] instanceof BlockCactus)
-    			{
-    				addMapping(i, growSets[6],growthRates[6], dieSets[6],deathRates[6], 1.5F, 0.2F,NOType.CACTUS);
+    				addMapping(i, growSets[4], growthRates[4], dieSets[4], deathRates[4], 0.7F, 0.5F,NOType.GRASS);
     			}
     			else if(Block.blocksList[i] instanceof BlockReed)
     			{
     				addMapping(i,growSets[5],growthRates[5],dieSets[5],deathRates[5],0.8F,0.8F,NOType.REED);
     			}
+    			else if(Block.blocksList[i] instanceof BlockCactus)
+    			{
+    				addMapping(i, growSets[6],growthRates[6], dieSets[6],deathRates[6], 1.5F, 0.2F,NOType.CACTUS);
+    			}	
+    			else if (Block.blocksList[i] instanceof BlockMushroom)
+    			{
+    				addMapping(i,growSets[7],growthRates[7],dieSets[7],deathRates[7],0.9F,1.0F,NOType.MUSHROOM);
+    			}
     			else if(Block.blocksList[i] instanceof BlockMushroomCap)
     			{
     				addMapping(i,growSets[8],growthRates[8],dieSets[8],deathRates[8],0.9F,1.0F,NOType.MUSHROOMCAP);				
-    			}	
-    			else if(Block.blocksList[i] instanceof BlockNetherStalk)//In the Nether, we don't use biome dependent parameter
-    			{
-    				addMapping(i,growSets[3],growthRates[3],dieSets[3],deathRates[3],1.0F,1.0F,NOType.NETHERSTALK);
     			}
-    			else if(Block.blocksList[i] instanceof BlockCocoa)
+    			else if(Block.blocksList[i] instanceof BlockLeaves)
     			{
-    				addMapping(i,growSets[names.length],growthRates[names.length],false,-1,1.0F,1.0F,NOType.COCOA);
+    				addMapping(i, growSets[9], growthRates[9], dieSets[9],deathRates[9], 1.0F, 1.0F,NOType.LEAVES );
     			}
     			else if(Block.blocksList[i] instanceof BlockCrops || Block.blocksList[i] instanceof BlockStem)
     			{
     				addMapping(i,growSets[10],growthRates[10],dieSets[10],deathRates[10],1.0F,1.0F,NOType.FERTILIZED);
     			}
+    			else if(Block.blocksList[i] instanceof BlockCocoa)
+    			{
+    				addMapping(i,growSets[names.length],growthRates[names.length],false,-1,1.0F,1.0F,NOType.COCOA);
+    			}
     			else if(Block.blocksList[i] instanceof BlockFlower)//Flower ,deadbush, lilypad, tallgrass
     			{
     				addMapping(i,growSets[2],growthRates[2],dieSets[2],deathRates[2],0.6F,0.7F,NOType.PLANT);
+    			}			
+    			else if(i==Block.cobblestoneMossy.blockID)
+    			{
+    				addMapping(i,growSets[11],growthRates[11],dieSets[11],deathRates[11],0.7F,1.0F,NOType.MOSS);			
     			}
     	}
     }
     @Override
 	public void tickStart(EnumSet<TickType> type, Object... tickData) 
 	{	
-		if(tickData[0] instanceof WorldServer)
-		{
-			world=(WorldServer) tickData[0];
-			if (world.provider.dimensionId==0);
-			{//In overworld
+    	if (tickData.length>0 && tickData[0] instanceof World /*&& tickTimer>100*/)
+    	{
+    		//tickTimer=0;
+    		World world = (World) tickData[0];
+    		if(world.provider.dimensionId!=1 && !world.activeChunkSet.isEmpty())
+    		{
+    			//System.out.println("check 0");
 				Iterator it=world.activeChunkSet.iterator();			
 				while (it.hasNext())
 				{
@@ -595,7 +648,7 @@ public class NatureOverhaul implements ITickHandler{
 						chunk=world.getChunkFromChunkCoords(chunkIntPair.chunkXPos,chunkIntPair.chunkZPos);
 					}
 					if (chunk!=null && chunk.isChunkLoaded && chunk.isTerrainPopulated)
-					{			
+					{		
 						int i2;
 						for (ExtendedBlockStorage blockStorage:chunk.getBlockStorageArray())
 							if (blockStorage!=null && !blockStorage.isEmpty() && blockStorage.getNeedsRandomTick())
@@ -609,31 +662,33 @@ public class NatureOverhaul implements ITickHandler{
 			                        	int i3 = i2 >> 16 & 15;
 			                        	int j3 = blockStorage.getExtBlockID(k2, i3, l2);
 			                        	Block block = Block.blocksList[j3];
-
+		
 			                        	if (isValid(j3))
 			                        	{
 			                        		onUpdateTick(world, k2 + k, i3 + blockStorage.getYLocation(), l2 + l, j3);
 			                        	}
 			                    	}
-							/*List list= world.getPendingBlockUpdates(chunk, false);//FIXME
-							if (list!=null)
-							{			
+							/*ArrayList<NextTickListEntry> list= (ArrayList<NextTickListEntry>) world.getPendingBlockUpdates(chunk, false);//This is too slow, we can't call it on each tick
+							if (list!=null && !list.isEmpty())
+							{		
+								//System.out.println("check 1");
 								Iterator itr=list.iterator();						
 								while(itr.hasNext())				
-								{						
+								{			
 									NextTickListEntry nextTickEntry=(NextTickListEntry) itr.next();					
 									if ( nextTickEntry.scheduledTime == world.getTotalWorldTime() && isValid(nextTickEntry.blockID))						
-									{						
-										System.out.println("first conditions checked");							
-										//onUpdateTick(world,nextTickEntry.xCoord,nextTickEntry.yCoord,nextTickEntry.zCoord,nextTickEntry.blockID);						
+									{	
+										//System.out.println("check 2");
+										onUpdateTick(world,nextTickEntry.xCoord,nextTickEntry.yCoord,nextTickEntry.zCoord,nextTickEntry.blockID);						
 									}						
 								}	
 							}*/
 						}
 					}
 				}
-			}
-		}
+    		}			
+    	}
+    	//else tickTimer++;
 	}
 
 	@Override
