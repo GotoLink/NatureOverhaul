@@ -13,9 +13,8 @@ import net.minecraft.world.World;
 public interface IGrowable {
 	/**
 	* Grows a block at given location
-	*@return true only if the growing could occur
 	*/
-	abstract boolean grow(World world, int i, int j, int k);
+	abstract void grow(World world, int i, int j, int k);
 
 	/**
 	 * 

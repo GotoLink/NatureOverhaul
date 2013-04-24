@@ -28,16 +28,20 @@ public class Utils {
 		return NatureOverhaul.instance.getIDToTypeMapping().get(Integer.valueOf(id));
 	}
 	/**
-	* Check if we have nearby block of corresponding id within radius
+	* Check if we have at least a nearby block of corresponding id within radius
 	*
 	* @param	radius	Radius to check in
-	* @return	True if at least one block nearby
+	* @param	ignoreSelf If center block should be ignored
+	* @return	True if at least one block is nearby
 	*/
-	public static boolean hasNearbyBlock(World world, int i, int j, int k, int id, int radius) {
-		for(int x = -radius; x <= radius; x++) {
-			for(int y = -radius; y <= radius; y++) {
+	public static boolean hasNearbyBlock(World world, int i, int j, int k, int id, int radius, boolean ignoreSelf) {
+		for(int y = -radius; y <= radius; y++) {
+			for(int x = -radius; x <= radius; x++) {
 				for(int z = -radius; z <= radius; z++) {
-					if(world.getBlockId(i + x, j + y, k + z) == id) {
+					if(ignoreSelf && x==0 && y==0 && z==0){
+						z++;
+					}
+					if( world.getBlockId(i + x, j + y, k + z) == id) {
 						return true;
 					}
 				}
@@ -45,7 +49,19 @@ public class Utils {
 		}	
 		return false;
 	}
-	
+	/**
+	* Gets the j location of the lowest block of the type specified
+	*  below the block from given coordinate
+	* @param type 
+	* @return	lowest block j location
+	*/
+	public static int getLowestTypeJ(World world, int i, int j, int k, NOType type) {
+		int low=j;
+		while(getType(world.getBlockId(i, low - 1, k)) == type) {
+			low--;
+		}	
+		return low;
+	}
 	/**
 	* Emit a specific item
 	*
