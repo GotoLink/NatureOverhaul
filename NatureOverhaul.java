@@ -52,8 +52,9 @@ import cpw.mods.fml.relauncher.Side;
 public class NatureOverhaul implements ITickHandler{
 	@Instance ("NatureOverhaul")
 	public static NatureOverhaul instance;
-	public static Boolean autoSapling=false,lumberjack=false,killLeaves=true;
-	public static Boolean biomeModifiedGrowth=true,useStarvingSystem=true,mossCorruptStone=true;
+	public static Boolean autoSapling=false,lumberjack=false,moddedBonemeal=true,
+			killLeaves=true,biomeModifiedRate=true,useStarvingSystem=true,
+			mossCorruptStone=true;
 	//public static Boolean wildAnimalsBreed=true;
 	//public static int wildAnimalBreedRate=0,reproductionRate=0;
 	public static int growthType=0;//For sapling-> tree behaviour
@@ -103,10 +104,10 @@ public class NatureOverhaul implements ITickHandler{
     
         for (int i=0;i<names.length;i++)
         {     
-        	dieSets[i]=config.get(optionsCategory[i],names[i]+"Die",true).getBoolean(true);
-        	growSets[i]=config.get(optionsCategory[i],names[i]+"Grow",true).getBoolean(true);
-        	deathRates[i]=config.get(optionsCategory[i],names[i]+"Death Rate",1200).getInt(1200);
-        	growthRates[i]=config.get(optionsCategory[i],names[i]+"Growth Rate",1200).getInt(1200);
+        	dieSets[i]=config.get(optionsCategory[i],names[i]+" Die",true).getBoolean(true);
+        	growSets[i]=config.get(optionsCategory[i],names[i]+" Grow",true).getBoolean(true);
+        	deathRates[i]=config.get(optionsCategory[i],names[i]+" Death Rate",1200).getInt(1200);
+        	growthRates[i]=config.get(optionsCategory[i],names[i]+" Growth Rate",1200).getInt(1200);
         }
         autoSapling=config.get(optionsCategory[0],"AutoSapling",true).getBoolean(true);
         growthType=config.get(optionsCategory[0],"Sapling grow tree like",3).getInt(3);
@@ -120,8 +121,8 @@ public class NatureOverhaul implements ITickHandler{
         mossCorruptStone=config.get(optionsCategory[11],"Enable moss growing on stone",true).getBoolean(true);      
          
         useStarvingSystem=config.get(optionsCategory[names.length],"Enable starving system",true).getBoolean(true);      
-        biomeModifiedGrowth=config.get(optionsCategory[names.length],"BiomeModifiedGrowth",true).getBoolean(true);
-        
+        biomeModifiedRate=config.get(optionsCategory[names.length],"Enable biome specific rates",true).getBoolean(true);
+        moddedBonemeal=config.get(optionsCategory[names.length],"Enable modded Bonemeal",true).getBoolean(true);
         //Not sure if the following can be implemented
         //reproductionRate=config.get(optionsCategory[9],"ReproductionRate",1).getInt(1);
         //wildAnimalsBreed=config.get(optionsCategory[9],"WildAnimalsBreed",true).getBoolean(true);
@@ -139,14 +140,19 @@ public class NatureOverhaul implements ITickHandler{
     }
     @ForgeSubscribe
     public void onBoneMealUse(BonemealEvent event){
-    	if (event.hasResult() && applyBonemeal(event.world, event.X, event.Y, event.Z, event.ID)){
-		event.setResult(Result.ALLOW);//BoneMeal is consumed, but doesn't act vanilla
-		}
+    	if (moddedBonemeal && event.hasResult())
+    	{
+    		if( applyBonemeal(event.world, event.X, event.Y, event.Z, event.ID)){
+    			event.setResult(Result.ALLOW);//BoneMeal is consumed, but doesn't act vanilla
+    		}
+    		else
+    			event.setResult(Result.DEFAULT);
+    	}
     }
     @ForgeSubscribe
     public void onGrowingSapling(SaplingGrowTreeEvent event){
-    	if (event.hasResult()){
-    		event.setResult(Result.DENY);//Sapling doesn't grow vanilla
+    	if ( growthType%2==0 && event.hasResult()){
+    		event.setResult(Result.DENY);//Sapling doesn't grow vanilla with even growType
     	}
     }
     /**
@@ -156,10 +162,11 @@ public class NatureOverhaul implements ITickHandler{
 	* @return	true if item is applied
 	*/
 	private boolean applyBonemeal(World world, int i, int j, int k, int id) {
-		// Items affected; cactii, reeds, leaves, flowers and shrooms
-		if(Block.blocksList[id] instanceof IGrowable) {
-			return ((IGrowable) Block.blocksList[id]).grow(world, i, j, k);
-		} else {
+		if (isValid(id) && isGrowing(id)){
+			grow(world, i, j, k, id,Utils.getType(id));
+			return true;
+		}
+		else {
 			return false;
 		}
 	}
@@ -238,7 +245,7 @@ public class NatureOverhaul implements ITickHandler{
 				maxNeighbours=0;		
 			break;
 		default:
-			break;
+			return false;
 		}	
 		if((radius > 0) && (radius < 10)) {
 			for(int x = i - radius; x < i + radius; x++) {
@@ -274,9 +281,12 @@ public class NatureOverhaul implements ITickHandler{
 				y--;
 			}
 			return;		
-		case LOG:case MUSHROOMCAP://TODO:Define a tree death
+		case LOG://case MUSHROOMCAP://TODO:Check if working
 			if(TreeUtils.isTree(world, i, j, k, type, false))
-				TreeUtils.killTree(world, i, getLowestTypeJ(world, i, j, k , type), k, killLeaves);
+			{
+				TreeUtils.killTree(world, i, Utils.getLowestTypeJ(world, i, j, k , type), k, id, killLeaves);
+				System.out.println("Tree died at "+i+","+j+","+k);
+			}
 			return;
 		case MOSS://Return to cobblestone
 			world.setBlock(i,j,k,Block.cobblestone.blockID);
@@ -299,19 +309,7 @@ public class NatureOverhaul implements ITickHandler{
 		}
 	}
 
-	/**
-	* Gets the j location of the lowest block of the type specified
-	*  below the block from given coordinate
-	* @param type 
-	*
-	* @return	lowest block j location
-	*/
-	private int getLowestTypeJ(World world, int i, int j, int k, NOType type) {
-		while(Utils.getType(world.getBlockId(i, j - 1, k)) == type) {
-			j--;
-		}	
-		return j;
-	}
+	
 	private void grow(World world, int i, int j, int k, int id, NOType type) {
 		int scanSize;
 		switch(type){
@@ -343,21 +341,26 @@ public class NatureOverhaul implements ITickHandler{
 				if (world.getBlockId(i, height + 1, k) == 0)
 					world.setBlock(i, height + 1, k, id);//Grow on top
 			}				
-			break;
+			return;
 		case COCOA://Emit cocoa dye
 			if((world.getBlockId(i, j - 1, k) == 0) && (cocoaCanGrow(world,i,k))) {
 				Utils.emitItem(world, i, j - 1, k, new ItemStack(Item.dyePowder, 1, 3));			
 			}
-			break;
+			return;
 		case LEAVES://Emit apples
 			if (world.getBlockId(i, j - 1, k) == 0 && appleCanGrow(world, i, k) 
 			&& Math.random()<(double)getGrowthProb( world, i, j, k, id, NOType.APPLE))
 				Utils.emitItem(world, i, j - 1, k, new ItemStack(Item.appleRed));
-			break;
+			return;
 		case SAPLING://Use sapling vanilla method for growing a tree
 			((BlockSapling) Block.blocksList[id]).growTree(world, i, j, k, world.rand);
-		case LOG://TODO: Define a tree grow
-			break;
+		case LOG://case MUSHROOMCAP:
+			if (TreeUtils.isTree(world, i, j, k, type, false))
+			{
+				System.out.println("Tree grow at "+i+","+j+","+k);
+				TreeUtils.growTree(world, i, j, k,id, type);//TODO: Define a tree grow				
+			}		
+			return;
 		case GRASS:
 			scanSize = 1;
 			for(int x = i - scanSize; x <= i + scanSize; x++) {
@@ -369,7 +372,7 @@ public class NatureOverhaul implements ITickHandler{
 					}
 				}
 			}
-			break;
+			return;
 		case PLANT:case NETHERSTALK:
 			scanSize = 2;
 			for(int x = i - scanSize; x <= i + scanSize; x++) {
@@ -382,7 +385,7 @@ public class NatureOverhaul implements ITickHandler{
 					}
 				}
 			}
-			break;
+			return;
 		case MOSS:
 			scanSize = 1;	
 			for(int x = i - scanSize; x <= i + scanSize; x++) {
@@ -396,7 +399,7 @@ public class NatureOverhaul implements ITickHandler{
 					}
 				}
 			}
-			break;
+			return;
 		case MUSHROOM:
 			if (Math.random()<(double)getGrowthProb(world, i, j, k, id+60 ,NOType.MUSHROOMCAP))//Small chance of having a mushroom tree
 				((BlockMushroom) Block.blocksList[id]).fertilizeMushroom(world, i, j, k, world.rand);
@@ -414,15 +417,15 @@ public class NatureOverhaul implements ITickHandler{
 				}
 			}
 			}
-			break;
+			return;
 		case FERTILIZED:
 			if (Block.blocksList[id] instanceof BlockStem)
 				((BlockStem)Block.blocksList[id]).fertilizeStem(world, i, j, k);
 			else if (Block.blocksList[id] instanceof BlockCrops)
 				((BlockCrops)Block.blocksList[id]).fertilize(world, i, j, k);
-			break;
+			return;
 		default:
-			break;
+			return;
 		}
 	}
 	/**
@@ -436,7 +439,7 @@ public class NatureOverhaul implements ITickHandler{
 	*/
 	private float getGrowthProb(World world, int i, int j, int k, int id, NOType type) {	
 		float freq = type!=NOType.APPLE?getGrowthRate(id):growSets[names.length+1]?growthRates[names.length+1]*1.5F:-1F;
-		if(biomeModifiedGrowth && freq>0 && type!=NOType.NETHERSTALK) {
+		if(biomeModifiedRate && freq>0 && type!=NOType.NETHERSTALK) {
 			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
 			if(type!=NOType.CACTUS && ((biome.rainfall == 0) || (biome.temperature > 1.5F))) {
 				return 0.01F;
@@ -461,7 +464,7 @@ public class NatureOverhaul implements ITickHandler{
 	*/
 	private float getDeathProb(World world, int i, int j, int k, int id, NOType type) {			
 		float freq = getDeathRate(id);
-		if(biomeModifiedGrowth && freq>0 && type!=NOType.NETHERSTALK) {
+		if(biomeModifiedRate && freq>0 && type!=NOType.NETHERSTALK) {
 			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
 			if(type!=NOType.CACTUS && ((biome.rainfall == 0) || (biome.temperature > 1.5F))) {
 				return 1F;
