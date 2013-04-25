@@ -20,7 +20,7 @@ public class TreeUtils {
 	* Check if current block is a part of a tree trunk
 	*
 	* @param	ignoreSelf		Ignores the block status at i,j,k when true
-	* @return	True if is a part of a tree
+	* @return	True if is a part of a tree trunk
 	*/
 	public static boolean isTree(World world, int i, int j, int k, NOType type, boolean ignoreSelf) {
 		// How many logs we have checked
@@ -272,7 +272,7 @@ public class TreeUtils {
 
 	public static void growTree(World world, int i, int j, int k, int id, NOType type) {
 		int base = Utils.getLowestTypeJ(world, i, j, k, type);
-		//int meta = world.getBlockMetadata(i, j, k);//TODO:Use metadata
+		int meta = world.getBlockMetadata(i, base, k);
 		boolean onBranch=false;
 		int[] node=new int[]{i,base,k};
 		int[] branch=new int[3];
@@ -287,8 +287,8 @@ public class TreeUtils {
 		}
 		if(!onBranch)//We went to the top
 		{
-			world.setBlock(node[0], node[1], node[2], id);
-			world.setBlock(node[0], node[1]+1, node[2], Block.leaves.blockID);
+			world.setBlock(node[0], node[1], node[2], id, meta, 3);
+			world.setBlock(node[0], node[1]+1, node[2], Block.leaves.blockID);//TODO:Use metadata
 		}
 		else//We are on a branch
 		{	
