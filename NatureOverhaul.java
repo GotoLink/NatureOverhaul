@@ -47,14 +47,14 @@ import cpw.mods.fml.common.network.NetworkMod;
 import cpw.mods.fml.common.registry.TickRegistry;
 import cpw.mods.fml.relauncher.Side;
 
-@Mod(modid = "NatureOverhaul", name = "Nature Overhaul", version = "alpha")
+@Mod(modid = "NatureOverhaul", name = "Nature Overhaul", version = "beta")
 @NetworkMod(clientSideRequired = false, serverSideRequired = false)
 public class NatureOverhaul implements ITickHandler{
 	@Instance ("NatureOverhaul")
 	public static NatureOverhaul instance;
 	public static Boolean autoSapling=false,lumberjack=false,moddedBonemeal=true,
 			killLeaves=true,biomeModifiedRate=true,useStarvingSystem=true,
-			mossCorruptStone=true;
+			mossCorruptStone=true,customDimension=true;
 	//public static Boolean wildAnimalsBreed=true;
 	//public static int wildAnimalBreedRate=0,reproductionRate=0;
 	public static int growthType=0;//For sapling-> tree behaviour
@@ -123,6 +123,8 @@ public class NatureOverhaul implements ITickHandler{
         useStarvingSystem=config.get(optionsCategory[names.length],"Enable starving system",true).getBoolean(true);      
         biomeModifiedRate=config.get(optionsCategory[names.length],"Enable biome specific rates",true).getBoolean(true);
         moddedBonemeal=config.get(optionsCategory[names.length],"Enable modded Bonemeal",true).getBoolean(true);
+        customDimension=config.get(optionsCategory[names.length],"Enable custom dimensions",true).getBoolean(true);
+        
         //Not sure if the following can be implemented
         //reproductionRate=config.get(optionsCategory[9],"ReproductionRate",1).getInt(1);
         //wildAnimalsBreed=config.get(optionsCategory[9],"WildAnimalsBreed",true).getBoolean(true);
@@ -281,11 +283,10 @@ public class NatureOverhaul implements ITickHandler{
 				y--;
 			}
 			return;		
-		case LOG://case MUSHROOMCAP://TODO:Check if working
+		case LOG://case MUSHROOMCAP:
 			if(TreeUtils.isTree(world, i, j, k, type, false))
 			{
 				TreeUtils.killTree(world, i, Utils.getLowestTypeJ(world, i, j, k , type), k, id, killLeaves);
-				System.out.println("Tree died at "+i+","+j+","+k);
 			}
 			return;
 		case MOSS://Return to cobblestone
@@ -357,8 +358,8 @@ public class NatureOverhaul implements ITickHandler{
 		case LOG://case MUSHROOMCAP:
 			if (TreeUtils.isTree(world, i, j, k, type, false))
 			{
-				System.out.println("Tree grow at "+i+","+j+","+k);
-				TreeUtils.growTree(world, i, j, k,id, type);//TODO: Define a tree grow				
+				//System.out.println("Tree grow at "+i+","+j+","+k);
+				TreeUtils.growTree(world, i, j, k, id, type);//TODO: Define a tree grow				
 			}		
 			return;
 		case GRASS:
@@ -636,7 +637,7 @@ public class NatureOverhaul implements ITickHandler{
     	{
     		//tickTimer=0;
     		World world = (World) tickData[0];
-    		if(world.provider.dimensionId!=1 && !world.activeChunkSet.isEmpty())
+    		if((world.provider.dimensionId==0|| (customDimension && world.provider.dimensionId!=1)) && !world.activeChunkSet.isEmpty())
     		{
     			//System.out.println("check 0");
 				Iterator it=world.activeChunkSet.iterator();			
