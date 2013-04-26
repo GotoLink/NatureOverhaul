@@ -20,6 +20,7 @@ import net.minecraft.block.BlockNetherStalk;
 import net.minecraft.block.BlockReed;
 import net.minecraft.block.BlockSapling;
 import net.minecraft.block.BlockStem;
+import net.minecraft.block.material.Material;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.ChunkCoordIntPair;
@@ -165,8 +166,13 @@ public class NatureOverhaul implements ITickHandler{
 	*/
 	private boolean applyBonemeal(World world, int i, int j, int k, int id) {
 		if (isValid(id) && isGrowing(id)){
-			grow(world, i, j, k, id,Utils.getType(id));
-			return true;
+			NOType type = IDToTypeMapping.get(Integer.valueOf(id));
+			if (type!=NOType.GRASS)
+			{
+				grow(world, i, j, k, id, type);
+				return true;
+			}
+			return false;
 		}
 		else {
 			return false;
@@ -298,18 +304,19 @@ public class NatureOverhaul implements ITickHandler{
 		case GRASS: //Return to dirt
 			world.setBlock(i,j,k,Block.dirt.blockID);
 			return;
-		case FERTILIZED: //Ungrow, or turn to grass if too low
+		case FERTILIZED: //Ungrow, or turn to dirt if too low
 			int meta = world.getBlockMetadata(i, j, k);
 			if (meta>=1)
 				world.setBlockMetadataWithNotify(i, j, k, meta-1, 2);
-			else 
-				world.setBlock(i,j,k,Block.grass.blockID);
+			else {
+				world.setBlockToAir(i,j,k);
+				world.setBlock(i,j-1,k,Block.dirt.blockID);
+			}	
 			return;
 		default:
 			return;		
 		}
 	}
-
 	
 	private void grow(World world, int i, int j, int k, int id, NOType type) {
 		int scanSize;
@@ -355,6 +362,7 @@ public class NatureOverhaul implements ITickHandler{
 			return;
 		case SAPLING://Use sapling vanilla method for growing a tree
 			((BlockSapling) Block.blocksList[id]).growTree(world, i, j, k, world.rand);
+			return;
 		case LOG://case MUSHROOMCAP:
 			if (TreeUtils.isTree(world, i, j, k, type, false))
 			{
@@ -379,9 +387,16 @@ public class NatureOverhaul implements ITickHandler{
 			for(int x = i - scanSize; x <= i + scanSize; x++) {
 				for(int y = j - scanSize; y <= j + scanSize; y++) {
 					for(int z = k - scanSize; z <= k + scanSize; z++) {
-						if( Block.blocksList[id].canPlaceBlockAt(world, x, y, z)){				
-							world.setBlock(x, y, z, id);
-							return;						
+						if( Block.blocksList[id].canPlaceBlockAt(world, x, y, z) && world.getBlockMaterial(x, y, z)!=Material.water){
+							if (id!=Block.tallGrass.blockID)
+							{
+								world.setBlock(x, y, z, id);							
+							}
+							else
+							{
+								world.setBlock(x, y, z, id, world.getBlockMetadata(i, j, k), 3);
+							}
+							return;
 						}
 					}
 				}
