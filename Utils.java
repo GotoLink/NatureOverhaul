@@ -27,6 +27,10 @@ public class Utils {
 	public static NOType getType(int id){
 		return NatureOverhaul.instance.getIDToTypeMapping().get(Integer.valueOf(id));
 	}
+	
+	public static int getLeafFromLog(int id){
+		return NatureOverhaul.instance.getLogToLeafMapping().get(Integer.valueOf(id));
+	}
 	/**
 	* Check if we have at least a nearby block of corresponding id within radius
 	*
