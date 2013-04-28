@@ -39,7 +39,8 @@ import net.minecraftforge.event.ForgeSubscribe;
 import net.minecraftforge.event.entity.item.ItemExpireEvent;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.event.entity.player.BonemealEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent.HarvestCheck;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent.Action;
 import net.minecraftforge.event.terraingen.SaplingGrowTreeEvent;
 import cpw.mods.fml.common.ITickHandler;
 import cpw.mods.fml.common.Mod;
@@ -55,7 +56,7 @@ import cpw.mods.fml.common.network.NetworkMod;
 import cpw.mods.fml.common.registry.TickRegistry;
 import cpw.mods.fml.relauncher.Side;
 
-@Mod(modid = "NatureOverhaul", name = "Nature Overhaul", version = "beta")
+@Mod(modid = "NatureOverhaul", name = "Nature Overhaul", version = "0.1")
 @NetworkMod(clientSideRequired = false, serverSideRequired = false)
 public class NatureOverhaul implements ITickHandler{
 	@Instance ("NatureOverhaul")
@@ -63,10 +64,17 @@ public class NatureOverhaul implements ITickHandler{
 	public static Boolean autoSapling=false,lumberjack=false,moddedBonemeal=true,
 			killLeaves=true,biomeModifiedRate=true,useStarvingSystem=true,
 			mossCorruptStone=true,customDimension=true,wildAnimalsBreed=true;
-	public static int wildAnimalBreedRate=0,growthType=0;//For sapling-> tree behaviour
+	public static int wildAnimalBreedRate=0,growthType=0;
 	protected int updateLCG = (new Random()).nextInt();
 	
 	private static final int[] DEFAULT_ID_MAP={17,18};
+	private static HashMap<String,Integer> valueToGrowthTypeMapping = new HashMap();
+	static{
+		valueToGrowthTypeMapping.put("Neither", 0);
+		valueToGrowthTypeMapping.put("Growth", 1);
+		valueToGrowthTypeMapping.put("Decay", 2);
+		valueToGrowthTypeMapping.put("Both", 3);
+	}
 	private static HashMap<Integer,NOType> IDToTypeMapping = new HashMap();
 	private static HashMap<Integer,Boolean> IDToGrowingMapping = new HashMap(),IDToDyingMapping = new HashMap();
 	private static HashMap<Integer,Float> IDToOptTempMapping = new HashMap(),IDToOptRainMapping = new HashMap();
@@ -109,7 +117,7 @@ public class NatureOverhaul implements ITickHandler{
         	growthRates[i]=config.get(optionsCategory[i],names[i]+" Growth Rate",1200).getInt(1200);
         }
         //Toggle between alternative time of growth for sapling
-        growthType=config.get(optionsCategory[0],"Sapling grow on",3).getInt(3);
+        growthType=valueToGrowthTypeMapping.get(config.get(optionsCategory[0],"Sapling grow on","Both").getString());
         //Toggle for lumberjack system on trees
         lumberjack=config.get(optionsCategory[1],"Lumberjack",true).getBoolean(true);
         //Apples don't have a dying system, because it is only an item
@@ -139,7 +147,7 @@ public class NatureOverhaul implements ITickHandler{
     	//TickRegistry.registerTickHandler(this, Side.CLIENT);
     	TickRegistry.registerTickHandler(this, Side.SERVER);
     }
-    @ForgeSubscribe
+    @ForgeSubscribe//Event for Wild Breeding
     public void onLivingUpdateEvent(LivingUpdateEvent event){
     	if(wildAnimalsBreed && event.entityLiving instanceof EntityAnimal)
     	{
@@ -151,35 +159,35 @@ public class NatureOverhaul implements ITickHandler{
     		}
     	}
     }
-    @ForgeSubscribe
-    public void onPlayerHarvesting(HarvestCheck event){
-    	if(lumberjack && event.success){
+    @ForgeSubscribe//Event for Lumberjack system
+    public void onPlayerInteracting(PlayerInteractEvent event){
+    	if(lumberjack && event.action==Action.LEFT_CLICK_BLOCK){
     		ItemStack itemstack = event.entityPlayer.getCurrentEquippedItem();
     		if(itemstack != null) {
-    			int id = itemstack.itemID;
+    			Item it = itemstack.getItem();
     			//Check for an axe in player hand
-    			if(id >= 0 && id < Item.itemsList.length && Item.itemsList[id] instanceof ItemAxe){
-    				Block block=event.block;
-    				id=block.blockID;
+    			if(it!=null && it instanceof ItemAxe){
+    				int id=event.entityPlayer.worldObj.getBlockId(event.x, event.y, event.z);
     				//Check for a registered log block
     				if(isValid(id) ){
-    				//TODO:Finish this
+    					World world=event.entityPlayer.worldObj;
+    					int i=event.x;
+    					int j=event.y;
+    					int k=event.z;
     					NOType type=IDToTypeMapping.get(Integer.valueOf(id));
-    					System.out.println("Lumberjack system activated");
-    					/*if(type==NOType.LOG && TreeUtils.isTree(world, i, j, k, type, true))
-    					  {// Damage item compared to the number of blocks found
-    					  		int damage = TreeUtils.killTree(world, i, j, k, id, false);
-	        					itemstack.damageItem(damage - 1, player);
-	        					if(itemstack.stackSize == 0) 
-	        						player.destroyCurrentEquippedItem();
-    					  }
-    					 */
+    					if(type==NOType.LOG && TreeUtils.isTree(world, i, j, k, type, true))
+    					{// Damage item compared to the number of blocks found
+					  		int damage = TreeUtils.killTree(world, i, j, k, id, false);
+        					itemstack.damageItem(damage - 1, event.entityPlayer);
+        					if(itemstack.stackSize <= 0) 
+        						event.entityPlayer.destroyCurrentEquippedItem();
+    					}
     				}
     			}
     		}
     	}	
     }
-    @ForgeSubscribe
+    @ForgeSubscribe//Event for AutoSapling
     public void onSaplingItemDead(ItemExpireEvent event){	
     	if(autoSapling && growthType%2!=0)
     	{
@@ -188,12 +196,12 @@ public class NatureOverhaul implements ITickHandler{
     			ItemStack item = ent.getEntityItem();
     			if(isValid(item.itemID) && IDToTypeMapping.get(Integer.valueOf(item.itemID))==NOType.SAPLING){
     				ent.worldObj.setBlock(MathHelper.floor_double(ent.posX), MathHelper.floor_double(ent.posY), MathHelper.floor_double(ent.posZ), item.itemID, item.getItemDamage(), 3);
-    				System.out.println("AutoSapling system activated");
+    				//System.out.println("AutoSapling system activated");
     			}
     		}
     	}
     }
-    @ForgeSubscribe
+    @ForgeSubscribe//Event for modded Bonemeal
     public void onBoneMealUse(BonemealEvent event){
     	if (moddedBonemeal && event.hasResult())
     	{
@@ -204,7 +212,7 @@ public class NatureOverhaul implements ITickHandler{
     			event.setResult(Result.DEFAULT);
     	}
     }
-    @ForgeSubscribe
+    @ForgeSubscribe//Event for Sapling growthType
     public void onGrowingSapling(SaplingGrowTreeEvent event){
     	if ( growthType%2==0 && event.hasResult()){
     		event.setResult(Result.DENY);//Sapling doesn't grow vanilla with even growType
@@ -230,6 +238,11 @@ public class NatureOverhaul implements ITickHandler{
 			return false;
 		}
 	}
+	/**
+	* Called from the world tick with a valid id
+	* call checks for grow and die booleans, and probabilities
+	* then call grow or death general methods
+	*/
 	private void onUpdateTick(World world, int i, int j, int k, int id)	
 	{	
 		NOType type=Utils.getType(id);
@@ -258,7 +271,7 @@ public class NatureOverhaul implements ITickHandler{
 		case CACTUS:case REED:case GRASS:case PLANT:case MUSHROOM:case COCOA:
 			case FERTILIZED:case MOSS:case NETHERSTALK:case SAPLING:
 				return useStarvingSystem && hasStarved(world, i, j, k, type);
-		case LOG:case MUSHROOMCAP:case LEAVES://Trees and leaves are only randomly dying for now
+		case LOG:case MUSHROOMCAP:case LEAVES://Trees and leaves are only randomly dying
 			return false;	
 		default:
 			return false;	
@@ -304,7 +317,7 @@ public class NatureOverhaul implements ITickHandler{
 			if(maxNeighbours < 0) 
 				maxNeighbours=0;		
 			break;
-		default:
+		default://All cases have been set, this is for safety
 			return false;
 		}	
 		if((radius > 0) && (radius < 10)) {
@@ -329,7 +342,7 @@ public class NatureOverhaul implements ITickHandler{
 			if (Block.blocksList[id] instanceof IBlockDeath)
 				((IBlockDeath)Block.blocksList[id]).death(world, i, j, k);
 			return;
-		case CACTUS:case REED://Disappear from top to bottom
+		case CACTUS:case REED://Disappear completely from top to bottom
 			int y = j;
 			// Get to the top so to avoid any being dropped since this is death
 			while(world.getBlockId(i, y + 1, k) == id) {
@@ -383,7 +396,7 @@ public class NatureOverhaul implements ITickHandler{
 			if (Block.blocksList[id] instanceof IGrowable)
 				((IGrowable)Block.blocksList[id]).grow(world, i, j, k);
 			return;
-		case CACTUS:case REED:		
+		case CACTUS:case REED://Grow on top if too low, or on a neighbor spot		
 			if(TreeUtils.getTreeHeight(world, i, j, k, id)>2)
 			{//Find a neighbor spot for new one
 				scanSize = 2;
@@ -430,13 +443,13 @@ public class NatureOverhaul implements ITickHandler{
 				TreeUtils.growTree(world, i, j, k, id, type);
 			}		
 			return;
-		case GRASS:
+		case GRASS://Replace surrounding dirt with grass
 			scanSize = 1;
 			for(int x = i - scanSize; x <= i + scanSize; x++) {
 				for(int y = j - scanSize; y <= j + scanSize; y++) {
 					for(int z = k - scanSize; z <= k + scanSize; z++) {
 						if(world.getBlockId(x, y, z) == Block.dirt.blockID){
-							world.setBlock(x, y, z, id);//Replace surrounding dirt with grass
+							world.setBlock(x, y, z, id);
 						}
 					}
 				}
@@ -452,7 +465,7 @@ public class NatureOverhaul implements ITickHandler{
 							{
 								world.setBlock(x, y, z, id);							
 							}
-							else
+							else//Metadata sensitive for tall grass
 							{
 								world.setBlock(x, y, z, id, world.getBlockMetadata(i, j, k), 3);
 							}
@@ -462,24 +475,24 @@ public class NatureOverhaul implements ITickHandler{
 				}
 			}
 			return;
-		case MOSS:
+		case MOSS://Moss grows on both stone (or only cobblestone), changing only one block
 			scanSize = 1;	
 			for(int x = i - scanSize; x <= i + scanSize; x++) {
 				for(int y = j - scanSize; y <= j + scanSize; y++) {
 					for(int z = k - scanSize; z <= k + scanSize; z++) {
 						int iD = world.getBlockId(x, y, z);
 						if((mossCorruptStone && iD == Block.stone.blockID) || iD == Block.cobblestone.blockID) {
-							world.setBlock(x, y, z, id);//Moss grows on both stone
+							world.setBlock(x, y, z, id);
 							return;
 						}
 					}
 				}
 			}
 			return;
-		case MUSHROOM:
-			if (Math.random()<(double)getGrowthProb(world, i, j, k, id+60 ,NOType.MUSHROOMCAP))//Small chance of having a mushroom tree
+		case MUSHROOM://Small chance of having a mushroom tree, grown using vanilla method
+			if (Math.random()<(double)getGrowthProb(world, i, j, k, id+60 ,NOType.MUSHROOMCAP))
 				((BlockMushroom) Block.blocksList[id]).fertilizeMushroom(world, i, j, k, world.rand);
-			else
+			else//Grow a similar mushroom nearby
 			{
 				scanSize = 1;	
 			for(int x = i - scanSize; x <= i + scanSize; x++) {
@@ -494,7 +507,7 @@ public class NatureOverhaul implements ITickHandler{
 			}
 			}
 			return;
-		case FERTILIZED:
+		case FERTILIZED://Blocks that uses fertilize function for grow
 			if (Block.blocksList[id] instanceof BlockStem)
 				((BlockStem)Block.blocksList[id]).fertilizeStem(world, i, j, k);
 			else if (Block.blocksList[id] instanceof BlockCrops)
@@ -536,7 +549,7 @@ public class NatureOverhaul implements ITickHandler{
 	* @param	j
 	* @param	k
 	* @param type 
-	* @return	Death probability
+	* @return	Death probability as a float
 	*/
 	private float getDeathProb(World world, int i, int j, int k, int id, NOType type) {			
 		float freq = getDeathRate(id);
@@ -603,22 +616,6 @@ public class NatureOverhaul implements ITickHandler{
 	public HashMap<Integer, Integer> getLogToLeafMapping(){
 		return LogToLeafMapping;
 	}
-	/**
-	* Setup sapling options
-	*/
-	/*private static float getSaplingGrowthRate() {
-		String[] 	growthLabels = {"Both", "Decay", "Growth", "Neither"};
-		int[]	growthValues = {3, 2, 1, 0};
-		saps.addMappedOption("Growth Occurs On", growthValues, growthLabels);
-		
-	}*/
-	
-	/**
-	* Set up misc options
-	*/
-		/*
-		Integer[] rKeys = { 16000, 1600, 160, 16, 64000, 32000 };
-		public static final Float breedRate = new Float("Wild Birth Rate", rKeys, labels);*/
 	
     private static void addMapping(int id, boolean isGrowing,int growthRate, boolean isMortal,int deathRate, float optTemp, float optRain, NOType type)
     {
@@ -630,7 +627,7 @@ public class NatureOverhaul implements ITickHandler{
         IDToOptRainMapping.put(Integer.valueOf(id), optRain);
         IDToTypeMapping.put(Integer.valueOf(id), type);
     }
-    @PostInit
+    @PostInit//Register blocks with config values and NOType, and log/leaf couples 
     public void modsLoaded(FMLPostInitializationEvent event){
     	for (int i=1;i<Block.blocksList.length;i++)
     	{
