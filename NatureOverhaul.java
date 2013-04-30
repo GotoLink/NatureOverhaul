@@ -61,13 +61,12 @@ import cpw.mods.fml.relauncher.Side;
 public class NatureOverhaul implements ITickHandler{
 	@Instance ("NatureOverhaul")
 	public static NatureOverhaul instance;
-	public static Boolean autoSapling=false,lumberjack=false,moddedBonemeal=true,
+	private static Boolean autoSapling=false,lumberjack=false,moddedBonemeal=true,
 			killLeaves=true,biomeModifiedRate=true,useStarvingSystem=true,
 			mossCorruptStone=true,customDimension=true,wildAnimalsBreed=true;
-	public static int wildAnimalBreedRate=0,growthType=0;
-	protected int updateLCG = (new Random()).nextInt();
+	private static int wildAnimalBreedRate=0,growthType=0;
+	private int updateLCG = (new Random()).nextInt();
 	
-	private static final int[] DEFAULT_ID_MAP={17,18};
 	private static HashMap<String,Integer> valueToGrowthTypeMapping = new HashMap();
 	static{
 		valueToGrowthTypeMapping.put("Neither", 0);
@@ -84,8 +83,8 @@ public class NatureOverhaul implements ITickHandler{
     	{
     	"Sapling","Tree","Plants","Netherwort","Grass","Reed","Cactus","Mushroom","Mushroom Tree","Leaf","Crops","Moss","Cocoa"
     	};
-    public static boolean[] dieSets=new boolean[names.length],growSets=new boolean[names.length+1];
-	public static int[] deathRates=new int[names.length],growthRates=new int[names.length+1];
+    private static boolean[] dieSets=new boolean[names.length],growSets=new boolean[names.length+1];
+	private static int[] deathRates=new int[names.length],growthRates=new int[names.length+1];
     private static String[] optionsCategory=new String[names.length+1];
     		static{
     		for(int i=0;i<names.length;i++)
@@ -94,7 +93,7 @@ public class NatureOverhaul implements ITickHandler{
     		}
     		optionsCategory[names.length]="Misc Options";
     		};
-    public static int[] idMapForTree=DEFAULT_ID_MAP;
+    private static int[] idLog=new int[]{17},idLeaf=new int[]{18};
     
     @PreInit
     public void preInit(FMLPreInitializationEvent event)
@@ -107,6 +106,7 @@ public class NatureOverhaul implements ITickHandler{
         	config.addCustomCategoryComment(name,"The lower the rate, the faster the changes happen.");
         }
     	config.addCustomCategoryComment(optionsCategory[2],"Plants are flower, deadbush, lilypad and tallgrass");
+    	config.addCustomCategoryComment(optionsCategory[names.length],"Log ids and leaves ids should have the same length and include all compatible blocks");
     	
     	autoSapling=config.get(optionsCategory[0],"AutoSapling",true).getBoolean(true);
         for (int i=0;i<names.length;i++)
@@ -132,7 +132,8 @@ public class NatureOverhaul implements ITickHandler{
         biomeModifiedRate=config.get(optionsCategory[names.length],"Enable biome specific rates",true).getBoolean(true);
         moddedBonemeal=config.get(optionsCategory[names.length],"Enable modded Bonemeal",true).getBoolean(true);
         customDimension=config.get(optionsCategory[names.length],"Enable custom dimensions",true).getBoolean(true);
-        idMapForTree=config.get(optionsCategory[names.length],"Log ids linked to Leaves",DEFAULT_ID_MAP).getIntList(); 
+        idLog=config.get(optionsCategory[names.length],"Log ids linked to Leaves",idLog).getIntList();
+        idLeaf=config.get(optionsCategory[names.length],"Leaves ids linked to Logs",idLeaf).getIntList();
         wildAnimalsBreed=config.get(optionsCategory[names.length],"Enable wild animals Breed",true).getBoolean(true);
         wildAnimalBreedRate=config.get(optionsCategory[names.length],"Wild animals breed rate",16000).getInt(16000);
       if (config.hasChanged())
@@ -176,11 +177,15 @@ public class NatureOverhaul implements ITickHandler{
     					int k=event.z;
     					NOType type=IDToTypeMapping.get(Integer.valueOf(id));
     					if(type==NOType.LOG && TreeUtils.isTree(world, i, j, k, type, true))
-    					{// Damage item compared to the number of blocks found
+    					{
+    						int meta = world.getBlockMetadata(i, j, k);
+    						// Damage axe compared to the number of blocks found
 					  		int damage = TreeUtils.killTree(world, i, j, k, id, false);
         					itemstack.damageItem(damage - 1, event.entityPlayer);
         					if(itemstack.stackSize <= 0) 
         						event.entityPlayer.destroyCurrentEquippedItem();
+        					//Drop logs
+        					Utils.emitItem(world, i, j, k, new ItemStack(id, damage, meta));
     					}
     				}
     			}
@@ -629,6 +634,7 @@ public class NatureOverhaul implements ITickHandler{
     }
     @PostInit//Register blocks with config values and NOType, and log/leaf couples 
     public void modsLoaded(FMLPostInitializationEvent event){
+    	int logLength=0,leafLength=0;
     	for (int i=1;i<Block.blocksList.length;i++)
     	{
     		if (Block.blocksList[i]!=null)
@@ -652,6 +658,8 @@ public class NatureOverhaul implements ITickHandler{
     			else if(Block.blocksList[i] instanceof BlockLog)
     			{
     				addMapping(i,growSets[1],growthRates[1],dieSets[1],deathRates[1], 1.0F, 1.0F,NOType.LOG);
+    				idLog[logLength]=i;
+    				logLength++;
     			}	
     			else if(Block.blocksList[i] instanceof BlockNetherStalk)//In the Nether, we don't use biome dependent parameter
     			{
@@ -680,6 +688,8 @@ public class NatureOverhaul implements ITickHandler{
     			else if(Block.blocksList[i] instanceof BlockLeaves)
     			{
     				addMapping(i, growSets[9], growthRates[9], dieSets[9],deathRates[9], 1.0F, 1.0F,NOType.LEAVES );
+    				idLeaf[leafLength]=i;
+    				leafLength++;
     			}
     			else if(Block.blocksList[i] instanceof BlockCrops || Block.blocksList[i] instanceof BlockStem)
     			{
@@ -698,18 +708,17 @@ public class NatureOverhaul implements ITickHandler{
     				addMapping(i,growSets[12],growthRates[12],dieSets[12],deathRates[12],1.0F,1.0F,NOType.COCOA);
     			}
     		}
-    		for(int id=0;id<idMapForTree.length;id=id+2)
-    		{
-    			LogToLeafMapping.put(Integer.valueOf(idMapForTree[id]), Integer.valueOf(idMapForTree[id+1]));
-    		}
     	}
+    	for(int id=0;id<Math.min(idLog.length, idLeaf.length);id++)
+		{
+			LogToLeafMapping.put(Integer.valueOf(idLog[id]), Integer.valueOf(idLeaf[id]));
+		}
     }
     @Override
 	public void tickStart(EnumSet<TickType> type, Object... tickData) 
 	{	
     	if (tickData.length>0 && tickData[0] instanceof World)
     	{
-    		//tickTimer=0;
     		World world = (World) tickData[0];
     		if((world.provider.dimensionId==0|| (customDimension && world.provider.dimensionId!=1)) && !world.activeChunkSet.isEmpty())
     		{
