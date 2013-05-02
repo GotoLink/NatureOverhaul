@@ -29,7 +29,12 @@ public class Utils {
 	}
 	
 	public static int getLeafFromLog(int id){
-		return NatureOverhaul.instance.getLogToLeafMapping().get(Integer.valueOf(id));
+		try{
+			return NatureOverhaul.instance.getLogToLeafMapping().get(Integer.valueOf(id));
+		}catch(NullPointerException n){
+			System.err.println("NatureOverhaul failed to find corresponding leaf to log block with id "+id+" in config file");
+			return 0;
+		}
 	}
 	/**
 	* Check if we have at least a nearby block of corresponding id within radius

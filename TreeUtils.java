@@ -289,13 +289,9 @@ public class TreeUtils {
 		if(!onBranch)//We went to the top
 		{
 			world.setBlock(node[0], node[1], node[2], id, meta, 3);
-			try{
 			world.setBlock(node[0], node[1]+1, node[2], Utils.getLeafFromLog(id), meta, 3);
 			putBlocksAround(world, node[0], node[1], node[2], Utils.getLeafFromLog(id), meta);
-			}catch(NullPointerException n)
-			{
-				System.err.println("NatureOverhaul failed to find corresponding leaf to log block with id "+id+" in config file");
-			}
+			
 		}
 		else//We are on a branch
 		{	
@@ -309,17 +305,12 @@ public class TreeUtils {
 				newBranch=findValidNeighbor(world, branch[0], branch[1], branch[2], id, false);
 			}
 			newBranch=findValidNeighbor(world, branch[0], branch[1], branch[2], 0, false);
-			try{
 			if(newBranch!=null){
 				world.setBlock(newBranch[0], newBranch[1], newBranch[2], id, meta, 3);
 				putBlocksAround(world, newBranch[0], newBranch[1], newBranch[2], Utils.getLeafFromLog(id), meta);	
 			}
 			else
 			putBlocksAround(world, branch[0], branch[1], branch[2], Utils.getLeafFromLog(id), meta);
-			}catch(NullPointerException n)
-			{
-				System.err.println("NatureOverhaul failed to find corresponding leaf to log block with id "+id+" in config file");
-			}
 		}
 	}
 	/**
