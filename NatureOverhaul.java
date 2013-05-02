@@ -1,5 +1,6 @@
 package mods.natureoverhaul;
 //Author: Clinton Alexander
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -42,6 +43,9 @@ import net.minecraftforge.event.entity.player.BonemealEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent.Action;
 import net.minecraftforge.event.terraingen.SaplingGrowTreeEvent;
+
+import com.google.common.primitives.Ints;
+
 import cpw.mods.fml.common.ITickHandler;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.Init;
@@ -56,13 +60,13 @@ import cpw.mods.fml.common.network.NetworkMod;
 import cpw.mods.fml.common.registry.TickRegistry;
 import cpw.mods.fml.relauncher.Side;
 
-@Mod(modid = "NatureOverhaul", name = "Nature Overhaul", version = "0.1")
+@Mod(modid = "NatureOverhaul", name = "Nature Overhaul", version = "0.2")
 @NetworkMod(clientSideRequired = false, serverSideRequired = false)
 public class NatureOverhaul implements ITickHandler{
 	@Instance ("NatureOverhaul")
 	public static NatureOverhaul instance;
 	private static Boolean autoSapling=false,lumberjack=false,moddedBonemeal=true,
-			killLeaves=true,biomeModifiedRate=true,useStarvingSystem=true,
+			killLeaves=true,biomeModifiedRate=true,useStarvingSystem=true,decayLeaves=true,
 			mossCorruptStone=true,customDimension=true,wildAnimalsBreed=true;
 	private static int wildAnimalBreedRate=0,growthType=0;
 	private int updateLCG = (new Random()).nextInt();
@@ -94,12 +98,13 @@ public class NatureOverhaul implements ITickHandler{
     		optionsCategory[names.length]="Misc Options";
     		};
     private static int[] idLog=new int[]{17},idLeaf=new int[]{18};
+    private Configuration config;
     
     @PreInit
     public void preInit(FMLPreInitializationEvent event)
     {
         instance = this;
-        Configuration config = new Configuration(event.getSuggestedConfigurationFile(),true);
+        config = new Configuration(event.getSuggestedConfigurationFile(),true);
         config.load();
         for(String name:optionsCategory)
         {
@@ -117,14 +122,15 @@ public class NatureOverhaul implements ITickHandler{
         	growthRates[i]=config.get(optionsCategory[i],names[i]+" Growth Rate",1200).getInt(1200);
         }
         //Toggle between alternative time of growth for sapling
-        growthType=valueToGrowthTypeMapping.get(config.get(optionsCategory[0],"Sapling grow on","Both").getString());
+        growthType=valueToGrowthTypeMapping.get(config.get(optionsCategory[0],"Sapling grow on","Both","WIP setting, possible values are Neither,Growth,Decay,Both").getString());
         //Toggle for lumberjack system on trees
-        lumberjack=config.get(optionsCategory[1],"Lumberjack",true).getBoolean(true);
+        lumberjack=config.get(optionsCategory[1],"Enable lumberjack",true).getBoolean(true);
+        killLeaves=config.get(optionsCategory[1],"Lumberjack kill leaves",true).getBoolean(true);
         //Apples don't have a dying system, because it is only an item
         growSets[names.length]=config.get(optionsCategory[9],"Apple Grows",true).getBoolean(true);
         growthRates[names.length]=config.get(optionsCategory[9],"Apple Growth Rate",3000).getInt(3000);            
         //Force remove leaves after killing a tree, instead of letting Minecraft doing it
-        killLeaves=config.get(optionsCategory[9],"Enable leaves decay on tree death",true).getBoolean(true);      
+        decayLeaves=config.get(optionsCategory[9],"Enable leaves decay on tree death",true).getBoolean(true);      
         //Toggle so Stone can turn into Mossy Cobblestone
         mossCorruptStone=config.get(optionsCategory[11],"Enable moss growing on stone",true).getBoolean(true);      
         //Misc options
@@ -132,117 +138,27 @@ public class NatureOverhaul implements ITickHandler{
         biomeModifiedRate=config.get(optionsCategory[names.length],"Enable biome specific rates",true).getBoolean(true);
         moddedBonemeal=config.get(optionsCategory[names.length],"Enable modded Bonemeal",true).getBoolean(true);
         customDimension=config.get(optionsCategory[names.length],"Enable custom dimensions",true).getBoolean(true);
-        idLog=config.get(optionsCategory[names.length],"Log ids linked to Leaves",idLog).getIntList();
-        idLeaf=config.get(optionsCategory[names.length],"Leaves ids linked to Logs",idLeaf).getIntList();
         wildAnimalsBreed=config.get(optionsCategory[names.length],"Enable wild animals Breed",true).getBoolean(true);
         wildAnimalBreedRate=config.get(optionsCategory[names.length],"Wild animals breed rate",16000).getInt(16000);
-      if (config.hasChanged())
-      {        
-    	  config.save();     	
-      }    
+          
     }
     @Init
     public void load(FMLInitializationEvent event)
-    {	  
-    	MinecraftForge.EVENT_BUS.register(this); 
+    {	
+    	if(moddedBonemeal)
+    		MinecraftForge.EVENT_BUS.register(new BonemealEventHandler());
+    	if(autoSapling && growthType%2!=0)
+    		MinecraftForge.EVENT_BUS.register(new AutoSaplingEventHandler());
+    	if(wildAnimalsBreed)
+    		MinecraftForge.EVENT_BUS.register(new AnimalEventHandler(wildAnimalBreedRate));
+    	if(growthType%2==0)
+    		MinecraftForge.EVENT_BUS.register(new SaplingGrowEventHandler());
+    	if(lumberjack)
+    		MinecraftForge.EVENT_BUS.register(new PlayerEventHandler(killLeaves));
     	//TickRegistry.registerTickHandler(this, Side.CLIENT);
     	TickRegistry.registerTickHandler(this, Side.SERVER);
     }
-    @ForgeSubscribe//Event for Wild Breeding
-    public void onLivingUpdateEvent(LivingUpdateEvent event){
-    	if(wildAnimalsBreed && event.entityLiving instanceof EntityAnimal)
-    	{
-    		EntityAnimal ent =(EntityAnimal)event.entityLiving;
-    		if(!ent.worldObj.isRemote && !ent.isChild() && ent.inLove == 0 /*&& ent.breeding == 0*/) {
-    			if(ent.worldObj.rand.nextInt(wildAnimalBreedRate) == 0) {
-    				ent.inLove = 600;
-    			}
-    		}
-    	}
-    }
-    @ForgeSubscribe//Event for Lumberjack system
-    public void onPlayerInteracting(PlayerInteractEvent event){
-    	if(lumberjack && event.action==Action.LEFT_CLICK_BLOCK){
-    		ItemStack itemstack = event.entityPlayer.getCurrentEquippedItem();
-    		if(itemstack != null) {
-    			Item it = itemstack.getItem();
-    			//Check for an axe in player hand
-    			if(it!=null && it instanceof ItemAxe){
-    				int id=event.entityPlayer.worldObj.getBlockId(event.x, event.y, event.z);
-    				//Check for a registered log block
-    				if(isValid(id) ){
-    					World world=event.entityPlayer.worldObj;
-    					int i=event.x;
-    					int j=event.y;
-    					int k=event.z;
-    					NOType type=IDToTypeMapping.get(Integer.valueOf(id));
-    					if(type==NOType.LOG && TreeUtils.isTree(world, i, j, k, type, true))
-    					{
-    						int meta = world.getBlockMetadata(i, j, k);
-    						// Damage axe compared to the number of blocks found
-					  		int damage = TreeUtils.killTree(world, i, j, k, id, false);
-        					itemstack.damageItem(damage - 1, event.entityPlayer);
-        					if(itemstack.stackSize <= 0) 
-        						event.entityPlayer.destroyCurrentEquippedItem();
-        					//Drop logs
-        					Utils.emitItem(world, i, j, k, new ItemStack(id, damage, meta));
-    					}
-    				}
-    			}
-    		}
-    	}	
-    }
-    @ForgeSubscribe//Event for AutoSapling
-    public void onSaplingItemDead(ItemExpireEvent event){	
-    	if(autoSapling && growthType%2!=0)
-    	{
-    		EntityItem ent=event.entityItem;
-    		if(ent.motionX<0.001 && ent.motionZ<0.001){
-    			ItemStack item = ent.getEntityItem();
-    			if(isValid(item.itemID) && IDToTypeMapping.get(Integer.valueOf(item.itemID))==NOType.SAPLING){
-    				ent.worldObj.setBlock(MathHelper.floor_double(ent.posX), MathHelper.floor_double(ent.posY), MathHelper.floor_double(ent.posZ), item.itemID, item.getItemDamage(), 3);
-    				//System.out.println("AutoSapling system activated");
-    			}
-    		}
-    	}
-    }
-    @ForgeSubscribe//Event for modded Bonemeal
-    public void onBoneMealUse(BonemealEvent event){
-    	if (moddedBonemeal && event.hasResult())
-    	{
-    		if( applyBonemeal(event.world, event.X, event.Y, event.Z, event.ID)){
-    			event.setResult(Result.ALLOW);//BoneMeal is consumed, but doesn't act vanilla
-    		}
-    		else
-    			event.setResult(Result.DEFAULT);
-    	}
-    }
-    @ForgeSubscribe//Event for Sapling growthType
-    public void onGrowingSapling(SaplingGrowTreeEvent event){
-    	if ( growthType%2==0 && event.hasResult()){
-    		event.setResult(Result.DENY);//Sapling doesn't grow vanilla with even growType
-    	}
-    }
-    /**
-	* Apply bonemeal to the location clicked
-	* 
-	* @param	id 	block ID
-	* @return	true if item is applied
-	*/
-	private boolean applyBonemeal(World world, int i, int j, int k, int id) {
-		if (isValid(id) && isGrowing(id)){
-			NOType type = IDToTypeMapping.get(Integer.valueOf(id));
-			if (type!=NOType.GRASS)
-			{
-				grow(world, i, j, k, id, type);
-				return true;
-			}
-			return false;
-		}
-		else {
-			return false;
-		}
-	}
+   
 	/**
 	* Called from the world tick with a valid id
 	* call checks for grow and die booleans, and probabilities
@@ -362,7 +278,7 @@ public class NatureOverhaul implements ITickHandler{
 		case LOG:case MUSHROOMCAP:
 			if(TreeUtils.isTree(world, i, j, k, type, false))
 			{
-				TreeUtils.killTree(world, i, Utils.getLowestTypeJ(world, i, j, k , type), k, id, type==NOType.LOG?killLeaves:false);
+				TreeUtils.killTree(world, i, Utils.getLowestTypeJ(world, i, j, k , type), k, id, type==NOType.LOG?decayLeaves:false);
 			}
 			return;
 		case MOSS://Return to cobblestone
@@ -394,7 +310,7 @@ public class NatureOverhaul implements ITickHandler{
 		}
 	}
 	
-	private void grow(World world, int i, int j, int k, int id, NOType type) {
+	public void grow(World world, int i, int j, int k, int id, NOType type) {
 		int scanSize;
 		switch(type){
 		case CUSTOM:
@@ -442,7 +358,7 @@ public class NatureOverhaul implements ITickHandler{
 		case SAPLING://Use sapling vanilla method for growing a tree
 			((BlockSapling) Block.blocksList[id]).growTree(world, i, j, k, world.rand);
 			return;
-		case LOG:case MUSHROOMCAP:
+		case LOG://case MUSHROOMCAP:
 			if (TreeUtils.isTree(world, i, j, k, type, false))
 			{		
 				TreeUtils.growTree(world, i, j, k, id, type);
@@ -606,13 +522,13 @@ public class NatureOverhaul implements ITickHandler{
 	private int getDeathRate(int id) {
 		return IDToDeathRateMapping.get(Integer.valueOf(id));
 	}
-	private boolean isGrowing(int id){
+	public boolean isGrowing(int id){
 		return IDToGrowingMapping.get(Integer.valueOf(id));	
 	}
-	private boolean isMortal(int id){
+	public boolean isMortal(int id){
 		return IDToDyingMapping.get(Integer.valueOf(id));
 	}
-	private boolean isValid(int id){
+	public boolean isValid(int id){
 		return id>0 && id<4096 && Block.blocksList[id]!=null && IDToGrowingMapping.containsKey(Integer.valueOf(id));
 	}
 	public HashMap<Integer, NOType> getIDToTypeMapping(){
@@ -634,7 +550,7 @@ public class NatureOverhaul implements ITickHandler{
     }
     @PostInit//Register blocks with config values and NOType, and log/leaf couples 
     public void modsLoaded(FMLPostInitializationEvent event){
-    	int logLength=0,leafLength=0;
+    	ArrayList<Integer> logID=new ArrayList(),leafID=new ArrayList();
     	for (int i=1;i<Block.blocksList.length;i++)
     	{
     		if (Block.blocksList[i]!=null)
@@ -658,8 +574,8 @@ public class NatureOverhaul implements ITickHandler{
     			else if(Block.blocksList[i] instanceof BlockLog)
     			{
     				addMapping(i,growSets[1],growthRates[1],dieSets[1],deathRates[1], 1.0F, 1.0F,NOType.LOG);
-    				idLog[logLength]=i;
-    				logLength++;
+    				if(!logID.contains(i))
+    					logID.add(i);
     			}	
     			else if(Block.blocksList[i] instanceof BlockNetherStalk)//In the Nether, we don't use biome dependent parameter
     			{
@@ -688,8 +604,8 @@ public class NatureOverhaul implements ITickHandler{
     			else if(Block.blocksList[i] instanceof BlockLeaves)
     			{
     				addMapping(i, growSets[9], growthRates[9], dieSets[9],deathRates[9], 1.0F, 1.0F,NOType.LEAVES );
-    				idLeaf[leafLength]=i;
-    				leafLength++;
+    				if(!leafID.contains(i))
+    					leafID.add(i);
     			}
     			else if(Block.blocksList[i] instanceof BlockCrops || Block.blocksList[i] instanceof BlockStem)
     			{
@@ -709,10 +625,16 @@ public class NatureOverhaul implements ITickHandler{
     			}
     		}
     	}
+    	idLog=config.get(optionsCategory[names.length],"Log ids linked to Leaves",Ints.toArray(logID)).getIntList();
+        idLeaf=config.get(optionsCategory[names.length],"Leaves ids linked to Logs",Ints.toArray(leafID)).getIntList();
     	for(int id=0;id<Math.min(idLog.length, idLeaf.length);id++)
 		{
 			LogToLeafMapping.put(Integer.valueOf(idLog[id]), Integer.valueOf(idLeaf[id]));
 		}
+    	if (config.hasChanged())
+        {        
+      	  config.save();     	
+        }
     }
     @Override
 	public void tickStart(EnumSet<TickType> type, Object... tickData) 
