@@ -555,16 +555,36 @@ public class NatureOverhaul implements ITickHandler{
 				//"addBooleanOption" and "addSliderOption" aren't static, we need options class and an instance
 				Method addBoolean = optionClass.getDeclaredMethod("addBooleanOption", String.class, Boolean.TYPE);
 				Method addSlider = optionClass.getDeclaredMethod("addSliderOption",String.class, Integer.TYPE,Integer.TYPE);
+				//To create a submenu
+				Method addSubOption= optionClass.getDeclaredMethod("addSubOption", String.class);
+				//Create "General" submenu and options
+				Object subOption= addSubOption.invoke(option, "General");
 				for(int i=0; i<names.length;i++)
 				{
-					addBoolean.invoke(option, names[i]+" grow", true);
-					addBoolean.invoke(option, names[i]+" die", true);
-					addSlider.invoke(option, names[i]+" growth rate",0,10000);
-					addSlider.invoke(option, names[i]+" death rate",0,10000);
+					addBoolean.invoke(subOption, names[i]+" grow", true);
+					addBoolean.invoke(subOption, names[i]+" die", true);
+					addSlider.invoke(subOption, names[i]+" growth rate",0,10000);
+					addSlider.invoke(subOption, names[i]+" death rate",0,10000);
 				}
-				addBoolean.invoke(option, "Apple grows", true);
-				addSlider.invoke(option, "Apple growth rate",0,10000);
-				//Loading and saving values
+				addBoolean.invoke(subOption, "Apple grows", true);
+				addSlider.invoke(subOption, "Apple growth rate",0,10000);
+				//Create "LumberJack" submenu and options
+				Object lumberJackOption=addSubOption.invoke(option, "LumberJack");
+				addBoolean.invoke(lumberJackOption, "Enable", true);
+				addBoolean.invoke(lumberJackOption, "Kill leaves", true);
+				//Create "Misc" submenu and options
+				Object miscOption=addSubOption.invoke(option, "Misc");
+				addBoolean.invoke(miscOption, "Leaves decay on tree death", true);
+				addBoolean.invoke(miscOption, "Moss growing on stone", true);
+				addBoolean.invoke(miscOption, "Starving system", true);
+				addBoolean.invoke(miscOption, "Biome specific rates", true);
+				addBoolean.invoke(miscOption, "Modded Bonemeal", true);
+				addBoolean.invoke(miscOption, "Custom dimensions", true);
+				//Create "Animals" submenu and options
+				Object animalsOption=addSubOption.invoke(option, "Animals");
+				addBoolean.invoke(animalsOption, "Wild breed", true);
+				addSlider.invoke(animalsOption, "Breeding rate",0,10000);
+				//Loads and saves values
 				option=optionClass.getDeclaredMethod("loadValues").invoke(option);
 				option=optionClass.getDeclaredMethod("saveValues").invoke(option);
 				//We have saved the values, we can start to get them back
@@ -572,17 +592,27 @@ public class NatureOverhaul implements ITickHandler{
 				Method getSlider=optionClass.getDeclaredMethod("getSliderValue", String.class);
 				for(int i=0; i<names.length;i++)
 				{
-					growSets[i]=(boolean) getBoolean.invoke(option, names[i]+" grow");
-					dieSets[i]=(boolean) getBoolean.invoke(option, names[i]+" die");
-					growthRates[i]=(int) getSlider.invoke(option, names[i]+" growth rate");
-					deathRates[i]=(int) getSlider.invoke(option, names[i]+" death rate");
+					growSets[i]=(boolean) getBoolean.invoke(subOption, names[i]+" grow");
+					dieSets[i]=(boolean) getBoolean.invoke(subOption, names[i]+" die");
+					growthRates[i]=(int) getSlider.invoke(subOption, names[i]+" growth rate");
+					deathRates[i]=(int) getSlider.invoke(subOption, names[i]+" death rate");
 				}
-				growSets[names.length]=(boolean) getBoolean.invoke(option, "Apple grows");
-				growthRates[names.length]=(int) getSlider.invoke(option, "Apple growth rate");
+				growSets[names.length]=(boolean) getBoolean.invoke(subOption, "Apple grows");
+				growthRates[names.length]=(int) getSlider.invoke(subOption, "Apple growth rate");
+		        lumberjack=(Boolean) getBoolean.invoke(lumberJackOption, "Enable");
+		        killLeaves=(Boolean) getBoolean.invoke(lumberJackOption, "Kill leaves");
+		        decayLeaves=(Boolean) getBoolean.invoke(miscOption, "Leaves decay on tree death");
+		        mossCorruptStone=(Boolean) getBoolean.invoke(miscOption, "Moss growing on stone");
+		        useStarvingSystem=(Boolean) getBoolean.invoke(miscOption, "Starving system");
+		        biomeModifiedRate=(Boolean) getBoolean.invoke(miscOption, "Biome specific rates");
+		        moddedBonemeal=(Boolean) getBoolean.invoke(miscOption, "Modded Bonemeal");
+		        customDimension=(Boolean) getBoolean.invoke(miscOption, "Custom dimensions");
+		        wildAnimalsBreed=(Boolean) getBoolean.invoke(animalsOption, "Wild breed");
+		        wildAnimalBreedRate=(int) getSlider.invoke(animalsOption, "Breeding rate");
 				
 			} catch (ClassNotFoundException |NoSuchMethodException | SecurityException | IllegalAccessException 
 					| IllegalArgumentException| InvocationTargetException e) {
-				System.err.println("Nature Overhaul couldn't use MOAPI hook");
+				System.err.println("Nature Overhaul couldn't use MOAPI hook,please report the following");
 				e.printStackTrace();
 			}
     	}
