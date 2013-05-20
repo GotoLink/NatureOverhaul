@@ -1,5 +1,7 @@
 package mods.natureoverhaul;
 //Author: Clinton Alexander
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -22,31 +24,21 @@ import net.minecraft.block.BlockReed;
 import net.minecraft.block.BlockSapling;
 import net.minecraft.block.BlockStem;
 import net.minecraft.block.material.Material;
-import net.minecraft.entity.item.EntityItem;
-import net.minecraft.entity.passive.EntityAnimal;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemAxe;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.MathHelper;
 import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import net.minecraftforge.common.Configuration;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.Event.Result;
-import net.minecraftforge.event.ForgeSubscribe;
-import net.minecraftforge.event.entity.item.ItemExpireEvent;
-import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
-import net.minecraftforge.event.entity.player.BonemealEvent;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent.Action;
-import net.minecraftforge.event.terraingen.SaplingGrowTreeEvent;
 
 import com.google.common.primitives.Ints;
 
 import cpw.mods.fml.common.ITickHandler;
+import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.Init;
 import cpw.mods.fml.common.Mod.Instance;
@@ -60,7 +52,7 @@ import cpw.mods.fml.common.network.NetworkMod;
 import cpw.mods.fml.common.registry.TickRegistry;
 import cpw.mods.fml.relauncher.Side;
 
-@Mod(modid = "NatureOverhaul", name = "Nature Overhaul", version = "0.2")
+@Mod(modid = "NatureOverhaul", name = "Nature Overhaul", version = "0.3",dependencies="after:mod_MOAPI")
 @NetworkMod(clientSideRequired = false, serverSideRequired = false)
 public class NatureOverhaul implements ITickHandler{
 	@Instance ("NatureOverhaul")
@@ -550,6 +542,50 @@ public class NatureOverhaul implements ITickHandler{
     }
     @PostInit//Register blocks with config values and NOType, and log/leaf couples 
     public void modsLoaded(FMLPostInitializationEvent event){
+    	if(Loader.isModLoaded("mod_MOAPI"))
+    	{//We can use reflection to load options in MOAPI
+			try {
+				Class api = Class.forName("moapi.ModOptionsAPI");
+				Method addMod = api.getDeclaredMethod("addMod",String.class);
+				//"addMod" is static, we don't need an instance
+				Object option =addMod.invoke(null,"Nature Overhaul");
+				Class optionClass= addMod.getReturnType();
+				//Set options as able to be used on a server,get the instance back
+				option=optionClass.getDeclaredMethod("setServerMode").invoke(option);
+				//"addBooleanOption" and "addSliderOption" aren't static, we need options class and an instance
+				Method addBoolean = optionClass.getDeclaredMethod("addBooleanOption", String.class, Boolean.TYPE);
+				Method addSlider = optionClass.getDeclaredMethod("addSliderOption",String.class, Integer.TYPE,Integer.TYPE);
+				for(int i=0; i<names.length;i++)
+				{
+					addBoolean.invoke(option, names[i]+" grow", true);
+					addBoolean.invoke(option, names[i]+" die", true);
+					addSlider.invoke(option, names[i]+" growth rate",0,10000);
+					addSlider.invoke(option, names[i]+" death rate",0,10000);
+				}
+				addBoolean.invoke(option, "Apple grows", true);
+				addSlider.invoke(option, "Apple growth rate",0,10000);
+				//Loading and saving values
+				option=optionClass.getDeclaredMethod("loadValues").invoke(option);
+				option=optionClass.getDeclaredMethod("saveValues").invoke(option);
+				//We have saved the values, we can start to get them back
+				Method getBoolean=optionClass.getDeclaredMethod("getBooleanValue", String.class);
+				Method getSlider=optionClass.getDeclaredMethod("getSliderValue", String.class);
+				for(int i=0; i<names.length;i++)
+				{
+					growSets[i]=(boolean) getBoolean.invoke(option, names[i]+" grow");
+					dieSets[i]=(boolean) getBoolean.invoke(option, names[i]+" die");
+					growthRates[i]=(int) getSlider.invoke(option, names[i]+" growth rate");
+					deathRates[i]=(int) getSlider.invoke(option, names[i]+" death rate");
+				}
+				growSets[names.length]=(boolean) getBoolean.invoke(option, "Apple grows");
+				growthRates[names.length]=(int) getSlider.invoke(option, "Apple growth rate");
+				
+			} catch (ClassNotFoundException |NoSuchMethodException | SecurityException | IllegalAccessException 
+					| IllegalArgumentException| InvocationTargetException e) {
+				System.err.println("Nature Overhaul couldn't use MOAPI hook");
+				e.printStackTrace();
+			}
+    	}
     	ArrayList<Integer> logID=new ArrayList(),leafID=new ArrayList();
     	for (int i=1;i<Block.blocksList.length;i++)
     	{
@@ -635,15 +671,16 @@ public class NatureOverhaul implements ITickHandler{
         {        
       	  config.save();     	
         }
+    	
     }
     @Override
 	public void tickStart(EnumSet<TickType> type, Object... tickData) 
 	{	
-    	if (tickData.length>0 && tickData[0] instanceof World)
+    	if (tickData.length>0 && tickData[0] instanceof WorldServer)
     	{
-    		World world = (World) tickData[0];
+    		WorldServer world = (WorldServer) tickData[0];
     		if((world.provider.dimensionId==0|| (customDimension && world.provider.dimensionId!=1)) && !world.activeChunkSet.isEmpty())
-    		{
+    		{//start
 				Iterator it=world.activeChunkSet.iterator();			
 				while (it.hasNext())
 				{
@@ -656,8 +693,47 @@ public class NatureOverhaul implements ITickHandler{
 						chunk=world.getChunkFromChunkCoords(chunkIntPair.chunkXPos,chunkIntPair.chunkZPos);
 					}
 					if (chunk!=null && chunk.isChunkLoaded && chunk.isTerrainPopulated)
-					{		
-						int i2;
+					{	//We could use reflection to get field_94579_S,
+						//but it is empty at tickstart (too early) and tickend (too late)
+						/*try
+						{
+							Field f = tickData[0].getClass().getDeclaredField("field_94579_S");
+							//Method m = WorldServer.class.getDeclaredMethod("tickBlocksAndAmbiance");
+							f.setAccessible(true);
+							//m.setAccessible(true);
+							ArrayList<NextTickListEntry> list =  new ArrayList();
+							while(list.isEmpty())
+							{
+								list =  (ArrayList<NextTickListEntry>) f.get(tickData[0]);
+							}
+							if (list!=null && !list.isEmpty())
+							{		
+								System.out.println("check 1");
+								Iterator itr=list.iterator();						
+								while(itr.hasNext())				
+								{			
+									NextTickListEntry nextTickEntry= (NextTickListEntry) itr.next();	
+									//itr.remove();
+
+					                if (world.getChunkProvider().chunkExists(nextTickEntry.xCoord, nextTickEntry.zCoord))
+					                {
+					                    int k = world.getBlockId(nextTickEntry.xCoord, nextTickEntry.yCoord, nextTickEntry.zCoord);
+
+					                    if (k > 0 && Block.isAssociatedBlockID(k, nextTickEntry.blockID) && isValid(nextTickEntry.blockID))						
+					                    {	
+										System.out.println("check 2");
+										onUpdateTick(world,nextTickEntry.xCoord,nextTickEntry.yCoord,nextTickEntry.zCoord,nextTickEntry.blockID);						
+					                    }						
+					                }	
+								}
+							}
+						}
+						catch(NoSuchFieldException | SecurityException| IllegalAccessException e)
+						{
+							System.err.println("NatureOverhaul encountered a problem while getting ticks");
+							e.printStackTrace();
+						}*/
+						int i2;//Vanilla like random ticks for blocks
 						for (ExtendedBlockStorage blockStorage:chunk.getBlockStorageArray())
 							if (blockStorage!=null && !blockStorage.isEmpty() && blockStorage.getNeedsRandomTick())
 								{
@@ -675,25 +751,10 @@ public class NatureOverhaul implements ITickHandler{
 			                        	{
 			                        		onUpdateTick(world, k2 + k, i3 + blockStorage.getYLocation(), l2 + l, j3);
 			                        	}
-			                    	}
-							/*ArrayList<NextTickListEntry> list= (ArrayList<NextTickListEntry>) world.getPendingBlockUpdates(chunk, false);//This is too slow, we can't call it on each tick
-							if (list!=null && !list.isEmpty())
-							{		
-								//System.out.println("check 1");
-								Iterator itr=list.iterator();						
-								while(itr.hasNext())				
-								{			
-									NextTickListEntry nextTickEntry=(NextTickListEntry) itr.next();					
-									if ( nextTickEntry.scheduledTime == world.getTotalWorldTime() && isValid(nextTickEntry.blockID))						
-									{	
-										//System.out.println("check 2");
-										onUpdateTick(world,nextTickEntry.xCoord,nextTickEntry.yCoord,nextTickEntry.zCoord,nextTickEntry.blockID);						
-									}						
-								}	
-							}*/
+			                    	}				
 						}
 					}
-				}
+				}//end
     		}			
     	}
 	}
