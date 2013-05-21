@@ -96,6 +96,7 @@ public class NatureOverhaul implements ITickHandler{
     		};
     private static int[] idLog=new int[]{17},idLeaf=new int[]{18};
     private Configuration config;
+	private boolean noAPI=true;
     
     @PreInit
     public void preInit(FMLPreInitializationEvent event)
@@ -142,7 +143,6 @@ public class NatureOverhaul implements ITickHandler{
     @Init
     public void load(FMLInitializationEvent event)
     {	
-    	//TickRegistry.registerTickHandler(this, Side.CLIENT);
     	TickRegistry.registerTickHandler(this, Side.SERVER);
     }
    
@@ -326,6 +326,7 @@ public class NatureOverhaul implements ITickHandler{
 	**/
 	public void grow(World world, int i, int j, int k, int id, NOType type) {
 		int scanSize;
+		int[] coord;
 		switch(type){
 		case CUSTOM:
 			if (Block.blocksList[id] instanceof IGrowable)
@@ -335,14 +336,11 @@ public class NatureOverhaul implements ITickHandler{
 			if(TreeUtils.getTreeHeight(world, i, j, k, id)>2)
 			{//Find a neighbor spot for new one
 				scanSize = 2;
-				for(int x = i - scanSize; x <= i + scanSize; x++) {
-					for(int y = j - scanSize; y <= j + scanSize; y++) {
-						for(int z = k - scanSize; z <= k + scanSize; z++) {
-							if(Block.blocksList[id].canPlaceBlockAt(world, x, y+1, z)){
-								world.setBlock(x, y+1, z, id);
-								return;
-							}
-						}	
+				for(int attempt=0;attempt<18;attempt++){
+					coord=Utils.findRandomNeighbour(i, j, k, scanSize);
+					if(Block.blocksList[id].canPlaceBlockAt(world, coord[0], coord[1], coord[2])){
+						world.setBlock(coord[0], coord[1], coord[2], id);
+						return;
 					}		
 				}
 			}
@@ -392,35 +390,30 @@ public class NatureOverhaul implements ITickHandler{
 			return;
 		case PLANT:case NETHERSTALK:
 			scanSize = 2;
-			for(int x = i - scanSize; x <= i + scanSize; x++) {
-				for(int y = j - scanSize; y <= j + scanSize; y++) {
-					for(int z = k - scanSize; z <= k + scanSize; z++) {
-						if( Block.blocksList[id].canPlaceBlockAt(world, x, y, z) && world.getBlockMaterial(x, y, z)!=Material.water){
-							if (id!=Block.tallGrass.blockID)
-							{
-								world.setBlock(x, y, z, id);							
-							}
-							else//Metadata sensitive for tall grass
-							{
-								world.setBlock(x, y, z, id, world.getBlockMetadata(i, j, k), 3);
-							}
-							return;
-						}
+			for(int attempt=0;attempt<18;attempt++){
+				coord=Utils.findRandomNeighbour(i, j, k, scanSize);
+				if( Block.blocksList[id].canPlaceBlockAt(world, coord[0], coord[1], coord[2]) && world.getBlockMaterial(coord[0], coord[1], coord[2])!=Material.water){
+					if (id!=Block.tallGrass.blockID)
+					{
+						world.setBlock(coord[0], coord[1], coord[2], id);							
 					}
+					else//Metadata sensitive for tall grass
+					{
+						world.setBlock(coord[0], coord[1], coord[2], id, world.getBlockMetadata(i, j, k), 3);
+					}
+					return;
 				}
 			}
 			return;
 		case MOSS://Moss grows on both stone (or only cobblestone), changing only one block
-			scanSize = 1;	
-			for(int x = i - scanSize; x <= i + scanSize; x++) {
-				for(int y = j - scanSize; y <= j + scanSize; y++) {
-					for(int z = k - scanSize; z <= k + scanSize; z++) {
-						int iD = world.getBlockId(x, y, z);
-						if((mossCorruptStone && iD == Block.stone.blockID) || iD == Block.cobblestone.blockID) {
-							world.setBlock(x, y, z, id);
-							return;
-						}
-					}
+			scanSize = 1;
+			int iD;
+			for(int attempt=0;attempt<15;attempt++){
+				coord=Utils.findRandomNeighbour(i, j, k, scanSize);
+				iD= world.getBlockId(coord[0], coord[1], coord[2]);
+				if((mossCorruptStone && iD == Block.stone.blockID) || iD == Block.cobblestone.blockID) {
+					world.setBlock(coord[0], coord[1], coord[2], id);
+					return;
 				}
 			}
 			return;
@@ -429,17 +422,14 @@ public class NatureOverhaul implements ITickHandler{
 				((BlockMushroom) Block.blocksList[id]).fertilizeMushroom(world, i, j, k, world.rand);
 			else//Grow a similar mushroom nearby
 			{
-				scanSize = 1;	
-			for(int x = i - scanSize; x <= i + scanSize; x++) {
-				for(int y = j - scanSize; y <= j + scanSize; y++) {
-					for(int z = k - scanSize; z <= k + scanSize; z++) {
-						if(((BlockMushroom) Block.blocksList[id]).canPlaceBlockAt(world, x, y, z)) {
-							world.setBlock(x, y, z, id);
-							return;
-						}
+				scanSize = 3;
+				for(int attempt=0;attempt<15;attempt++){
+					coord=Utils.findRandomNeighbour(i, j, k, scanSize);
+					if(((BlockMushroom) Block.blocksList[id]).canPlaceBlockAt(world, coord[0], coord[1], coord[2])) {
+						world.setBlock(coord[0], coord[1], coord[2], id);
+						return;
 					}
 				}
-			}
 			}
 			return;
 		case FERTILIZED://Blocks that uses fertilize function for grow
@@ -452,6 +442,7 @@ public class NatureOverhaul implements ITickHandler{
 			return;
 		}
 	}
+	
 	/**
 	* Get the growth probability.
 	* Called by {@link #onUpdateTick(World, int, int, int, int)}.
@@ -648,8 +639,13 @@ public class NatureOverhaul implements ITickHandler{
 		        customDimension=(Boolean) getBoolean.invoke(miscOption, "Custom dimensions");
 		        wildAnimalsBreed=(Boolean) getBoolean.invoke(animalsOption, "Wild breed");
 		        wildAnimalBreedRate=(int) getSlider.invoke(animalsOption, "Breeding rate");
-				
-			} catch (ClassNotFoundException |NoSuchMethodException | SecurityException | IllegalAccessException 
+				noAPI=false;
+			}catch (ClassNotFoundException c)
+			{
+				noAPI=true;
+				System.out.println("Nature Overhaul couldn't find MOAPI, continuing.");
+			}
+			catch (NoSuchMethodException | SecurityException | IllegalAccessException 
 					| IllegalArgumentException| InvocationTargetException e) {
 				System.err.println("Nature Overhaul couldn't use MOAPI hook,please report the following error:");
 				e.printStackTrace();
@@ -744,16 +740,13 @@ public class NatureOverhaul implements ITickHandler{
       	  config.save();     	
         }
     	//Registering event listeners.
-    	if(moddedBonemeal)
-    		MinecraftForge.EVENT_BUS.register(new BonemealEventHandler());
-    	if(autoSapling && growthType%2!=0)
-    		MinecraftForge.EVENT_BUS.register(new AutoSaplingEventHandler());
-    	if(wildAnimalsBreed)
-    		MinecraftForge.EVENT_BUS.register(new AnimalEventHandler(wildAnimalBreedRate));
+		MinecraftForge.EVENT_BUS.register(new BonemealEventHandler(moddedBonemeal));
+		MinecraftForge.EVENT_BUS.register(new AnimalEventHandler(wildAnimalsBreed,wildAnimalBreedRate));
+		MinecraftForge.EVENT_BUS.register(new PlayerEventHandler(lumberjack,killLeaves));
+    	if(growthType%2!=0)
+    		MinecraftForge.EVENT_BUS.register(new AutoSaplingEventHandler(autoSapling));
     	if(growthType%2==0)
     		MinecraftForge.EVENT_BUS.register(new SaplingGrowEventHandler());
-    	if(lumberjack)
-    		MinecraftForge.EVENT_BUS.register(new PlayerEventHandler(killLeaves));
     }
     @Override
     /**
@@ -761,6 +754,52 @@ public class NatureOverhaul implements ITickHandler{
      */
 	public void tickStart(EnumSet<TickType> type, Object... tickData) 
 	{	
+    	if(!noAPI)
+    	{
+    		try{
+    		Class api = Class.forName("moapi.ModOptionsAPI");
+			Method getMod = api.getDeclaredMethod("getModOptions",String.class);
+			//"getMod" is static, we don't need an instance
+			Object option =getMod.invoke(null,"Nature Overhaul");
+			Class optionClass= getMod.getReturnType();
+			//To get a submenu
+			Method getSubOption= optionClass.getDeclaredMethod("getOption", String.class);
+			Object subOption= getSubOption.invoke(option, "General");
+			//Create "LumberJack" submenu and options
+			Object lumberJackOption=getSubOption.invoke(option, "LumberJack");
+			//Create "Misc" submenu and options
+			Object miscOption=getSubOption.invoke(option, "Misc");
+			//Create "Animals" submenu and options
+			Object animalsOption=getSubOption.invoke(option, "Animals");
+			//We can start to get the values back
+			Method getBoolean=optionClass.getDeclaredMethod("getBooleanValue", String.class);
+			Method getSlider=optionClass.getDeclaredMethod("getSliderValue", String.class);
+			for(int i=0; i<names.length;i++)
+			{
+				growSets[i]=(boolean) getBoolean.invoke(subOption, names[i]+" grow");
+				dieSets[i]=(boolean) getBoolean.invoke(subOption, names[i]+" die");
+				growthRates[i]=(int) getSlider.invoke(subOption, names[i]+" growth rate");
+				deathRates[i]=(int) getSlider.invoke(subOption, names[i]+" death rate");
+			}
+			growSets[names.length]=(boolean) getBoolean.invoke(subOption, "Apple grows");
+			growthRates[names.length]=(int) getSlider.invoke(subOption, "Apple growth rate");
+	        lumberjack=(Boolean) getBoolean.invoke(lumberJackOption, "Enable");
+	        killLeaves=(Boolean) getBoolean.invoke(lumberJackOption, "Kill leaves");
+	        decayLeaves=(Boolean) getBoolean.invoke(miscOption, "Leaves decay on tree death");
+	        mossCorruptStone=(Boolean) getBoolean.invoke(miscOption, "Moss growing on stone");
+	        useStarvingSystem=(Boolean) getBoolean.invoke(miscOption, "Starving system");
+	        biomeModifiedRate=(Boolean) getBoolean.invoke(miscOption, "Biome specific rates");
+	        moddedBonemeal=(Boolean) getBoolean.invoke(miscOption, "Modded Bonemeal");
+	        customDimension=(Boolean) getBoolean.invoke(miscOption, "Custom dimensions");
+	        wildAnimalsBreed=(Boolean) getBoolean.invoke(animalsOption, "Wild breed");
+	        wildAnimalBreedRate=(int) getSlider.invoke(animalsOption, "Breeding rate");
+			noAPI=false;
+    		}catch(NoSuchMethodException | SecurityException | IllegalAccessException 
+					| IllegalArgumentException| InvocationTargetException | ClassNotFoundException e) {
+				System.err.println("Nature Overhaul couldn't use MOAPI hook,please report the following error:");
+				e.printStackTrace();
+    		}
+    	}
     	if (tickData.length>0 && tickData[0] instanceof WorldServer)
     	{
     		WorldServer world = (WorldServer) tickData[0];

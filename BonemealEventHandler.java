@@ -10,9 +10,15 @@ import net.minecraftforge.event.entity.player.BonemealEvent;
  *
  */
 public class BonemealEventHandler {
+	public boolean bonemeal;
+	public BonemealEventHandler(Boolean moddedBonemeal) {
+		this.bonemeal=moddedBonemeal;
+	}
+
 	@ForgeSubscribe
     public void onBoneMealUse(BonemealEvent event){
-    	if ( event.hasResult())
+		//System.out.println("Event called");
+    	if ( event.hasResult() && bonemeal)
     	{
     		if( applyBonemeal(event.world, event.X, event.Y, event.Z, event.ID)){
     			event.setResult(Result.ALLOW);//BoneMeal is consumed, but doesn't act vanilla

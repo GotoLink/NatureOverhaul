@@ -10,13 +10,15 @@ import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
  */
 public class AnimalEventHandler {
 	 public int breedRate;
-	public AnimalEventHandler(int wildAnimalBreedRate) {
+	 public boolean breed;
+	public AnimalEventHandler(Boolean wildAnimalsBreed, int wildAnimalBreedRate) {
 		this.breedRate=wildAnimalBreedRate;
+		this.breed=wildAnimalsBreed;
 	}
 
 	@ForgeSubscribe
     public void onLivingUpdateEvent(LivingUpdateEvent event){
-    	if(event.entityLiving instanceof EntityAnimal)
+    	if(breed && event.entityLiving instanceof EntityAnimal)
     	{
     		EntityAnimal ent =(EntityAnimal)event.entityLiving;
     		if(!ent.worldObj.isRemote && !ent.isChild() && !ent.isInLove()/*&& ent.breeding == 0*/) {

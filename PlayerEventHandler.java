@@ -13,14 +13,16 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent.Action;
  *
  */
 public class PlayerEventHandler {
-	public boolean leafKill;
-	public PlayerEventHandler(Boolean killLeaves) {
+	public boolean leafKill,lumber;
+	
+	public PlayerEventHandler(Boolean lumberjack, Boolean killLeaves) {
 		this.leafKill=killLeaves;
+		this.lumber=lumberjack;
 	}
 
 	@ForgeSubscribe
     public void onPlayerInteracting(PlayerInteractEvent event){
-    	if( event.action==Action.LEFT_CLICK_BLOCK){
+    	if(lumber && event.action==Action.LEFT_CLICK_BLOCK){
     		ItemStack itemstack = event.entityPlayer.getCurrentEquippedItem();
     		if(itemstack != null) {
     			Item it = itemstack.getItem();
