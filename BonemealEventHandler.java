@@ -4,7 +4,11 @@ import net.minecraft.world.World;
 import net.minecraftforge.event.ForgeSubscribe;
 import net.minecraftforge.event.Event.Result;
 import net.minecraftforge.event.entity.player.BonemealEvent;
-
+/**
+ * From Clinton Alexander idea.
+ * @author Olivier
+ *
+ */
 public class BonemealEventHandler {
 	@ForgeSubscribe
     public void onBoneMealUse(BonemealEvent event){

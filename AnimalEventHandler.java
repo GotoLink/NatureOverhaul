@@ -3,14 +3,18 @@ package mods.natureoverhaul;
 import net.minecraft.entity.passive.EntityAnimal;
 import net.minecraftforge.event.ForgeSubscribe;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
-
+/**
+ * Event for wild animals breeding, from Clinton Alexander idea.
+ * @author Olivier
+ *
+ */
 public class AnimalEventHandler {
 	 public int breedRate;
 	public AnimalEventHandler(int wildAnimalBreedRate) {
 		this.breedRate=wildAnimalBreedRate;
 	}
 
-	@ForgeSubscribe//Event for Wild Breeding
+	@ForgeSubscribe
     public void onLivingUpdateEvent(LivingUpdateEvent event){
     	if(event.entityLiving instanceof EntityAnimal)
     	{

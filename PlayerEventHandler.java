@@ -7,14 +7,18 @@ import net.minecraft.world.World;
 import net.minecraftforge.event.ForgeSubscribe;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent.Action;
-
+/**
+ * Event for Lumberjack system, from Clinton Alexander idea.
+ * @author Olivier
+ *
+ */
 public class PlayerEventHandler {
 	public boolean leafKill;
 	public PlayerEventHandler(Boolean killLeaves) {
 		this.leafKill=killLeaves;
 	}
 
-	@ForgeSubscribe//Event for Lumberjack system
+	@ForgeSubscribe
     public void onPlayerInteracting(PlayerInteractEvent event){
     	if( event.action==Action.LEFT_CLICK_BLOCK){
     		ItemStack itemstack = event.entityPlayer.getCurrentEquippedItem();

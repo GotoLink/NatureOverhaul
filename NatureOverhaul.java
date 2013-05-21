@@ -1,5 +1,5 @@
 package mods.natureoverhaul;
-//Author: Clinton Alexander
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -54,6 +54,11 @@ import cpw.mods.fml.relauncher.Side;
 
 @Mod(modid = "NatureOverhaul", name = "Nature Overhaul", version = "0.3",dependencies="after:mod_MOAPI")
 @NetworkMod(clientSideRequired = false, serverSideRequired = false)
+/**
+ * From Clinton Alexander idea.
+ * @author Olivier
+ *
+ */
 public class NatureOverhaul implements ITickHandler{
 	@Instance ("NatureOverhaul")
 	public static NatureOverhaul instance;
@@ -137,24 +142,16 @@ public class NatureOverhaul implements ITickHandler{
     @Init
     public void load(FMLInitializationEvent event)
     {	
-    	if(moddedBonemeal)
-    		MinecraftForge.EVENT_BUS.register(new BonemealEventHandler());
-    	if(autoSapling && growthType%2!=0)
-    		MinecraftForge.EVENT_BUS.register(new AutoSaplingEventHandler());
-    	if(wildAnimalsBreed)
-    		MinecraftForge.EVENT_BUS.register(new AnimalEventHandler(wildAnimalBreedRate));
-    	if(growthType%2==0)
-    		MinecraftForge.EVENT_BUS.register(new SaplingGrowEventHandler());
-    	if(lumberjack)
-    		MinecraftForge.EVENT_BUS.register(new PlayerEventHandler(killLeaves));
     	//TickRegistry.registerTickHandler(this, Side.CLIENT);
     	TickRegistry.registerTickHandler(this, Side.SERVER);
     }
    
 	/**
-	* Called from the world tick with a valid id
-	* call checks for grow and die booleans, and probabilities
-	* then call grow or death general methods
+	* Called from the world tick {@link #tickStart(EnumSet, Object...)} with a {@link #isValid(int)} id.
+	* Checks with {@link #isGrowing(int)} or {@link #isMortal(int)} booleans, 
+	* and probabilities with {@link #getGrowthProb(World, int, int, int, int, NOType)} or 
+	* {@link #getDeathProb(World, int, int, int, int, NOType)}
+	* then call {@link #grow(World, int, int, int, int, NOType)} or {@link #death(World, int, int, int, int, NOType)}.
 	*/
 	private void onUpdateTick(World world, int i, int j, int k, int id)	
 	{	
@@ -171,8 +168,12 @@ public class NatureOverhaul implements ITickHandler{
 		}
 	}
 	/**
-	* Check whether this block has died on this tick for any reason
-	*
+	 * Called by {@link #onUpdateTick(World, int, int, int, int)}.
+	* Checks whether this block has died on this tick for any reason
+	* @param	world
+	* @param	i first coordinate
+	* @param	j second coordinate
+	* @param	k third coordinate
 	* @return	True if plant has died
 	*/
 	private boolean hasDied(World world, int i, int j, int k, int id, NOType type) {
@@ -192,8 +193,12 @@ public class NatureOverhaul implements ITickHandler{
 	}
 	/**
 	* Checks whether this block has starved on this tick
-	* by being surrounded by too many of it's kind
-	*
+	* by being surrounded by too many of it's kind (ie {@link NOType}).
+	* Unused if {@link #useStarvingSystem} is set to false.
+	* @param	world
+	* @param	i first coordinate
+	* @param	j second coordinate
+	* @param	k third coordinate
 	* @return	True if plant has starved
 	*/
 	private boolean hasStarved(World world, int i, int j, int k, NOType type) {
@@ -249,6 +254,15 @@ public class NatureOverhaul implements ITickHandler{
 		}	
 		return (foundNeighbours > maxNeighbours);
 	}
+	/**
+	 * The death general method.
+	* Called by {@link #onUpdateTick(World, int, int, int, int)}
+	* when conditions are fulfilled.
+	* @param	world
+	* @param	i first coordinate
+	* @param	j second coordinate
+	* @param	k third coordinate
+	**/
 	private void death(World world, int i, int j, int k, int id, NOType type) {
 		switch(type){
 		case CUSTOM:
@@ -301,7 +315,15 @@ public class NatureOverhaul implements ITickHandler{
 			return;		
 		}
 	}
-	
+	/**
+	 * The general growing method.
+	* Called by {@link #onUpdateTick(World, int, int, int, int)}.
+	* when conditions are fulfilled.
+	* @param	world
+	* @param	i first coordinate
+	* @param	j second coordinate
+	* @param	k third coordinate
+	**/
 	public void grow(World world, int i, int j, int k, int id, NOType type) {
 		int scanSize;
 		switch(type){
@@ -431,7 +453,8 @@ public class NatureOverhaul implements ITickHandler{
 		}
 	}
 	/**
-	* Get the growth probability
+	* Get the growth probability.
+	* Called by {@link #onUpdateTick(World, int, int, int, int)}.
 	* @param	world
 	* @param	i first coordinate
 	* @param	j second coordinate
@@ -456,7 +479,8 @@ public class NatureOverhaul implements ITickHandler{
 			return -1F;
 	}
 	/**
-	* Get the death probability
+	* Get the death probability.
+	* Called by {@link #onUpdateTick(World, int, int, int, int)}.
 	* @param	world
 	* @param	i
 	* @param	j
@@ -481,7 +505,9 @@ public class NatureOverhaul implements ITickHandler{
 			return -1F;
 	}
 	/**
-	* Check if an apple can grow in this biome
+	* Checks if an apple can grow in this biome.
+	* Used in {@link #grow(World, int, int, int, int, NOType)}
+	* when type is leaf.
 	* 
 	* @return	True if it can grow in these coordinates
 	*/
@@ -492,8 +518,9 @@ public class NatureOverhaul implements ITickHandler{
 				&& (biome.rainfall > 0.4F));
 	}
 	/**
-	* Check if an cocoa can grow in this biome
-	*
+	* Checks if an cocoa can grow in this biome.
+	* Used in {@link #grow(World, int, int, int, int, NOType)}
+	* when type is cocoa.
 	* @return	true if can grow in these coordinates
 	*/
 	private boolean cocoaCanGrow(World world, int i, int k) {
@@ -502,6 +529,7 @@ public class NatureOverhaul implements ITickHandler{
 		return ((biome.temperature >= 0.7F) && (biome.temperature <= 1.5F) 
 				&& (biome.rainfall >= 0.8F));
 	}
+	////Helper methods to get parameters out of the mappings.////
 	private float getOptTemp(int id) {
 		return IDToOptTempMapping.get(Integer.valueOf(id));
 	}
@@ -529,7 +557,18 @@ public class NatureOverhaul implements ITickHandler{
 	public HashMap<Integer, Integer> getLogToLeafMapping(){
 		return LogToLeafMapping;
 	}
-	
+	////-----------------------------------------------------////
+	/**
+	 * Registers all mappings simultaneously.
+	 * @param id The id the block is registered with.
+	 * @param isGrowing Whether the block can call {@link #grow(World, int, int, int, int, NOType)} on tick.
+	 * @param growthRate How often the {@link #grow(World, int, int, int, int, NOType)} method will be called.
+	 * @param isMortal Whether the block can call {@link #death(World, int, int, int, int, NOType)} method on tick.
+	 * @param deathRate How often the {@link #death(World, int, int, int, int, NOType)} method will be called.
+	 * @param optTemp The optimal temperature parameter for the growth.
+	 * @param optRain The optimal humidity parameter for the growth.
+	 * @param type {@link NOType} Decides which growth and/or death to use, and tolerance to temperature and humidity.
+	 */
     private static void addMapping(int id, boolean isGrowing,int growthRate, boolean isMortal,int deathRate, float optTemp, float optRain, NOType type)
     {
     	IDToGrowingMapping.put(Integer.valueOf(id), isGrowing);
@@ -612,10 +651,12 @@ public class NatureOverhaul implements ITickHandler{
 				
 			} catch (ClassNotFoundException |NoSuchMethodException | SecurityException | IllegalAccessException 
 					| IllegalArgumentException| InvocationTargetException e) {
-				System.err.println("Nature Overhaul couldn't use MOAPI hook,please report the following");
+				System.err.println("Nature Overhaul couldn't use MOAPI hook,please report the following error:");
 				e.printStackTrace();
-			}
+			}//Even if it fails, we can still rely on settings store in Forge recommended config file.
     	}
+    	//Now we can register every available blocks at this point.
+    	//If a block is registered after, it won't be accounted for.
     	ArrayList<Integer> logID=new ArrayList(),leafID=new ArrayList();
     	for (int i=1;i<Block.blocksList.length;i++)
     	{
@@ -697,13 +738,27 @@ public class NatureOverhaul implements ITickHandler{
 		{
 			LogToLeafMapping.put(Integer.valueOf(idLog[id]), Integer.valueOf(idLeaf[id]));
 		}
+    	//Saving Forge recommended config file.
     	if (config.hasChanged())
         {        
       	  config.save();     	
         }
-    	
+    	//Registering event listeners.
+    	if(moddedBonemeal)
+    		MinecraftForge.EVENT_BUS.register(new BonemealEventHandler());
+    	if(autoSapling && growthType%2!=0)
+    		MinecraftForge.EVENT_BUS.register(new AutoSaplingEventHandler());
+    	if(wildAnimalsBreed)
+    		MinecraftForge.EVENT_BUS.register(new AnimalEventHandler(wildAnimalBreedRate));
+    	if(growthType%2==0)
+    		MinecraftForge.EVENT_BUS.register(new SaplingGrowEventHandler());
+    	if(lumberjack)
+    		MinecraftForge.EVENT_BUS.register(new PlayerEventHandler(killLeaves));
     }
     @Override
+    /**
+     * Core method. We make vanilla-like random ticks in loaded chunks.
+     */
 	public void tickStart(EnumSet<TickType> type, Object... tickData) 
 	{	
     	if (tickData.length>0 && tickData[0] instanceof WorldServer)
@@ -793,7 +848,7 @@ public class NatureOverhaul implements ITickHandler{
 	public void tickEnd(EnumSet<TickType> type, Object... tickData) {}
 	@Override
 	public EnumSet<TickType> ticks() {
-		return EnumSet.of(TickType.WORLD);
+		return EnumSet.of(TickType.WORLD);//The only TickType we want to get the world ticks.
 	}
 	@Override
 	public String getLabel() {

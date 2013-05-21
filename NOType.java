@@ -1,7 +1,11 @@
 package mods.natureoverhaul;
-//This enum stores tolerance parameters for biome behaviour
-// conditions inside which the plant acts
-//and outside which it stops
+
+/**
+ *This enum stores tolerance parameters for biome behaviour, conditions inside which
+ * the plant acts and outside which it stops.
+ * @author Olivier
+ *
+ */
 public enum NOType {
 	//Add itself on top when growing
 	CACTUS(0.5F,0.5F,10F,10F),

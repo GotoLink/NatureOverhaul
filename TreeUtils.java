@@ -4,7 +4,11 @@ import java.util.HashSet;
 
 import net.minecraft.block.Block;
 import net.minecraft.world.World;
-
+/**
+ * 
+ * @author Clinton Alexander
+ *
+ */
 public class TreeUtils {
 	private static final int MAX_TREE_HEIGHT = 16;
 	// Flag controls

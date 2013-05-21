@@ -6,9 +6,13 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.MathHelper;
 import net.minecraftforge.event.ForgeSubscribe;
 import net.minecraftforge.event.entity.item.ItemExpireEvent;
-
+/**
+ * Event for AutoSapling, from Clinton Alexander idea.
+ * @author Olivier
+ *
+ */
 public class AutoSaplingEventHandler {
-	 @ForgeSubscribe//Event for AutoSapling
+	 @ForgeSubscribe
 	    public void onSaplingItemDead(ItemExpireEvent event){	
 	    	
     		EntityItem ent=event.entityItem;

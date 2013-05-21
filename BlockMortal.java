@@ -7,7 +7,6 @@ import net.minecraft.world.World;
 /**
 * Specifies a block which is mortal and can die
 * (not in the sense of sentient, but the sense of is not forever like most blocks)
-* 
 *
 * @author	Clinton Alexander
 */

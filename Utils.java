@@ -4,7 +4,11 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
-
+/**
+ * 
+ * @author Clinton Alexander
+ *
+ */
 public class Utils {
 
 	/**
