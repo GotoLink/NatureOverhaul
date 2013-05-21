@@ -96,7 +96,11 @@ public class NatureOverhaul implements ITickHandler{
     		};
     private static int[] idLog=new int[]{17},idLeaf=new int[]{18};
     private Configuration config;
-	private boolean noAPI=true;
+	private boolean API;
+	private BonemealEventHandler bonemealEvent;
+	private AnimalEventHandler animalEvent;
+	private PlayerEventHandler lumberEvent;
+	private AutoSaplingEventHandler autoEvent;
     
     @PreInit
     public void preInit(FMLPreInitializationEvent event)
@@ -631,6 +635,7 @@ public class NatureOverhaul implements ITickHandler{
 				growthRates[names.length]=(int) getSlider.invoke(subOption, "Apple growth rate");
 		        lumberjack=(Boolean) getBoolean.invoke(lumberJackOption, "Enable");
 		        killLeaves=(Boolean) getBoolean.invoke(lumberJackOption, "Kill leaves");
+		        autoSapling=(Boolean) getBoolean.invoke(miscOption,"AutoSapling");
 		        decayLeaves=(Boolean) getBoolean.invoke(miscOption, "Leaves decay on tree death");
 		        mossCorruptStone=(Boolean) getBoolean.invoke(miscOption, "Moss growing on stone");
 		        useStarvingSystem=(Boolean) getBoolean.invoke(miscOption, "Starving system");
@@ -639,10 +644,10 @@ public class NatureOverhaul implements ITickHandler{
 		        customDimension=(Boolean) getBoolean.invoke(miscOption, "Custom dimensions");
 		        wildAnimalsBreed=(Boolean) getBoolean.invoke(animalsOption, "Wild breed");
 		        wildAnimalBreedRate=(int) getSlider.invoke(animalsOption, "Breeding rate");
-				noAPI=false;
+				API=true;
 			}catch (ClassNotFoundException c)
 			{
-				noAPI=true;
+				API=false;
 				System.out.println("Nature Overhaul couldn't find MOAPI, continuing.");
 			}
 			catch (NoSuchMethodException | SecurityException | IllegalAccessException 
@@ -740,11 +745,15 @@ public class NatureOverhaul implements ITickHandler{
       	  config.save();     	
         }
     	//Registering event listeners.
-		MinecraftForge.EVENT_BUS.register(new BonemealEventHandler(moddedBonemeal));
-		MinecraftForge.EVENT_BUS.register(new AnimalEventHandler(wildAnimalsBreed,wildAnimalBreedRate));
-		MinecraftForge.EVENT_BUS.register(new PlayerEventHandler(lumberjack,killLeaves));
+    	bonemealEvent=new BonemealEventHandler(moddedBonemeal);
+		MinecraftForge.EVENT_BUS.register(bonemealEvent);
+		animalEvent=new AnimalEventHandler(wildAnimalsBreed,wildAnimalBreedRate);
+		MinecraftForge.EVENT_BUS.register(animalEvent);
+		lumberEvent=new PlayerEventHandler(lumberjack,killLeaves);
+		MinecraftForge.EVENT_BUS.register(lumberEvent);
+		autoEvent=new AutoSaplingEventHandler(autoSapling);
     	if(growthType%2!=0)
-    		MinecraftForge.EVENT_BUS.register(new AutoSaplingEventHandler(autoSapling));
+    		MinecraftForge.EVENT_BUS.register(autoEvent);
     	if(growthType%2==0)
     		MinecraftForge.EVENT_BUS.register(new SaplingGrowEventHandler());
     }
@@ -754,51 +763,56 @@ public class NatureOverhaul implements ITickHandler{
      */
 	public void tickStart(EnumSet<TickType> type, Object... tickData) 
 	{	
-    	if(!noAPI)
+    	if(API)
     	{
     		try{
-    		Class api = Class.forName("moapi.ModOptionsAPI");
-			Method getMod = api.getDeclaredMethod("getModOptions",String.class);
-			//"getMod" is static, we don't need an instance
-			Object option =getMod.invoke(null,"Nature Overhaul");
-			Class optionClass= getMod.getReturnType();
-			//To get a submenu
-			Method getSubOption= optionClass.getDeclaredMethod("getOption", String.class);
-			Object subOption= getSubOption.invoke(option, "General");
-			//Create "LumberJack" submenu and options
-			Object lumberJackOption=getSubOption.invoke(option, "LumberJack");
-			//Create "Misc" submenu and options
-			Object miscOption=getSubOption.invoke(option, "Misc");
-			//Create "Animals" submenu and options
-			Object animalsOption=getSubOption.invoke(option, "Animals");
-			//We can start to get the values back
-			Method getBoolean=optionClass.getDeclaredMethod("getBooleanValue", String.class);
-			Method getSlider=optionClass.getDeclaredMethod("getSliderValue", String.class);
-			for(int i=0; i<names.length;i++)
-			{
-				growSets[i]=(boolean) getBoolean.invoke(subOption, names[i]+" grow");
-				dieSets[i]=(boolean) getBoolean.invoke(subOption, names[i]+" die");
-				growthRates[i]=(int) getSlider.invoke(subOption, names[i]+" growth rate");
-				deathRates[i]=(int) getSlider.invoke(subOption, names[i]+" death rate");
-			}
-			growSets[names.length]=(boolean) getBoolean.invoke(subOption, "Apple grows");
-			growthRates[names.length]=(int) getSlider.invoke(subOption, "Apple growth rate");
-	        lumberjack=(Boolean) getBoolean.invoke(lumberJackOption, "Enable");
-	        killLeaves=(Boolean) getBoolean.invoke(lumberJackOption, "Kill leaves");
-	        decayLeaves=(Boolean) getBoolean.invoke(miscOption, "Leaves decay on tree death");
-	        mossCorruptStone=(Boolean) getBoolean.invoke(miscOption, "Moss growing on stone");
-	        useStarvingSystem=(Boolean) getBoolean.invoke(miscOption, "Starving system");
-	        biomeModifiedRate=(Boolean) getBoolean.invoke(miscOption, "Biome specific rates");
-	        moddedBonemeal=(Boolean) getBoolean.invoke(miscOption, "Modded Bonemeal");
-	        customDimension=(Boolean) getBoolean.invoke(miscOption, "Custom dimensions");
-	        wildAnimalsBreed=(Boolean) getBoolean.invoke(animalsOption, "Wild breed");
-	        wildAnimalBreedRate=(int) getSlider.invoke(animalsOption, "Breeding rate");
-			noAPI=false;
+	    		Class api = Class.forName("moapi.ModOptionsAPI");
+				Method getMod = api.getDeclaredMethod("getModOptions",String.class);
+				//"getMod" is static, we don't need an instance
+				Object option =getMod.invoke(null,"Nature Overhaul");
+				Class optionClass= getMod.getReturnType();
+				//To get a submenu
+				Method getSubOption= optionClass.getDeclaredMethod("getOption", String.class);
+				Object subOption= getSubOption.invoke(option, "General");
+				//Create "LumberJack" submenu and options
+				Object lumberJackOption=getSubOption.invoke(option, "LumberJack");
+				//Create "Misc" submenu and options
+				Object miscOption=getSubOption.invoke(option, "Misc");
+				//Create "Animals" submenu and options
+				Object animalsOption=getSubOption.invoke(option, "Animals");
+				//We can start to get the values back
+				Method getBoolean=optionClass.getDeclaredMethod("getBooleanValue", String.class);
+				Method getSlider=optionClass.getDeclaredMethod("getSliderValue", String.class);
+				for(int i=0; i<names.length;i++)
+				{
+					growSets[i]=(boolean) getBoolean.invoke(subOption, names[i]+" grow");
+					dieSets[i]=(boolean) getBoolean.invoke(subOption, names[i]+" die");
+					growthRates[i]=(int) getSlider.invoke(subOption, names[i]+" growth rate");
+					deathRates[i]=(int) getSlider.invoke(subOption, names[i]+" death rate");
+				}
+				growSets[names.length]=(boolean) getBoolean.invoke(subOption, "Apple grows");
+				growthRates[names.length]=(int) getSlider.invoke(subOption, "Apple growth rate");
+		        lumberjack=(Boolean) getBoolean.invoke(lumberJackOption, "Enable");
+		        killLeaves=(Boolean) getBoolean.invoke(lumberJackOption, "Kill leaves");
+		        autoSapling=(Boolean) getBoolean.invoke(miscOption,"AutoSapling");
+		        decayLeaves=(Boolean) getBoolean.invoke(miscOption, "Leaves decay on tree death");
+		        mossCorruptStone=(Boolean) getBoolean.invoke(miscOption, "Moss growing on stone");
+		        useStarvingSystem=(Boolean) getBoolean.invoke(miscOption, "Starving system");
+		        biomeModifiedRate=(Boolean) getBoolean.invoke(miscOption, "Biome specific rates");
+		        moddedBonemeal=(Boolean) getBoolean.invoke(miscOption, "Modded Bonemeal");
+		        customDimension=(Boolean) getBoolean.invoke(miscOption, "Custom dimensions");
+		        wildAnimalsBreed=(Boolean) getBoolean.invoke(animalsOption, "Wild breed");
+		        wildAnimalBreedRate=(int) getSlider.invoke(animalsOption, "Breeding rate");
+				API=false;
     		}catch(NoSuchMethodException | SecurityException | IllegalAccessException 
 					| IllegalArgumentException| InvocationTargetException | ClassNotFoundException e) {
 				System.err.println("Nature Overhaul couldn't use MOAPI hook,please report the following error:");
 				e.printStackTrace();
     		}
+    		bonemealEvent.set(moddedBonemeal);
+    		animalEvent.set(wildAnimalsBreed,wildAnimalBreedRate);
+    		lumberEvent.set(lumberjack,killLeaves);
+    		autoEvent.set(autoSapling);
     	}
     	if (tickData.length>0 && tickData[0] instanceof WorldServer)
     	{

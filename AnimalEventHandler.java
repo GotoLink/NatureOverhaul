@@ -9,8 +9,8 @@ import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
  *
  */
 public class AnimalEventHandler {
-	 public int breedRate;
-	 public boolean breed;
+	 private int breedRate;
+	 private boolean breed;
 	public AnimalEventHandler(Boolean wildAnimalsBreed, int wildAnimalBreedRate) {
 		this.breedRate=wildAnimalBreedRate;
 		this.breed=wildAnimalsBreed;
@@ -28,4 +28,9 @@ public class AnimalEventHandler {
     		}
     	}
     }
+
+	public void set(Boolean wildAnimalsBreed, int wildAnimalBreedRate) {
+		this.breedRate=wildAnimalBreedRate;
+		this.breed=wildAnimalsBreed;
+	}
 }

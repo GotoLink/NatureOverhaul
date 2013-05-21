@@ -13,7 +13,7 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent.Action;
  *
  */
 public class PlayerEventHandler {
-	public boolean leafKill,lumber;
+	private boolean leafKill,lumber;
 	
 	public PlayerEventHandler(Boolean lumberjack, Boolean killLeaves) {
 		this.leafKill=killLeaves;
@@ -53,4 +53,9 @@ public class PlayerEventHandler {
     		}
     	}	
     }
+
+	public void set(Boolean lumberjack, Boolean killLeaves) {
+		this.leafKill=killLeaves;
+		this.lumber=lumberjack;
+	}
 }
