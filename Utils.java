@@ -1,5 +1,7 @@
 package mods.natureoverhaul;
 
+import java.util.Random;
+
 import net.minecraft.block.Block;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.item.ItemStack;
@@ -61,6 +63,28 @@ public class Utils {
 			}
 		}	
 		return false;
+	}
+	/**
+	 * Randomize given coordinates within range
+	 * 
+	 * @param	i first coordinate
+	 * @param	j second coordinate
+	 * @param	k third coordinate
+	 * @param  range The limiting value for the distance in each direction
+	 * @return An array of randomized coordinates
+	 */
+	public static int[] findRandomNeighbour(int i, int j, int k, int range){
+		Random rand=new Random();
+		int[] coord=new int[]{i,j,k};
+		int dist;
+		for(int co:coord){
+			dist=rand.nextInt(range);
+			if (rand.nextBoolean())
+				co+=dist;
+			else
+				co-=dist;	
+		}
+		return coord;
 	}
 	/**
 	* Gets the j location of the lowest block of the type specified
