@@ -626,35 +626,48 @@ public class NatureOverhaul implements ITickHandler{
 				Method getSlider=optionClass.getDeclaredMethod("getSliderValue", String.class);
 				for(int i=0; i<names.length;i++)
 				{
-					growSets[i]=(boolean) getBoolean.invoke(subOption, names[i]+" grow");
-					dieSets[i]=(boolean) getBoolean.invoke(subOption, names[i]+" die");
-					growthRates[i]=(int) getSlider.invoke(subOption, names[i]+" growth rate");
-					deathRates[i]=(int) getSlider.invoke(subOption, names[i]+" death rate");
+					growSets[i]=boolean.class.cast( getBoolean.invoke(subOption, names[i]+" grow"));
+					dieSets[i]=boolean.class.cast( getBoolean.invoke(subOption, names[i]+" die"));
+					growthRates[i]=int.class.cast( getSlider.invoke(subOption, names[i]+" growth rate"));
+					deathRates[i]=int.class.cast( getSlider.invoke(subOption, names[i]+" death rate"));
 				}
-				growSets[names.length]=(boolean) getBoolean.invoke(subOption, "Apple grows");
-				growthRates[names.length]=(int) getSlider.invoke(subOption, "Apple growth rate");
-		        lumberjack=(Boolean) getBoolean.invoke(lumberJackOption, "Enable");
-		        killLeaves=(Boolean) getBoolean.invoke(lumberJackOption, "Kill leaves");
-		        autoSapling=(Boolean) getBoolean.invoke(miscOption,"AutoSapling");
-		        decayLeaves=(Boolean) getBoolean.invoke(miscOption, "Leaves decay on tree death");
-		        mossCorruptStone=(Boolean) getBoolean.invoke(miscOption, "Moss growing on stone");
-		        useStarvingSystem=(Boolean) getBoolean.invoke(miscOption, "Starving system");
-		        biomeModifiedRate=(Boolean) getBoolean.invoke(miscOption, "Biome specific rates");
-		        moddedBonemeal=(Boolean) getBoolean.invoke(miscOption, "Modded Bonemeal");
-		        customDimension=(Boolean) getBoolean.invoke(miscOption, "Custom dimensions");
-		        wildAnimalsBreed=(Boolean) getBoolean.invoke(animalsOption, "Wild breed");
-		        wildAnimalBreedRate=(int) getSlider.invoke(animalsOption, "Breeding rate");
+				growSets[names.length]=boolean.class.cast( getBoolean.invoke(subOption, "Apple grows"));
+				growthRates[names.length]=int.class.cast( getSlider.invoke(subOption, "Apple growth rate"));
+		        lumberjack=boolean.class.cast( getBoolean.invoke(lumberJackOption, "Enable"));
+		        killLeaves=boolean.class.cast( getBoolean.invoke(lumberJackOption, "Kill leaves"));
+		        autoSapling=boolean.class.cast( getBoolean.invoke(miscOption,"AutoSapling"));
+		        decayLeaves=boolean.class.cast( getBoolean.invoke(miscOption, "Leaves decay on tree death"));
+		        mossCorruptStone=boolean.class.cast( getBoolean.invoke(miscOption, "Moss growing on stone"));
+		        useStarvingSystem=boolean.class.cast( getBoolean.invoke(miscOption, "Starving system"));
+		        biomeModifiedRate=boolean.class.cast( getBoolean.invoke(miscOption, "Biome specific rates"));
+		        moddedBonemeal=boolean.class.cast( getBoolean.invoke(miscOption, "Modded Bonemeal"));
+		        customDimension=boolean.class.cast( getBoolean.invoke(miscOption, "Custom dimensions"));
+		        wildAnimalsBreed=boolean.class.cast( getBoolean.invoke(animalsOption, "Wild breed"));
+		        wildAnimalBreedRate=int.class.cast( getSlider.invoke(animalsOption, "Breeding rate"));
 				API=true;
 			}catch (ClassNotFoundException c)
 			{
 				API=false;
 				System.out.println("Nature Overhaul couldn't find MOAPI, continuing.");
 			}
-			catch (NoSuchMethodException | SecurityException | IllegalAccessException 
-					| IllegalArgumentException| InvocationTargetException e) {
-				System.err.println("Nature Overhaul couldn't use MOAPI hook,please report the following error:");
-				e.printStackTrace();
-			}//Even if it fails, we can still rely on settings store in Forge recommended config file.
+			catch(NoSuchMethodException n) {
+    			API=false;
+				System.err.println("Nature Overhaul couldn't find MOAPI, please report the following error:");
+				n.printStackTrace();
+    		}
+    		catch( SecurityException s){
+    			System.err.println("Nature Overhaul encountered a security problem, please report to MOAPI author:");
+				s.printStackTrace();
+    		}
+    		catch( IllegalAccessException 	i){
+    			
+    		}
+    		catch( IllegalArgumentException i){
+    			
+    		}
+    		catch( InvocationTargetException i){
+    			
+    		}//Even if it fails, we can still rely on settings store in Forge recommended config file.
     	}
     	//Now we can register every available blocks at this point.
     	//If a block is registered after, it won't be accounted for.
@@ -785,29 +798,47 @@ public class NatureOverhaul implements ITickHandler{
 				Method getSlider=optionClass.getDeclaredMethod("getSliderValue", String.class);
 				for(int i=0; i<names.length;i++)
 				{
-					growSets[i]=(boolean) getBoolean.invoke(subOption, names[i]+" grow");
-					dieSets[i]=(boolean) getBoolean.invoke(subOption, names[i]+" die");
-					growthRates[i]=(int) getSlider.invoke(subOption, names[i]+" growth rate");
-					deathRates[i]=(int) getSlider.invoke(subOption, names[i]+" death rate");
+					growSets[i]=boolean.class.cast( getBoolean.invoke(subOption, names[i]+" grow"));
+					dieSets[i]=boolean.class.cast( getBoolean.invoke(subOption, names[i]+" die"));
+					growthRates[i]=int.class.cast( getSlider.invoke(subOption, names[i]+" growth rate"));
+					deathRates[i]=int.class.cast( getSlider.invoke(subOption, names[i]+" death rate"));
 				}
-				growSets[names.length]=(boolean) getBoolean.invoke(subOption, "Apple grows");
-				growthRates[names.length]=(int) getSlider.invoke(subOption, "Apple growth rate");
-		        lumberjack=(Boolean) getBoolean.invoke(lumberJackOption, "Enable");
-		        killLeaves=(Boolean) getBoolean.invoke(lumberJackOption, "Kill leaves");
-		        autoSapling=(Boolean) getBoolean.invoke(miscOption,"AutoSapling");
-		        decayLeaves=(Boolean) getBoolean.invoke(miscOption, "Leaves decay on tree death");
-		        mossCorruptStone=(Boolean) getBoolean.invoke(miscOption, "Moss growing on stone");
-		        useStarvingSystem=(Boolean) getBoolean.invoke(miscOption, "Starving system");
-		        biomeModifiedRate=(Boolean) getBoolean.invoke(miscOption, "Biome specific rates");
-		        moddedBonemeal=(Boolean) getBoolean.invoke(miscOption, "Modded Bonemeal");
-		        customDimension=(Boolean) getBoolean.invoke(miscOption, "Custom dimensions");
-		        wildAnimalsBreed=(Boolean) getBoolean.invoke(animalsOption, "Wild breed");
-		        wildAnimalBreedRate=(int) getSlider.invoke(animalsOption, "Breeding rate");
-				API=false;
-    		}catch(NoSuchMethodException | SecurityException | IllegalAccessException 
-					| IllegalArgumentException| InvocationTargetException | ClassNotFoundException e) {
-				System.err.println("Nature Overhaul couldn't use MOAPI hook,please report the following error:");
-				e.printStackTrace();
+				growSets[names.length]=boolean.class.cast( getBoolean.invoke(subOption, "Apple grows"));
+				growthRates[names.length]=int.class.cast( getSlider.invoke(subOption, "Apple growth rate"));
+		        lumberjack=boolean.class.cast( getBoolean.invoke(lumberJackOption, "Enable"));
+		        killLeaves=boolean.class.cast( getBoolean.invoke(lumberJackOption, "Kill leaves"));
+		        autoSapling=boolean.class.cast( getBoolean.invoke(miscOption,"AutoSapling"));
+		        decayLeaves=boolean.class.cast( getBoolean.invoke(miscOption, "Leaves decay on tree death"));
+		        mossCorruptStone=boolean.class.cast( getBoolean.invoke(miscOption, "Moss growing on stone"));
+		        useStarvingSystem=boolean.class.cast( getBoolean.invoke(miscOption, "Starving system"));
+		        biomeModifiedRate=boolean.class.cast( getBoolean.invoke(miscOption, "Biome specific rates"));
+		        moddedBonemeal=boolean.class.cast( getBoolean.invoke(miscOption, "Modded Bonemeal"));
+		        customDimension=boolean.class.cast(getBoolean.invoke(miscOption, "Custom dimensions"));
+		        wildAnimalsBreed=boolean.class.cast( getBoolean.invoke(animalsOption, "Wild breed"));
+		        wildAnimalBreedRate=int.class.cast( getSlider.invoke(animalsOption, "Breeding rate"));
+				API=true;
+    		}catch(NoSuchMethodException n) {
+    			API=false;
+				System.err.println("Nature Overhaul couldn't find MOAPI, please report the following error:");
+				n.printStackTrace();
+    		}
+    		catch( SecurityException s){
+    			System.err.println("Nature Overhaul encountered a security problem, please report to MOAPI author:");
+				s.printStackTrace();
+    		}
+    		catch( IllegalAccessException 	i){
+    			
+    		}
+    		catch( IllegalArgumentException i){
+    			
+    		}
+    		catch( InvocationTargetException i){
+    			
+    		}
+    		catch( ClassNotFoundException n) {
+    			API=false;
+				System.err.println("Nature Overhaul couldn't find MOAPI, please report the following error:");
+				n.printStackTrace();
     		}
     		bonemealEvent.set(moddedBonemeal);
     		animalEvent.set(wildAnimalsBreed,wildAnimalBreedRate);
