@@ -626,24 +626,24 @@ public class NatureOverhaul implements ITickHandler{
 				Method getSlider=optionClass.getDeclaredMethod("getSliderValue", String.class);
 				for(int i=0; i<names.length;i++)
 				{
-					growSets[i]=boolean.class.cast( getBoolean.invoke(subOption, names[i]+" grow"));
-					dieSets[i]=boolean.class.cast( getBoolean.invoke(subOption, names[i]+" die"));
-					growthRates[i]=int.class.cast( getSlider.invoke(subOption, names[i]+" growth rate"));
-					deathRates[i]=int.class.cast( getSlider.invoke(subOption, names[i]+" death rate"));
+					growSets[i]= Boolean.class.cast( getBoolean.invoke(subOption, names[i]+" grow")).booleanValue();
+					dieSets[i]=Boolean.class.cast( getBoolean.invoke(subOption, names[i]+" die")).booleanValue();
+					growthRates[i]=Integer.class.cast( getSlider.invoke(subOption, names[i]+" growth rate")).intValue();
+					deathRates[i]=Integer.class.cast( getSlider.invoke(subOption, names[i]+" death rate")).intValue();
 				}
-				growSets[names.length]=boolean.class.cast( getBoolean.invoke(subOption, "Apple grows"));
-				growthRates[names.length]=int.class.cast( getSlider.invoke(subOption, "Apple growth rate"));
-		        lumberjack=boolean.class.cast( getBoolean.invoke(lumberJackOption, "Enable"));
-		        killLeaves=boolean.class.cast( getBoolean.invoke(lumberJackOption, "Kill leaves"));
-		        autoSapling=boolean.class.cast( getBoolean.invoke(miscOption,"AutoSapling"));
-		        decayLeaves=boolean.class.cast( getBoolean.invoke(miscOption, "Leaves decay on tree death"));
-		        mossCorruptStone=boolean.class.cast( getBoolean.invoke(miscOption, "Moss growing on stone"));
-		        useStarvingSystem=boolean.class.cast( getBoolean.invoke(miscOption, "Starving system"));
-		        biomeModifiedRate=boolean.class.cast( getBoolean.invoke(miscOption, "Biome specific rates"));
-		        moddedBonemeal=boolean.class.cast( getBoolean.invoke(miscOption, "Modded Bonemeal"));
-		        customDimension=boolean.class.cast( getBoolean.invoke(miscOption, "Custom dimensions"));
-		        wildAnimalsBreed=boolean.class.cast( getBoolean.invoke(animalsOption, "Wild breed"));
-		        wildAnimalBreedRate=int.class.cast( getSlider.invoke(animalsOption, "Breeding rate"));
+				growSets[names.length]=Boolean.class.cast( getBoolean.invoke(subOption, "Apple grows")).booleanValue();
+				growthRates[names.length]=Integer.class.cast( getSlider.invoke(subOption, "Apple growth rate")).intValue();
+		        lumberjack=Boolean.class.cast( getBoolean.invoke(lumberJackOption, "Enable")).booleanValue();
+		        killLeaves=Boolean.class.cast( getBoolean.invoke(lumberJackOption, "Kill leaves")).booleanValue();
+		        autoSapling=Boolean.class.cast( getBoolean.invoke(miscOption,"AutoSapling")).booleanValue();
+		        decayLeaves=Boolean.class.cast( getBoolean.invoke(miscOption, "Leaves decay on tree death")).booleanValue();
+		        mossCorruptStone=Boolean.class.cast( getBoolean.invoke(miscOption, "Moss growing on stone")).booleanValue();
+		        useStarvingSystem=Boolean.class.cast( getBoolean.invoke(miscOption, "Starving system")).booleanValue();
+		        biomeModifiedRate=Boolean.class.cast( getBoolean.invoke(miscOption, "Biome specific rates")).booleanValue();
+		        moddedBonemeal=Boolean.class.cast( getBoolean.invoke(miscOption, "Modded Bonemeal")).booleanValue();
+		        customDimension=Boolean.class.cast( getBoolean.invoke(miscOption, "Custom dimensions")).booleanValue();
+		        wildAnimalsBreed=Boolean.class.cast( getBoolean.invoke(animalsOption, "Wild breed")).booleanValue();
+		        wildAnimalBreedRate=Integer.class.cast( getSlider.invoke(animalsOption, "Breeding rate")).intValue();
 				API=true;
 			}catch (ClassNotFoundException c)
 			{
@@ -798,24 +798,24 @@ public class NatureOverhaul implements ITickHandler{
 				Method getSlider=optionClass.getDeclaredMethod("getSliderValue", String.class);
 				for(int i=0; i<names.length;i++)
 				{
-					growSets[i]=boolean.class.cast( getBoolean.invoke(subOption, names[i]+" grow"));
-					dieSets[i]=boolean.class.cast( getBoolean.invoke(subOption, names[i]+" die"));
-					growthRates[i]=int.class.cast( getSlider.invoke(subOption, names[i]+" growth rate"));
-					deathRates[i]=int.class.cast( getSlider.invoke(subOption, names[i]+" death rate"));
+					growSets[i]= Boolean.class.cast( getBoolean.invoke(subOption, names[i]+" grow")).booleanValue();
+					dieSets[i]=Boolean.class.cast( getBoolean.invoke(subOption, names[i]+" die")).booleanValue();
+					growthRates[i]=Integer.class.cast( getSlider.invoke(subOption, names[i]+" growth rate")).intValue();
+					deathRates[i]=Integer.class.cast( getSlider.invoke(subOption, names[i]+" death rate")).intValue();
 				}
-				growSets[names.length]=boolean.class.cast( getBoolean.invoke(subOption, "Apple grows"));
-				growthRates[names.length]=int.class.cast( getSlider.invoke(subOption, "Apple growth rate"));
-		        lumberjack=boolean.class.cast( getBoolean.invoke(lumberJackOption, "Enable"));
-		        killLeaves=boolean.class.cast( getBoolean.invoke(lumberJackOption, "Kill leaves"));
-		        autoSapling=boolean.class.cast( getBoolean.invoke(miscOption,"AutoSapling"));
-		        decayLeaves=boolean.class.cast( getBoolean.invoke(miscOption, "Leaves decay on tree death"));
-		        mossCorruptStone=boolean.class.cast( getBoolean.invoke(miscOption, "Moss growing on stone"));
-		        useStarvingSystem=boolean.class.cast( getBoolean.invoke(miscOption, "Starving system"));
-		        biomeModifiedRate=boolean.class.cast( getBoolean.invoke(miscOption, "Biome specific rates"));
-		        moddedBonemeal=boolean.class.cast( getBoolean.invoke(miscOption, "Modded Bonemeal"));
-		        customDimension=boolean.class.cast(getBoolean.invoke(miscOption, "Custom dimensions"));
-		        wildAnimalsBreed=boolean.class.cast( getBoolean.invoke(animalsOption, "Wild breed"));
-		        wildAnimalBreedRate=int.class.cast( getSlider.invoke(animalsOption, "Breeding rate"));
+				growSets[names.length]=Boolean.class.cast( getBoolean.invoke(subOption, "Apple grows")).booleanValue();
+				growthRates[names.length]=Integer.class.cast( getSlider.invoke(subOption, "Apple growth rate")).intValue();
+		        lumberjack=Boolean.class.cast( getBoolean.invoke(lumberJackOption, "Enable")).booleanValue();
+		        killLeaves=Boolean.class.cast( getBoolean.invoke(lumberJackOption, "Kill leaves")).booleanValue();
+		        autoSapling=Boolean.class.cast( getBoolean.invoke(miscOption,"AutoSapling")).booleanValue();
+		        decayLeaves=Boolean.class.cast( getBoolean.invoke(miscOption, "Leaves decay on tree death")).booleanValue();
+		        mossCorruptStone=Boolean.class.cast( getBoolean.invoke(miscOption, "Moss growing on stone")).booleanValue();
+		        useStarvingSystem=Boolean.class.cast( getBoolean.invoke(miscOption, "Starving system")).booleanValue();
+		        biomeModifiedRate=Boolean.class.cast( getBoolean.invoke(miscOption, "Biome specific rates")).booleanValue();
+		        moddedBonemeal=Boolean.class.cast( getBoolean.invoke(miscOption, "Modded Bonemeal")).booleanValue();
+		        customDimension=Boolean.class.cast( getBoolean.invoke(miscOption, "Custom dimensions")).booleanValue();
+		        wildAnimalsBreed=Boolean.class.cast( getBoolean.invoke(animalsOption, "Wild breed")).booleanValue();
+		        wildAnimalBreedRate=Integer.class.cast( getSlider.invoke(animalsOption, "Breeding rate")).intValue();
 				API=true;
     		}catch(NoSuchMethodException n) {
     			API=false;
