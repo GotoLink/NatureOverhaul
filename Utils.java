@@ -77,12 +77,12 @@ public class Utils {
 		Random rand=new Random();
 		int[] coord=new int[]{i,j,k};
 		int dist;
-		for(int co:coord){
-			dist=rand.nextInt(range);
+		for(int index=0;index<coord.length;index++){
+				dist=rand.nextInt(range);
 			if (rand.nextBoolean())
-				co+=dist;
+				coord[index]+=dist;
 			else
-				co-=dist;	
+				coord[index]-=dist;	
 		}
 		return coord;
 	}
