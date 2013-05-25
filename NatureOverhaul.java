@@ -62,7 +62,7 @@ import cpw.mods.fml.relauncher.Side;
 public class NatureOverhaul implements ITickHandler{
 	@Instance ("NatureOverhaul")
 	public static NatureOverhaul instance;
-	private static Boolean autoSapling=false,lumberjack=false,moddedBonemeal=true,
+	private static boolean autoSapling=true,autoFarming=true,lumberjack=true,moddedBonemeal=true,
 			killLeaves=true,biomeModifiedRate=true,useStarvingSystem=true,decayLeaves=true,
 			mossCorruptStone=true,customDimension=true,wildAnimalsBreed=true;
 	private static int wildAnimalBreedRate=0,growthType=0;
@@ -101,7 +101,8 @@ public class NatureOverhaul implements ITickHandler{
 	private AnimalEventHandler animalEvent;
 	private PlayerEventHandler lumberEvent;
 	private AutoSaplingEventHandler autoEvent;
-    
+	private AutoFarmingEventHandler farmingEvent;
+	
     @PreInit
     public void preInit(FMLPreInitializationEvent event)
     {
@@ -142,7 +143,7 @@ public class NatureOverhaul implements ITickHandler{
         customDimension=config.get(optionsCategory[names.length],"Enable custom dimensions",true).getBoolean(true);
         wildAnimalsBreed=config.get(optionsCategory[names.length],"Enable wild animals Breed",true).getBoolean(true);
         wildAnimalBreedRate=config.get(optionsCategory[names.length],"Wild animals breed rate",16000).getInt(16000);
-          
+        autoFarming=config.get(optionsCategory[names.length], "Plant seeds on player drop", true).getBoolean(true);
     }
     @Init
     public void load(FMLInitializationEvent event)
@@ -608,6 +609,8 @@ public class NatureOverhaul implements ITickHandler{
 				addBoolean.invoke(lumberJackOption, "Kill leaves", true);
 				//Create "Misc" submenu and options
 				Object miscOption=addSubOption.invoke(option, "Misc");
+				addBoolean.invoke(miscOption, "AutoSapling", true);
+				addBoolean.invoke(miscOption, "Plant seeds on player drop", true);
 				addBoolean.invoke(miscOption, "Leaves decay on tree death", true);
 				addBoolean.invoke(miscOption, "Moss growing on stone", true);
 				addBoolean.invoke(miscOption, "Starving system", true);
@@ -635,7 +638,9 @@ public class NatureOverhaul implements ITickHandler{
 				growthRates[names.length]=Integer.class.cast( getSlider.invoke(subOption, "Apple growth rate")).intValue();
 		        lumberjack=Boolean.class.cast( getBoolean.invoke(lumberJackOption, "Enable")).booleanValue();
 		        killLeaves=Boolean.class.cast( getBoolean.invoke(lumberJackOption, "Kill leaves")).booleanValue();
+		        
 		        autoSapling=Boolean.class.cast( getBoolean.invoke(miscOption,"AutoSapling")).booleanValue();
+		        autoFarming=Boolean.class.cast( getBoolean.invoke(miscOption, "Plant seeds on player drop")).booleanValue();
 		        decayLeaves=Boolean.class.cast( getBoolean.invoke(miscOption, "Leaves decay on tree death")).booleanValue();
 		        mossCorruptStone=Boolean.class.cast( getBoolean.invoke(miscOption, "Moss growing on stone")).booleanValue();
 		        useStarvingSystem=Boolean.class.cast( getBoolean.invoke(miscOption, "Starving system")).booleanValue();
@@ -764,7 +769,10 @@ public class NatureOverhaul implements ITickHandler{
 		MinecraftForge.EVENT_BUS.register(animalEvent);
 		lumberEvent=new PlayerEventHandler(lumberjack,killLeaves);
 		MinecraftForge.EVENT_BUS.register(lumberEvent);
+		farmingEvent=new AutoFarmingEventHandler(autoFarming);
+		MinecraftForge.EVENT_BUS.register(farmingEvent);
 		autoEvent=new AutoSaplingEventHandler(autoSapling);
+		
     	if(growthType%2!=0)
     		MinecraftForge.EVENT_BUS.register(autoEvent);
     	if(growthType%2==0)
@@ -808,6 +816,7 @@ public class NatureOverhaul implements ITickHandler{
 		        lumberjack=Boolean.class.cast( getBoolean.invoke(lumberJackOption, "Enable")).booleanValue();
 		        killLeaves=Boolean.class.cast( getBoolean.invoke(lumberJackOption, "Kill leaves")).booleanValue();
 		        autoSapling=Boolean.class.cast( getBoolean.invoke(miscOption,"AutoSapling")).booleanValue();
+		        autoFarming=Boolean.class.cast( getBoolean.invoke(miscOption, "Plant seeds on player drop")).booleanValue();
 		        decayLeaves=Boolean.class.cast( getBoolean.invoke(miscOption, "Leaves decay on tree death")).booleanValue();
 		        mossCorruptStone=Boolean.class.cast( getBoolean.invoke(miscOption, "Moss growing on stone")).booleanValue();
 		        useStarvingSystem=Boolean.class.cast( getBoolean.invoke(miscOption, "Starving system")).booleanValue();
