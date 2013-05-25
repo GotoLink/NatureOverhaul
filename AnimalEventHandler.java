@@ -1,5 +1,9 @@
 package mods.natureoverhaul;
 
+import java.util.Iterator;
+
+import net.minecraft.entity.ai.EntityAIMate;
+import net.minecraft.entity.ai.EntityAITaskEntry;
 import net.minecraft.entity.passive.EntityAnimal;
 import net.minecraftforge.event.ForgeSubscribe;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
@@ -11,7 +15,7 @@ import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 public class AnimalEventHandler {
 	 private int breedRate;
 	 private boolean breed;
-	public AnimalEventHandler(Boolean wildAnimalsBreed, int wildAnimalBreedRate) {
+	public AnimalEventHandler(boolean wildAnimalsBreed, int wildAnimalBreedRate) {
 		this.breedRate=wildAnimalBreedRate;
 		this.breed=wildAnimalsBreed;
 	}
@@ -22,6 +26,18 @@ public class AnimalEventHandler {
     	{
     		EntityAnimal ent =(EntityAnimal)event.entityLiving;
     		if(!ent.worldObj.isRemote && !ent.isChild() && !ent.isInLove()/*&& ent.breeding == 0*/) {
+    			/*Iterator iterator = ent.tasks.taskEntries.iterator();
+    			EntityAITaskEntry entityaitaskentry;
+    			EntityAIMate matingAI;
+    			while (iterator.hasNext())
+                {
+                    entityaitaskentry = (EntityAITaskEntry)iterator.next();
+                    if(entityaitaskentry.action instanceof EntityAIMate){
+                    	matingAI=(EntityAIMate) entityaitaskentry.action;
+                    	break;
+                    }TODO: continue this
+                }*/
+                    
     			if(ent.worldObj.rand.nextInt(breedRate) == 0) {
     				ent.inLove = 600;
     			}
@@ -29,7 +45,7 @@ public class AnimalEventHandler {
     	}
     }
 
-	public void set(Boolean wildAnimalsBreed, int wildAnimalBreedRate) {
+	public void set(boolean wildAnimalsBreed, int wildAnimalBreedRate) {
 		this.breedRate=wildAnimalBreedRate;
 		this.breed=wildAnimalsBreed;
 	}
