@@ -323,7 +323,7 @@ public class TreeUtils {
 	* @param	id block id
 	* @param	avoidVerticals whether up and down blocks should be checked
 	*/
-	private static int[] findValidNeighbor(World world, int i, int j, int k, int id, boolean avoidVerticals) {
+	public static int[] findValidNeighbor(World world, int i, int j, int k, int id, boolean avoidVerticals) {
 		int[][] n=neighbours(new int[]{i,j,k});
 		for (int x=0;x<5;x++)
 		{
@@ -341,7 +341,7 @@ public class TreeUtils {
 	* @param	id block id
 	* @param	meta block id
 	*/
-	private static void putBlocksAround(World world, int i, int j, int k, int id, int meta){
+	public static void putBlocksAround(World world, int i, int j, int k, int id, int meta){
 		int[] leaf=findValidNeighbor(world, i, j, k, 0, false);
 		while(leaf!=null)
 		{
