@@ -78,8 +78,8 @@ public class NatureOverhaul implements ITickHandler{
 	private static HashMap<Integer,NOType> IDToTypeMapping = new HashMap();
 	private static HashMap<Integer,Boolean> IDToGrowingMapping = new HashMap(),IDToDyingMapping = new HashMap();
 	private static HashMap<Integer,Float> IDToOptTempMapping = new HashMap(),IDToOptRainMapping = new HashMap();
-	private static HashMap<Integer,Integer> IDToGrowthRateMapping= new HashMap(),IDToDeathRateMapping= new HashMap();
-    private static HashMap<Integer,Integer> LogToLeafMapping=new HashMap();
+	private static HashMap<Integer,Integer> IDToGrowthRateMapping= new HashMap(),IDToDeathRateMapping= new HashMap(),
+			LogToLeafMapping=new HashMap(),IDToFireCatchMapping=new HashMap(),IDToFirePropagateMapping=new HashMap();
 	private static String[] names=new String[]
     	{
     	"Sapling","Tree","Plants","Netherwort","Grass","Reed","Cactus","Mushroom","Mushroom Tree","Leaf","Crops","Moss","Cocoa"
@@ -564,8 +564,10 @@ public class NatureOverhaul implements ITickHandler{
 	 * @param optTemp The optimal temperature parameter for the growth.
 	 * @param optRain The optimal humidity parameter for the growth.
 	 * @param type {@link NOType} Decides which growth and/or death to use, and tolerance to temperature and humidity.
+	 * @param fireCatch Related to 3rd parameter in {@link Block.setBurnProperties(int,int,int)}.
+	 * @param firePropagate Related to 2nd parameter in {@link Block.setBurnProperties(int,int,int)}.
 	 */
-    private static void addMapping(int id, boolean isGrowing,int growthRate, boolean isMortal,int deathRate, float optTemp, float optRain, NOType type)
+    private static void addMapping(int id, boolean isGrowing,int growthRate, boolean isMortal,int deathRate, float optTemp, float optRain, NOType type, int fireCatch,int firePropagate)
     {
     	IDToGrowingMapping.put(Integer.valueOf(id), isGrowing);
     	IDToGrowthRateMapping.put(Integer.valueOf(id),growthRate);
@@ -574,6 +576,12 @@ public class NatureOverhaul implements ITickHandler{
         IDToOptTempMapping.put(Integer.valueOf(id), optTemp);
         IDToOptRainMapping.put(Integer.valueOf(id), optRain);
         IDToTypeMapping.put(Integer.valueOf(id), type);
+        IDToFireCatchMapping.put(Integer.valueOf(id),fireCatch);
+        IDToFirePropagateMapping.put(Integer.valueOf(id),firePropagate);
+    }
+    private static void addMapping(int id,boolean isGrowing,int growthRate,boolean isMortal,int deathRate, float optTemp, float optRain, NOType type)
+    {
+    	addMapping(id, isGrowing, growthRate, isMortal, deathRate, optTemp, optRain, type, 0, 0);
     }
     @PostInit//Register blocks with config values and NOType, and log/leaf couples 
     public void modsLoaded(FMLPostInitializationEvent event){
@@ -581,17 +589,18 @@ public class NatureOverhaul implements ITickHandler{
     	{//We can use reflection to load options in MOAPI
 			try {
 				Class api = Class.forName("moapi.ModOptionsAPI");
-				Method addMod = api.getDeclaredMethod("addMod",String.class);
+				Method addMod = api.getMethod("addMod",String.class);
 				//"addMod" is static, we don't need an instance
 				Object option =addMod.invoke(null,"Nature Overhaul");
 				Class optionClass= addMod.getReturnType();
 				//Set options as able to be used on a server,get the instance back
-				option=optionClass.getDeclaredMethod("setServerMode").invoke(option);
+				option=optionClass.getMethod("setServerMode").invoke(option);
 				//"addBooleanOption" and "addSliderOption" aren't static, we need options class and an instance
-				Method addBoolean = optionClass.getDeclaredMethod("addBooleanOption", String.class, Boolean.TYPE);
-				Method addSlider = optionClass.getDeclaredMethod("addSliderOption",String.class, Integer.TYPE,Integer.TYPE);
+				Method addBoolean = optionClass.getMethod("addBooleanOption", new Class[]{String.class, Boolean.TYPE});
+				Method addSlider = optionClass.getMethod("addSliderOption",new Class[]{String.class, Integer.TYPE,Integer.TYPE});
+				Method addMap=optionClass.getMethod("addMappedOption", new Class[]{String.class,String[].class,Integer[].class});
 				//To create a submenu
-				Method addSubOption= optionClass.getDeclaredMethod("addSubOption", String.class);
+				Method addSubOption= optionClass.getMethod("addSubOption", String.class);
 				//Create "General" submenu and options
 				Object subOption= addSubOption.invoke(option, "General");
 				for(int i=0; i<names.length;i++)
@@ -609,6 +618,7 @@ public class NatureOverhaul implements ITickHandler{
 				addBoolean.invoke(lumberJackOption, "Kill leaves", true);
 				//Create "Misc" submenu and options
 				Object miscOption=addSubOption.invoke(option, "Misc");
+				addMap.invoke(miscOption, "Sapling grows on",new String[]{"Both","Decay","Growth","Neither"},new int[]{3,2,1,0});
 				addBoolean.invoke(miscOption, "AutoSapling", true);
 				addBoolean.invoke(miscOption, "Plant seeds on player drop", true);
 				addBoolean.invoke(miscOption, "Leaves decay on tree death", true);
@@ -621,12 +631,16 @@ public class NatureOverhaul implements ITickHandler{
 				Object animalsOption=addSubOption.invoke(option, "Animals");
 				addBoolean.invoke(animalsOption, "Wild breed", true);
 				addSlider.invoke(animalsOption, "Breeding rate",0,10000);
+				//Create "Fire" submenu and options
+				Object fireOption=addSubOption.invoke(option, "Fire");
+				addSlider.invoke(fireOption, "WIP",0,100);
 				//Loads and saves values
-				option=optionClass.getDeclaredMethod("loadValues").invoke(option);
-				option=optionClass.getDeclaredMethod("saveValues").invoke(option);
+				option=optionClass.getMethod("loadValues").invoke(option);
+				option=optionClass.getMethod("saveValues").invoke(option);
 				//We have saved the values, we can start to get them back
-				Method getBoolean=optionClass.getDeclaredMethod("getBooleanValue", String.class);
-				Method getSlider=optionClass.getDeclaredMethod("getSliderValue", String.class);
+				Method getBoolean=optionClass.getMethod("getBooleanValue", String.class);
+				Method getSlider=optionClass.getMethod("getSliderValue", String.class);
+				Method getMap=optionClass.getMethod("getMappedValue", String.class);
 				for(int i=0; i<names.length;i++)
 				{
 					growSets[i]= Boolean.class.cast( getBoolean.invoke(subOption, names[i]+" grow")).booleanValue();
@@ -638,7 +652,7 @@ public class NatureOverhaul implements ITickHandler{
 				growthRates[names.length]=Integer.class.cast( getSlider.invoke(subOption, "Apple growth rate")).intValue();
 		        lumberjack=Boolean.class.cast( getBoolean.invoke(lumberJackOption, "Enable")).booleanValue();
 		        killLeaves=Boolean.class.cast( getBoolean.invoke(lumberJackOption, "Kill leaves")).booleanValue();
-		        
+		        growthType=Integer.class.cast(getMap.invoke(miscOption, "Sapling grows on")).intValue();
 		        autoSapling=Boolean.class.cast( getBoolean.invoke(miscOption,"AutoSapling")).booleanValue();
 		        autoFarming=Boolean.class.cast( getBoolean.invoke(miscOption, "Plant seeds on player drop")).booleanValue();
 		        decayLeaves=Boolean.class.cast( getBoolean.invoke(miscOption, "Leaves decay on tree death")).booleanValue();
@@ -650,29 +664,34 @@ public class NatureOverhaul implements ITickHandler{
 		        wildAnimalsBreed=Boolean.class.cast( getBoolean.invoke(animalsOption, "Wild breed")).booleanValue();
 		        wildAnimalBreedRate=Integer.class.cast( getSlider.invoke(animalsOption, "Breeding rate")).intValue();
 				API=true;
-			}catch (ClassNotFoundException c)
-			{
+			}catch (ClassNotFoundException c){
 				API=false;
-				System.out.println("Nature Overhaul couldn't find MOAPI, continuing.");
+				System.out.println("Nature Overhaul couldn't find MOAPI, continuing with values in config file.");
 			}
 			catch(NoSuchMethodException n) {
     			API=false;
-				System.err.println("Nature Overhaul couldn't find MOAPI, please report the following error:");
+				System.err.println("Nature Overhaul couldn't find MOAPI, please report to NO author:");
 				n.printStackTrace();
     		}
     		catch( SecurityException s){
-    			System.err.println("Nature Overhaul encountered a security problem, please report to MOAPI author:");
+    			API=false;
+    			System.err.println("Nature Overhaul encountered a security issue, please report to MOAPI author:");
 				s.printStackTrace();
     		}
-    		catch( IllegalAccessException 	i){
-    			
+    		catch( IllegalAccessException i){
+    			API=false;
+    			System.err.println("Nature Overhaul couldn't call a MOAPI function, please report to MOAPI author:");
+				i.printStackTrace();
     		}
     		catch( IllegalArgumentException i){
-    			
+    			API=false;
+    			System.err.println("Nature Overhaul didn't use a MOAPI function properly, please report to NO author:");
+				i.printStackTrace();
     		}
     		catch( InvocationTargetException i){
+    			API=false;
     			
-    		}//Even if it fails, we can still rely on settings store in Forge recommended config file.
+    		}//Even if it fails, we can still rely on settings stored in Forge recommended config file.
     	}
     	//Now we can register every available blocks at this point.
     	//If a block is registered after, it won't be accounted for.
@@ -683,7 +702,7 @@ public class NatureOverhaul implements ITickHandler{
     		{
     			if (Block.blocksList[i] instanceof IGrowable && Block.blocksList[i] instanceof IBlockDeath)//Priority to Blocks using the API
     			{
-    				addMapping(i,true,((IGrowable)Block.blocksList[i]).getGrowthRate(),true, ((IBlockDeath)Block.blocksList[i]).getDeathRate(),-1.0F,-1.0F,NOType.CUSTOM);      			
+    				addMapping(i,true,((IGrowable)Block.blocksList[i]).getGrowthRate(),true, ((IBlockDeath)Block.blocksList[i]).getDeathRate(),-1.0F,-1.0F,NOType.CUSTOM);
     			}
     			else if (Block.blocksList[i] instanceof IGrowable)
     			{
@@ -695,13 +714,13 @@ public class NatureOverhaul implements ITickHandler{
     			} 
     			else if(Block.blocksList[i] instanceof BlockSapling)
     			{
-    				addMapping(i, growSets[0], 0, dieSets[0],deathRates[0], 0.8F, 0.8F,NOType.SAPLING);
+    				addMapping(i, growSets[0], 0, dieSets[0],deathRates[0], 0.8F, 0.8F,NOType.SAPLING);	
     			}
     			else if(Block.blocksList[i] instanceof BlockLog)
     			{
-    				addMapping(i,growSets[1],growthRates[1],dieSets[1],deathRates[1], 1.0F, 1.0F,NOType.LOG);
+    				addMapping(i,growSets[1],growthRates[1],dieSets[1],deathRates[1], 1.0F, 1.0F,NOType.LOG,5,5);
     				if(!logID.contains(i))
-    					logID.add(i);
+    					logID.add(i);		
     			}	
     			else if(Block.blocksList[i] instanceof BlockNetherStalk)//In the Nether, we don't use biome dependent parameter
     			{
@@ -709,7 +728,7 @@ public class NatureOverhaul implements ITickHandler{
     			}			
     			else if (Block.blocksList[i] instanceof BlockGrass||Block.blocksList[i] instanceof BlockMycelium)
     			{
-    				addMapping(i, growSets[4], growthRates[4], dieSets[4], deathRates[4], 0.7F, 0.5F,NOType.GRASS);
+    				addMapping(i, growSets[4], growthRates[4], dieSets[4], deathRates[4], 0.7F, 0.5F,NOType.GRASS);		
     			}
     			else if(Block.blocksList[i] instanceof BlockReed)
     			{
@@ -725,11 +744,11 @@ public class NatureOverhaul implements ITickHandler{
     			}
     			else if(Block.blocksList[i] instanceof BlockMushroomCap)
     			{
-    				addMapping(i,growSets[8],growthRates[8],dieSets[8],deathRates[8],0.9F,1.0F,NOType.MUSHROOMCAP);				
+    				addMapping(i,growSets[8],growthRates[8],dieSets[8],deathRates[8],0.9F,1.0F,NOType.MUSHROOMCAP);
     			}
     			else if(Block.blocksList[i] instanceof BlockLeaves)
     			{
-    				addMapping(i, growSets[9], growthRates[9], dieSets[9],deathRates[9], 1.0F, 1.0F,NOType.LEAVES );
+    				addMapping(i, growSets[9], growthRates[9], dieSets[9],deathRates[9], 1.0F, 1.0F,NOType.LEAVES,60,30 );
     				if(!leafID.contains(i))
     					leafID.add(i);
     			}
@@ -739,17 +758,20 @@ public class NatureOverhaul implements ITickHandler{
     			}
     			else if(Block.blocksList[i] instanceof BlockFlower)//Flower ,deadbush, lilypad, tallgrass
     			{
-    				addMapping(i,growSets[2],growthRates[2],dieSets[2],deathRates[2],0.6F,0.7F,NOType.PLANT);
+    				addMapping(i,growSets[2],growthRates[2],dieSets[2],deathRates[2],0.6F,0.7F,NOType.PLANT,100,60);
     			}			
     			else if(i==Block.cobblestoneMossy.blockID)
     			{
-    				addMapping(i,growSets[11],growthRates[11],dieSets[11],deathRates[11],0.7F,1.0F,NOType.MOSS);			
+    				addMapping(i,growSets[11],growthRates[11],dieSets[11],deathRates[11],0.7F,1.0F,NOType.MOSS);
     			}
     			else if(Block.blocksList[i] instanceof BlockCocoa)
     			{
     				addMapping(i,growSets[12],growthRates[12],dieSets[12],deathRates[12],1.0F,1.0F,NOType.COCOA);
     			}
-    		}
+    			IDToFirePropagateMapping.put(i,config.get("Fire",Block.blocksList[i].getUnlocalizedName().substring(5)+ " chance to encourage fire",IDToFirePropagateMapping.containsKey(i)?IDToFirePropagateMapping.get(i):0).getInt());
+    			IDToFireCatchMapping.put(i,config.get("Fire",Block.blocksList[i].getUnlocalizedName().substring(5)+ " chance to catch fire",IDToFireCatchMapping.containsKey(i)?IDToFireCatchMapping.get(i):0).getInt());	
+        		Block.setBurnProperties(i, IDToFirePropagateMapping.get(i), IDToFireCatchMapping.get(i));
+    		}	
     	}
     	idLog=config.get(optionsCategory[names.length],"Log ids linked to Leaves",Ints.toArray(logID)).getIntList();
         idLeaf=config.get(optionsCategory[names.length],"Leaves ids linked to Logs",Ints.toArray(leafID)).getIntList();
@@ -788,22 +810,23 @@ public class NatureOverhaul implements ITickHandler{
     	{
     		try{
 	    		Class api = Class.forName("moapi.ModOptionsAPI");
-				Method getMod = api.getDeclaredMethod("getModOptions",String.class);
+				Method getMod = api.getMethod("getModOptions",String.class);
 				//"getMod" is static, we don't need an instance
 				Object option =getMod.invoke(null,"Nature Overhaul");
 				Class optionClass= getMod.getReturnType();
 				//To get a submenu
-				Method getSubOption= optionClass.getDeclaredMethod("getOption", String.class);
+				Method getSubOption= optionClass.getMethod("getOption", String.class);
 				Object subOption= getSubOption.invoke(option, "General");
-				//Create "LumberJack" submenu and options
+				//Get "LumberJack" submenu
 				Object lumberJackOption=getSubOption.invoke(option, "LumberJack");
-				//Create "Misc" submenu and options
+				//Get "Misc" submenu
 				Object miscOption=getSubOption.invoke(option, "Misc");
-				//Create "Animals" submenu and options
+				//Get "Animals" submenu
 				Object animalsOption=getSubOption.invoke(option, "Animals");
 				//We can start to get the values back
-				Method getBoolean=optionClass.getDeclaredMethod("getBooleanValue", String.class);
-				Method getSlider=optionClass.getDeclaredMethod("getSliderValue", String.class);
+				Method getBoolean=optionClass.getMethod("getBooleanValue", String.class);
+				Method getSlider=optionClass.getMethod("getSliderValue", String.class);
+				Method getMap=optionClass.getMethod("getMappedValue", String.class);
 				for(int i=0; i<names.length;i++)
 				{
 					growSets[i]= Boolean.class.cast( getBoolean.invoke(subOption, names[i]+" grow")).booleanValue();
@@ -815,6 +838,7 @@ public class NatureOverhaul implements ITickHandler{
 				growthRates[names.length]=Integer.class.cast( getSlider.invoke(subOption, "Apple growth rate")).intValue();
 		        lumberjack=Boolean.class.cast( getBoolean.invoke(lumberJackOption, "Enable")).booleanValue();
 		        killLeaves=Boolean.class.cast( getBoolean.invoke(lumberJackOption, "Kill leaves")).booleanValue();
+		        growthType=Integer.class.cast(getMap.invoke(miscOption, "Sapling grows on")).intValue();
 		        autoSapling=Boolean.class.cast( getBoolean.invoke(miscOption,"AutoSapling")).booleanValue();
 		        autoFarming=Boolean.class.cast( getBoolean.invoke(miscOption, "Plant seeds on player drop")).booleanValue();
 		        decayLeaves=Boolean.class.cast( getBoolean.invoke(miscOption, "Leaves decay on tree death")).booleanValue();
@@ -828,26 +852,21 @@ public class NatureOverhaul implements ITickHandler{
 				API=true;
     		}catch(NoSuchMethodException n) {
     			API=false;
-				System.err.println("Nature Overhaul couldn't find MOAPI, please report the following error:");
-				n.printStackTrace();
     		}
     		catch( SecurityException s){
-    			System.err.println("Nature Overhaul encountered a security problem, please report to MOAPI author:");
-				s.printStackTrace();
+    			API=false;
     		}
     		catch( IllegalAccessException 	i){
-    			
+    			API=false;
     		}
     		catch( IllegalArgumentException i){
-    			
+    			API=false;
     		}
     		catch( InvocationTargetException i){
-    			
+    			API=false;
     		}
     		catch( ClassNotFoundException n) {
     			API=false;
-				System.err.println("Nature Overhaul couldn't find MOAPI, please report the following error:");
-				n.printStackTrace();
     		}
     		bonemealEvent.set(moddedBonemeal);
     		animalEvent.set(wildAnimalsBreed,wildAnimalBreedRate);
@@ -876,9 +895,7 @@ public class NatureOverhaul implements ITickHandler{
 						/*try
 						{
 							Field f = tickData[0].getClass().getDeclaredField("field_94579_S");
-							//Method m = WorldServer.class.getDeclaredMethod("tickBlocksAndAmbiance");
 							f.setAccessible(true);
-							//m.setAccessible(true);
 							ArrayList<NextTickListEntry> list =  new ArrayList();
 							while(list.isEmpty())
 							{
