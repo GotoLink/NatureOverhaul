@@ -596,9 +596,9 @@ public class NatureOverhaul implements ITickHandler{
 				//Set options as able to be used on a server,get the instance back
 				option=optionClass.getMethod("setServerMode").invoke(option);
 				//"addBooleanOption" and "addSliderOption" aren't static, we need options class and an instance
-				Method addBoolean = optionClass.getMethod("addBooleanOption", new Class[]{String.class, Boolean.TYPE});
-				Method addSlider = optionClass.getMethod("addSliderOption",new Class[]{String.class, Integer.TYPE,Integer.TYPE});
-				Method addMap=optionClass.getMethod("addMappedOption", new Class[]{String.class,String[].class,Integer[].class});
+				Method addBoolean = optionClass.getMethod("addBooleanOption", new Class[]{String.class, boolean.class});
+				Method addSlider = optionClass.getMethod("addSliderOption",new Class[]{String.class, int.class,int.class});
+				Method addMap=optionClass.getMethod("addMappedOption", new Class[]{String.class,String[].class,int[].class});
 				//To create a submenu
 				Method addSubOption= optionClass.getMethod("addSubOption", String.class);
 				//Create "General" submenu and options
@@ -670,7 +670,7 @@ public class NatureOverhaul implements ITickHandler{
 			}
 			catch(NoSuchMethodException n) {
     			API=false;
-				System.err.println("Nature Overhaul couldn't find MOAPI, please report to NO author:");
+				System.err.println("Nature Overhaul couldn't find a MOAPI part, please report to NO author:");
 				n.printStackTrace();
     		}
     		catch( SecurityException s){
