@@ -29,11 +29,19 @@ public class Utils {
 	public static float getOptValueMult(float rain, float opt, float tol) {	
 		return tol * (float) Math.pow(opt - rain, 2) + 1;
 	}
-
+	/**
+	 * Helper method to get a {@link #NOType} from a block id.
+	 * @param id
+	 * @return The stored {@link #NOType} from the given block id.
+	 */
 	public static NOType getType(int id){
 		return NatureOverhaul.instance.getIDToTypeMapping().get(Integer.valueOf(id));
 	}
-	
+	/**
+	 * Helper method to get leaf from a log.
+	 * @param id The log block id.
+	 * @return The leaf block id corresponding to the given log block id.
+	 */
 	public static int getLeafFromLog(int id){
 		try{
 			return NatureOverhaul.instance.getLogToLeafMapping().get(Integer.valueOf(id));
@@ -44,7 +52,10 @@ public class Utils {
 	}
 	/**
 	* Check if we have at least a nearby block of corresponding id within radius
-	*
+	* of given coordinates.
+	* @param	i first coordinate
+	* @param	j second coordinate
+	* @param	k third coordinate
 	* @param	radius	Radius to check in
 	* @param	ignoreSelf If center block should be ignored
 	* @return	True if at least one block is nearby
@@ -87,9 +98,12 @@ public class Utils {
 		return coord;
 	}
 	/**
-	* Gets the j location of the lowest block of the type specified
-	*  below the block from given coordinate
-	* @param type 
+	* Gets the j location of the lowest block of the specified {@link #NOType} 
+	*  below the block from given coordinates.
+	* @param	i first coordinate
+	* @param	j second coordinate
+	* @param	k third coordinate
+	* @param 	type The {@link #NOType} searched 
 	* @return	lowest block j location
 	*/
 	public static int getLowestTypeJ(World world, int i, int j, int k, NOType type) {
@@ -100,7 +114,7 @@ public class Utils {
 		return low;
 	}
 	/**
-	* Emit a specific item
+	* Emit a specific item at given location
 	*
 	* @param item	Item to emit
 	*/

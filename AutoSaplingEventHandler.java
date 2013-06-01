@@ -13,7 +13,7 @@ import net.minecraftforge.event.entity.item.ItemExpireEvent;
  */
 public class AutoSaplingEventHandler {
 	private boolean auto;
-	 public AutoSaplingEventHandler(Boolean autoSapling) {
+	public AutoSaplingEventHandler(Boolean autoSapling) {
 		this.auto=autoSapling;
 	}
 
@@ -30,7 +30,6 @@ public class AutoSaplingEventHandler {
 				if(NatureOverhaul.instance.isValid(id) && Utils.getType(id)==NOType.SAPLING
 						&& Block.blocksList[id].canPlaceBlockAt(ent.worldObj, x, y, z)){
 					ent.worldObj.setBlock(x, y, z, id, item.getItemDamage(), 3);
-					//System.out.println("AutoSapling system activated");
 				}
 			}
     	}
