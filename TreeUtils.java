@@ -1,6 +1,8 @@
 package mods.natureoverhaul;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 
 import net.minecraft.block.Block;
 import net.minecraft.world.World;
@@ -61,7 +63,7 @@ public class TreeUtils {
 				int blockAboveID = world.getBlockId(curI, curJ, curK);
 				// Continue scanning for leaves
 				// After || is ignoring self block
-				if((Utils.getType(blockAboveID) == type) || ((curJ == j) && (ignoreSelf))) {
+				if(Utils.getType(blockAboveID) == type || (curJ == j && ignoreSelf)) {
 					if((type==NOType.LOG && allTypeAround(world, curI, curJ, curK, NOType.LEAVES)) 
 							||(type==NOType.MUSHROOMCAP && allTypeAround(world, curI, curJ, curK, NOType.MUSHROOMCAP))) {
 						leafLayersFound++;
@@ -277,44 +279,76 @@ public class TreeUtils {
 	}
 
 	public static void growTree(World world, int i, int j, int k, int id, NOType type) {
-		int meta = world.getBlockMetadata(i, j, k);//TODO:Improve metadata support
-		boolean onBranch=false;
-		int[] node=new int[]{i,j,k};
-		int[] branch=new int[3];
-		while(world.getBlockId(node[0], node[1], node[2]) == id && !onBranch)
-		{
-			branch=findValidNeighbor(world, node[0], node[1], node[2], id, true);
-			if (branch!=null)
-			{		
-				onBranch=true;
-			}else
-			node[1]++;
+		int lowJ=Utils.getLowestTypeJ(world, i, j, k, type);
+		int leaf = Utils.getLeafFromLog(id);
+		int meta = world.getBlockMetadata(i, lowJ, k);//TODO:Improve metadata support
+		
+		if(world.getBlockId(i, lowJ-1, k)==Block.dirt.blockID 
+				|| Utils.getType(world.getBlockId(i, lowJ-1, k)) == NOType.GRASS){
+			boolean branchFound=false;
+			int[] node=new int[]{i,lowJ,k};
+			List<int[]> branchs=new ArrayList<int[]>();
+			int[] current=null;
+			while((node[1]-lowJ)<= MAX_TREE_HEIGHT && world.getBlockId(node[0], node[1], node[2]) == id)
+			{//Try to find a "branch" by looking for neighbor block
+				current=findValidNeighbor(world, node[0], node[1], node[2], id, true);
+				if(current!=null){
+					branchs.add(current);
+					branchFound=true;
+					current=null;
+				}
+				node[1]++;
+			}
+			if(!branchFound)//We went to the top
+			{
+				world.setBlock(node[0], node[1], node[2], id, meta, 3);
+				if(leaf!=0){
+					world.setBlock(node[0], node[1]+1, node[2], leaf, meta, 3);
+					putBlocksAround(world, node[0], node[1], node[2], leaf, meta);
+				}
+			}
+			else//We found at least a branch
+			{	
+				byte branchLength=0;
+				current=branchs.get(world.rand.nextInt(branchs.size()));
+				int[] newBranch=findValidNeighbor(world, current[0], current[1], current[2], id, false);
+				while(newBranch!=null && newBranch!=node && branchLength<8)//We don't want to go in cycle or make too long branch
+				{
+					branchLength++;
+					node=current;
+					current=newBranch;
+					newBranch=findValidNeighbor(world, current[0], current[1], current[2], id, false);
+				}
+				newBranch=findValidNeighbor(world, current[0], current[1], current[2], 0, false);
+				if(newBranch!=null){
+					world.setBlock(newBranch[0], newBranch[1], newBranch[2], id, meta, 3);
+					if(leaf!=0)
+						putBlocksAround(world, newBranch[0], newBranch[1], newBranch[2], leaf, meta);	
+				}
+				else if(leaf!=0)
+					putBlocksAround(world, current[0], current[1], current[2], leaf, meta);
+			}
 		}
-		if(!onBranch)//We went to the top
-		{
-			world.setBlock(node[0], node[1], node[2], id, meta, 3);
-			world.setBlock(node[0], node[1]+1, node[2], Utils.getLeafFromLog(id), meta, 3);
-			putBlocksAround(world, node[0], node[1], node[2], Utils.getLeafFromLog(id), meta);
-			
-		}
-		else//We are on a branch
-		{	
+		else{//We are on a branch!
 			byte branchLength=0;
-			int[] newBranch=findValidNeighbor(world, branch[0], branch[1], branch[2], id, false);
+			int[] node=null;
+			int[] current=new int[]{i,lowJ,k};
+			int[] newBranch=findValidNeighbor(world, current[0], current[1], current[2], id, false);
 			while(newBranch!=null && newBranch!=node && branchLength<8)//We don't want to go in cycle or make too long branch
 			{
 				branchLength++;
-				node=branch;
-				branch=newBranch;
-				newBranch=findValidNeighbor(world, branch[0], branch[1], branch[2], id, false);
+				node=current;
+				current=newBranch;
+				newBranch=findValidNeighbor(world, current[0], current[1], current[2], id, false);
 			}
-			newBranch=findValidNeighbor(world, branch[0], branch[1], branch[2], 0, false);
+			newBranch=findValidNeighbor(world, current[0], current[1], current[2], 0, false);
 			if(newBranch!=null){
 				world.setBlock(newBranch[0], newBranch[1], newBranch[2], id, meta, 3);
-				putBlocksAround(world, newBranch[0], newBranch[1], newBranch[2], Utils.getLeafFromLog(id), meta);	
+				if(leaf!=0)
+					putBlocksAround(world, newBranch[0], newBranch[1], newBranch[2], leaf, meta);	
 			}
-			else
-			putBlocksAround(world, branch[0], branch[1], branch[2], Utils.getLeafFromLog(id), meta);
+			else if(leaf!=0)
+				putBlocksAround(world, current[0], current[1], current[2], leaf, meta);
 		}
 	}
 	/**
@@ -327,11 +361,10 @@ public class TreeUtils {
 		int[][] n=neighbours(new int[]{i,j,k});
 		for (int x=0;x<5;x++)
 		{
-			if (world.getBlockId(n[x][0],n[x][1],n[x][2])==id)
-			{
-				if(!avoidVerticals||(avoidVerticals && x!=2 && x!=3))
-						return n[x];							
-			}
+			if(avoidVerticals && x==2)
+				x=x+2;
+			if (world.getBlockId(n[x][0],n[x][1],n[x][2])==id)		
+				return n[x];		
 		}
 		return null;		
 	}
