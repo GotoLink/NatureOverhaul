@@ -1,5 +1,7 @@
 package mods.natureoverhaul;
 
+import java.util.Random;
+
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemAxe;
 import net.minecraft.item.ItemStack;
@@ -33,11 +35,10 @@ public class PlayerEventHandler {
     			if(it!=null && it instanceof ItemAxe && !it.onBlockStartBreak(itemstack, i, j, k, event.entityPlayer)){
     				int id=event.entityPlayer.worldObj.getBlockId(i, j, k);
     				//Check for a registered log block
-    				if(NatureOverhaul.instance.isValid(id) ){
+    				if(NatureOverhaul.instance.isLog(id) ){
     					World world=event.entityPlayer.worldObj;
     					
-    					NOType type=Utils.getType(id);
-    					if(type==NOType.LOG && TreeUtils.isTree(world, i, j, k, type, true))
+    					if( TreeUtils.isTree(world, i, j, k, Utils.getType(id), true) )
     					{
     						int meta = world.getBlockMetadata(i, j, k);
     						// Damage axe compared to the number of blocks found

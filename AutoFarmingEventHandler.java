@@ -29,12 +29,11 @@ public class AutoFarmingEventHandler {
 					if(world.getBlockId(info[0], info[1], info[2])==(item.itemID==116+256?Block.slowSand.blockID:Block.tilledField.blockID)
 							&& world.isAirBlock(info[0], info[1]+1, info[2]))
 					{	
-					id=((IPlantable) item).getPlantID(world, info[0], info[1], info[2]);
-					meta=((IPlantable) item).getPlantMetadata(world, info[0], info[1], info[2]);
-					world.setBlock(info[0], info[1]+1, info[2], id, meta, 3);
-					world.notifyBlocksOfNeighborChange(info[0], info[1]+1, info[2], id);
-					event.setCanceled(true);
-					break;
+						id=((IPlantable) item).getPlantID(world, info[0], info[1], info[2]);
+						meta=((IPlantable) item).getPlantMetadata(world, info[0], info[1], info[2]);
+						world.setBlock(info[0], info[1]+1, info[2], id, meta, 3);
+						event.setCanceled(true);
+						break;
 					}
 				}
 			}	

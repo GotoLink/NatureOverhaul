@@ -545,7 +545,10 @@ public class NatureOverhaul implements ITickHandler{
 		return IDToDyingMapping.get(Integer.valueOf(id));
 	}
 	public boolean isValid(int id){
-		return id>0 && id<4096 && Block.blocksList[id]!=null && IDToGrowingMapping.containsKey(Integer.valueOf(id));
+		return id>0 && id<4096 && Block.blocksList[id]!=null && IDToTypeMapping.containsKey(Integer.valueOf(id));
+	}
+	public boolean isLog(int id){
+		return LogToLeafMapping.containsKey(id) || (isValid(id) && IDToTypeMapping.get(id)==NOType.MUSHROOMCAP);
 	}
 	public HashMap<Integer, NOType> getIDToTypeMapping(){
 		return IDToTypeMapping;
@@ -778,6 +781,8 @@ public class NatureOverhaul implements ITickHandler{
     	for(int id=0;id<Math.min(idLog.length, idLeaf.length);id++)
 		{
 			LogToLeafMapping.put(Integer.valueOf(idLog[id]), Integer.valueOf(idLeaf[id]));
+			IDToTypeMapping.put(idLog[id], NOType.LOG);
+			IDToTypeMapping.put(idLeaf[id], NOType.LEAVES);
 		}
     	//Saving Forge recommended config file.
     	if (config.hasChanged())
