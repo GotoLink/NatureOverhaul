@@ -1,15 +1,10 @@
 package mods.natureoverhaul;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
 import net.minecraft.entity.EntityAgeable;
-import net.minecraft.entity.ai.EntityAIMate;
-import net.minecraft.entity.ai.EntityAITaskEntry;
-import net.minecraft.entity.item.EntityXPOrb;
 import net.minecraft.entity.passive.EntityAnimal;
 import net.minecraftforge.event.ForgeSubscribe;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
@@ -21,9 +16,11 @@ import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 public class AnimalEventHandler {
 	private int breedRate;
 	private boolean breed;
-	public AnimalEventHandler(boolean wildAnimalsBreed, int wildAnimalBreedRate) {
+	private int deathRate;
+	public AnimalEventHandler(boolean wildAnimalsBreed, int wildAnimalBreedRate, int deathRate) {
 		this.breedRate=wildAnimalBreedRate;
 		this.breed=wildAnimalsBreed;
+		this.deathRate=deathRate;
 	}
 
 	@ForgeSubscribe
@@ -32,10 +29,10 @@ public class AnimalEventHandler {
     	if(breed && event.entityLiving instanceof EntityAnimal)
     	{
     		EntityAnimal ent =(EntityAnimal)event.entityLiving;
-    		if(!ent.worldObj.isRemote && !ent.isChild() && ent.getGrowingAge()==0) 
+    		if(!ent.worldObj.isRemote && ent.getGrowingAge()==0 && !ent.isInLove()) 
     		{
 				EntityAnimal mate=getNearbyMate(ent);
-				if(mate!=null && new Random().nextFloat() < 1/breedRate)
+				if(mate!=null && ent.getRNG().nextFloat() < 1/breedRate)
 				{
 					EntityAgeable entityageable = ent.createChild(mate);
 			        if (entityageable != null)
@@ -54,6 +51,10 @@ public class AnimalEventHandler {
 			                ent.worldObj.spawnParticle("heart", ent.posX + (double)(random.nextFloat() * ent.width * 2.0F) - (double)ent.width, ent.posY + 0.5D + (double)(random.nextFloat() * ent.height), ent.posZ + (double)(random.nextFloat() * ent.width * 2.0F) - (double)ent.width, d0, d1, d2);
 			            }
 			        }
+				}
+				else if(ent.getRNG().nextFloat() <1/deathRate)
+				{
+					ent.setDead();
 				}
         	}
 		}
@@ -76,8 +77,9 @@ public class AnimalEventHandler {
         return entityanimal;
 	}
 
-	public void set(boolean wildAnimalsBreed, int wildAnimalBreedRate) {
+	public void set(boolean wildAnimalsBreed, int wildAnimalBreedRate, int deathRate) {
 		this.breedRate=wildAnimalBreedRate;
 		this.breed=wildAnimalsBreed;
+		this.deathRate=deathRate;
 	}
 }
