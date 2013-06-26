@@ -126,7 +126,7 @@ public class NatureOverhaul implements ITickHandler{
         	growthRates[i]=config.get(optionsCategory[i],names[i]+" Growth Rate",1200).getInt(1200);
         }
         //Toggle between alternative time of growth for sapling
-        growthType=valueToGrowthTypeMapping.get(config.get(optionsCategory[0],"Sapling grow on","Both","WIP setting, possible values are Neither,LeafGrowth,LeafDecay,Both").getString());
+        growthType=valueToGrowthTypeMapping.get(config.get(optionsCategory[0],"Sapling drops on","Both","Possible values are Neither,LeafGrowth,LeafDecay,Both").getString());
         //Toggle for lumberjack system on trees
         lumberjack=config.get(optionsCategory[1],"Enable lumberjack",true).getBoolean(true);
         killLeaves=config.get(optionsCategory[1],"Lumberjack kill leaves",true).getBoolean(true);
@@ -628,7 +628,7 @@ public class NatureOverhaul implements ITickHandler{
 				addBoolean.invoke(lumberJackOption, "Kill leaves", true);
 				//Create "Misc" submenu and options
 				Object miscOption=addSubOption.invoke(option, "Misc");
-				addMap.invoke(miscOption, "Sapling grows on",new String[]{"Both","LeafDecay","LeafGrowth","Neither"},new int[]{3,2,1,0});
+				addMap.invoke(miscOption, "Sapling drops on",new String[]{"Both","LeafDecay","LeafGrowth","Neither"},new int[]{3,2,1,0});
 				addBoolean.invoke(miscOption, "AutoSapling", true);
 				addBoolean.invoke(miscOption, "Plant seeds on player drop", true);
 				addBoolean.invoke(miscOption, "Leaves decay on tree death", true);
@@ -665,7 +665,7 @@ public class NatureOverhaul implements ITickHandler{
 				growthRates[names.length]=Integer.class.cast( getSlider.invoke(subOption, "Apple growth rate")).intValue();
 		        lumberjack=Boolean.class.cast( getBoolean.invoke(lumberJackOption, "Enable")).booleanValue();
 		        killLeaves=Boolean.class.cast( getBoolean.invoke(lumberJackOption, "Kill leaves")).booleanValue();
-		        growthType=Integer.class.cast(getMap.invoke(miscOption, "Sapling grows on")).intValue();
+		        growthType=Integer.class.cast(getMap.invoke(miscOption, "Sapling drops on")).intValue();
 		        autoSapling=Boolean.class.cast( getBoolean.invoke(miscOption,"AutoSapling")).booleanValue();
 		        autoFarming=Boolean.class.cast( getBoolean.invoke(miscOption, "Plant seeds on player drop")).booleanValue();
 		        decayLeaves=Boolean.class.cast( getBoolean.invoke(miscOption, "Leaves decay on tree death")).booleanValue();
@@ -733,7 +733,7 @@ public class NatureOverhaul implements ITickHandler{
     			}
     			else if(Block.blocksList[i] instanceof BlockLog)
     			{
-    				addMapping(i,growSets[1],growthRates[1],dieSets[1],deathRates[1], 1.0F, 1.0F,NOType.LOG,5,5);
+    				//addMapping(i,growSets[1],growthRates[1],dieSets[1],deathRates[1], 1.0F, 1.0F,NOType.LOG,5,5);
     				if(!logID.contains(i))
     					logID.add(i);		
     			}	
@@ -763,7 +763,7 @@ public class NatureOverhaul implements ITickHandler{
     			}
     			else if(Block.blocksList[i] instanceof BlockLeaves)
     			{
-    				addMapping(i, growSets[9], growthRates[9], dieSets[9],deathRates[9], 1.0F, 1.0F,NOType.LEAVES,60,30 );
+    				//addMapping(i, growSets[9], growthRates[9], dieSets[9],deathRates[9], 1.0F, 1.0F,NOType.LEAVES,60,30 );
     				if(!leafID.contains(i))
     					leafID.add(i);
     			}
@@ -790,14 +790,14 @@ public class NatureOverhaul implements ITickHandler{
 	        		Block.setBurnProperties(i, IDToFirePropagateMapping.get(i), IDToFireCatchMapping.get(i));
     			}
     		}	
-    	}
+    	}//TODO:saplings too ?
     	idLog=config.get(optionsCategory[names.length],"Log ids linked to Leaves",Ints.toArray(logID)).getIntList();
         idLeaf=config.get(optionsCategory[names.length],"Leaves ids linked to Logs",Ints.toArray(leafID)).getIntList();
     	for(int id=0;id<Math.min(idLog.length, idLeaf.length);id++)
 		{
 			LogToLeafMapping.put(Integer.valueOf(idLog[id]), Integer.valueOf(idLeaf[id]));
-			IDToTypeMapping.put(idLog[id], NOType.LOG);
-			IDToTypeMapping.put(idLeaf[id], NOType.LEAVES);
+			addMapping(idLeaf[id], growSets[9], growthRates[9], dieSets[9],deathRates[9], 1.0F, 1.0F,NOType.LEAVES,60,30 );
+			addMapping(idLog[id],growSets[1],growthRates[1],dieSets[1],deathRates[1], 1.0F, 1.0F,NOType.LOG,5,5);
 		}
     	//Saving Forge recommended config file.
     	if (config.hasChanged())
@@ -858,7 +858,7 @@ public class NatureOverhaul implements ITickHandler{
 				growthRates[names.length]=Integer.class.cast( getSlider.invoke(subOption, "Apple growth rate")).intValue();
 		        lumberjack=Boolean.class.cast( getBoolean.invoke(lumberJackOption, "Enable")).booleanValue();
 		        killLeaves=Boolean.class.cast( getBoolean.invoke(lumberJackOption, "Kill leaves")).booleanValue();
-		        growthType=Integer.class.cast(getMap.invoke(miscOption, "Sapling grows on")).intValue();
+		        growthType=Integer.class.cast(getMap.invoke(miscOption, "Sapling drops on")).intValue();
 		        autoSapling=Boolean.class.cast( getBoolean.invoke(miscOption,"AutoSapling")).booleanValue();
 		        autoFarming=Boolean.class.cast( getBoolean.invoke(miscOption, "Plant seeds on player drop")).booleanValue();
 		        decayLeaves=Boolean.class.cast( getBoolean.invoke(miscOption, "Leaves decay on tree death")).booleanValue();
