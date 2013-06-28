@@ -2,12 +2,15 @@ package mods.natureoverhaul;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Map.Entry;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockCactus;
@@ -53,7 +56,7 @@ import cpw.mods.fml.common.network.NetworkMod;
 import cpw.mods.fml.common.registry.TickRegistry;
 import cpw.mods.fml.relauncher.Side;
 
-@Mod(modid = "NatureOverhaul", name = "Nature Overhaul", version = "0.4",dependencies="after:mod_MOAPI")
+@Mod(modid = "NatureOverhaul", name = "Nature Overhaul", version = "0.5",dependencies="after:mod_MOAPI")
 @NetworkMod(clientSideRequired = false, serverSideRequired = false)
 /**
  * From Clinton Alexander idea.
@@ -68,7 +71,6 @@ public class NatureOverhaul implements ITickHandler{
 			mossCorruptStone=true,customDimension=true,wildAnimalsBreed=true;
 	private static int wildAnimalBreedRate=0,wildAnimalDeathRate=0,growthType=0;
 	private int updateLCG = (new Random()).nextInt();
-	
 	private static HashMap<String,Integer> valueToGrowthTypeMapping = new HashMap();
 	static{
 		valueToGrowthTypeMapping.put("Neither", 0);
@@ -76,11 +78,13 @@ public class NatureOverhaul implements ITickHandler{
 		valueToGrowthTypeMapping.put("LeafDecay", 2);
 		valueToGrowthTypeMapping.put("Both", 3);
 	}
-	private static HashMap<Integer,NOType> IDToTypeMapping = new HashMap();
-	private static HashMap<Integer,Boolean> IDToGrowingMapping = new HashMap(),IDToDyingMapping = new HashMap();
-	private static HashMap<Integer,Float> IDToOptTempMapping = new HashMap(),IDToOptRainMapping = new HashMap();
-	private static HashMap<Integer,Integer> IDToGrowthRateMapping= new HashMap(),IDToDeathRateMapping= new HashMap(),
-			LogToLeafMapping=new HashMap(),IDToFireCatchMapping=new HashMap(),IDToFirePropagateMapping=new HashMap();
+	private static Map<Integer,NOType> IDToTypeMapping = new HashMap();
+	private static Map<Integer,Boolean> IDToGrowingMapping = new HashMap(),IDToDyingMapping = new HashMap();
+	private static Map<Integer,Float> IDToOptTempMapping = new HashMap(),IDToOptRainMapping = new HashMap();
+	private static Map<Integer,Integer> IDToGrowthRateMapping= new HashMap(),IDToDeathRateMapping= new HashMap(),
+			LogToLeafMapping=new HashMap(),IDToFireCatchMapping=new HashMap(),
+			IDToFirePropagateMapping=new HashMap(),LeafToSaplingMapping=new HashMap();
+	private static Map<Integer, String[]> TreeIdToMeta=new HashMap();
 	private static String[] names=new String[]
     	{
     	"Sapling","Tree","Plants","Netherwort","Grass","Reed","Cactus","Mushroom","Mushroom Tree","Leaf","Crops","Moss","Cocoa"
@@ -95,7 +99,6 @@ public class NatureOverhaul implements ITickHandler{
     		}
     		optionsCategory[names.length]="Misc Options";
     		};
-    private static int[] idLog=new int[]{17},idLeaf=new int[]{18};
     private Configuration config;
 	private boolean API;
 	private BonemealEventHandler bonemealEvent;
@@ -115,7 +118,6 @@ public class NatureOverhaul implements ITickHandler{
         	config.addCustomCategoryComment(name,"The lower the rate, the faster the changes happen.");
         }
     	config.addCustomCategoryComment(optionsCategory[2],"Plants are flower, deadbush, lilypad and tallgrass");
-    	config.addCustomCategoryComment(optionsCategory[names.length],"Log ids and leaves ids should have the same length and include all compatible blocks");
     	
     	autoSapling=config.get(optionsCategory[0],"AutoSapling",true).getBoolean(true);
         for (int i=0;i<names.length;i++)
@@ -298,9 +300,13 @@ public class NatureOverhaul implements ITickHandler{
 			world.setBlock(i,j,k,Block.cobblestone.blockID);
 			return;
 		case LEAVES://Has a chance to emit a sapling if sets accordingly
-			if(growthType > 1 && world.rand.nextFloat() < getGrowthProb(world, i, j, k, Block.sapling.blockID, NOType.SAPLING))
-				Utils.emitItem(world, i, j, k, new ItemStack(Block.sapling, 1, 
-						 world.getBlockMetadata(i, j, k) % 4));
+			int sap = LeafToSaplingMapping.get(id);
+			if(growthType > 1 && world.rand.nextFloat() < getGrowthProb(world, i, j, k, sap, NOType.SAPLING))
+			{
+				List<String> list = Arrays.asList(TreeIdToMeta.get(sap));
+				if(list.contains(Integer.toString((world.getBlockMetadata(i, j, k) % 4))));
+					Utils.emitItem(world, i, j, k, new ItemStack(sap, 1, world.getBlockMetadata(i, j, k) % 4));
+			}
 			world.setBlockToAir(i, j, k);//Then disappear
 			return;
 		case NETHERSTALK:case PLANT:case MUSHROOM:case COCOA:case SAPLING:
@@ -371,8 +377,12 @@ public class NatureOverhaul implements ITickHandler{
 			&& Math.random()<(double)getGrowthProb( world, i, j, k, id, NOType.APPLE))
 				Utils.emitItem(world, i, j - 1, k, new ItemStack(Item.appleRed));
 			if(growthType % 2 ==1 && world.getBlockId(i, j + 1, k) == 0) 
-				Utils.emitItem(world, i, j + 1, k, new ItemStack(Block.sapling, 1,
-										world.getBlockMetadata(i, j, k) % 4));
+			{
+				int sap = LeafToSaplingMapping.get(id);
+				List<String> list = Arrays.asList(TreeIdToMeta.get(sap));
+			if(list.contains(Integer.toString((world.getBlockMetadata(i, j, k) % 4))));
+				Utils.emitItem(world, i, j + 1, k, new ItemStack(sap, 1, world.getBlockMetadata(i, j, k) % 4));
+			}
 			return;
 		case SAPLING://Use sapling vanilla method for growing a tree
 			((BlockSapling) Block.blocksList[id]).growTree(world, i, j, k, world.rand);
@@ -552,11 +562,14 @@ public class NatureOverhaul implements ITickHandler{
 	public boolean isLog(int id){
 		return LogToLeafMapping.containsKey(id) || (isValid(id) && IDToTypeMapping.get(id)==NOType.MUSHROOMCAP);
 	}
-	public HashMap<Integer, NOType> getIDToTypeMapping(){
+	public Map<Integer, NOType> getIDToTypeMapping(){
 		return IDToTypeMapping;
 	}
-	public HashMap<Integer, Integer> getLogToLeafMapping(){
+	public Map<Integer, Integer> getLogToLeafMapping(){
 		return LogToLeafMapping;
+	}
+	public Map<Integer, String[]> getTreeIDMeta(){
+		return TreeIdToMeta;
 	}
 	////-----------------------------------------------------////
 	/**
@@ -709,8 +722,8 @@ public class NatureOverhaul implements ITickHandler{
     		}//Even if it fails, we can still rely on settings stored in Forge recommended config file.
     	}
     	//Now we can register every available blocks at this point.
+    	Set<Integer> logID=new HashSet(),leafID=new HashSet(),saplingID=new HashSet();
     	//If a block is registered after, it won't be accounted for.
-    	ArrayList<Integer> logID=new ArrayList(),leafID=new ArrayList();
     	for (int i=1;i<Block.blocksList.length;i++)
     	{
     		if (Block.blocksList[i]!=null)
@@ -729,13 +742,11 @@ public class NatureOverhaul implements ITickHandler{
     			} 
     			else if(Block.blocksList[i] instanceof BlockSapling)
     			{
-    				addMapping(i, growSets[0], 0, dieSets[0],deathRates[0], 0.8F, 0.8F,NOType.SAPLING);	
+					saplingID.add(i);
     			}
     			else if(Block.blocksList[i] instanceof BlockLog)
     			{
-    				//addMapping(i,growSets[1],growthRates[1],dieSets[1],deathRates[1], 1.0F, 1.0F,NOType.LOG,5,5);
-    				if(!logID.contains(i))
-    					logID.add(i);		
+					logID.add(i);		
     			}	
     			else if(Block.blocksList[i] instanceof BlockNetherStalk)//In the Nether, we don't use biome dependent parameter
     			{
@@ -763,9 +774,7 @@ public class NatureOverhaul implements ITickHandler{
     			}
     			else if(Block.blocksList[i] instanceof BlockLeaves)
     			{
-    				//addMapping(i, growSets[9], growthRates[9], dieSets[9],deathRates[9], 1.0F, 1.0F,NOType.LEAVES,60,30 );
-    				if(!leafID.contains(i))
-    					leafID.add(i);
+					leafID.add(i);
     			}
     			else if(Block.blocksList[i] instanceof BlockCrops || Block.blocksList[i] instanceof BlockStem)
     			{
@@ -790,15 +799,38 @@ public class NatureOverhaul implements ITickHandler{
 	        		Block.setBurnProperties(i, IDToFirePropagateMapping.get(i), IDToFireCatchMapping.get(i));
     			}
     		}	
-    	}//TODO:saplings too ?
-    	idLog=config.get(optionsCategory[names.length],"Log ids linked to Leaves",Ints.toArray(logID)).getIntList();
-        idLeaf=config.get(optionsCategory[names.length],"Leaves ids linked to Logs",Ints.toArray(leafID)).getIntList();
-    	for(int id=0;id<Math.min(idLog.length, idLeaf.length);id++)
-		{
-			LogToLeafMapping.put(Integer.valueOf(idLog[id]), Integer.valueOf(idLeaf[id]));
-			addMapping(idLeaf[id], growSets[9], growthRates[9], dieSets[9],deathRates[9], 1.0F, 1.0F,NOType.LEAVES,60,30 );
-			addMapping(idLog[id],growSets[1],growthRates[1],dieSets[1],deathRates[1], 1.0F, 1.0F,NOType.LOG,5,5);
-		}
+    	}
+    	int[] idLog=Ints.toArray(logID),idLeaf=Ints.toArray(leafID),idSapling=Ints.toArray(saplingID);
+        String option="";
+    	for(int index=0;index<Math.min(Math.min(idLog.length, idLeaf.length),idSapling.length);index++)
+        {
+        	option=option.concat(idSapling[index]+"(0,1,2,3)-"+idLog[index]+"(0,1,2,3)-"+idLeaf[index]+"(0,1,2,3);");
+        }
+    	String[] ids=config.get(optionsCategory[names.length],"Sapling-Log-Leaves ids",option).getString().split(";");
+        String[] temp;
+        int index=0;
+    	for(String param:ids)
+        {
+        	if(param!=null && param!="")
+        	{
+        		temp=param.split("-");
+        		if(temp.length==3)
+        		{
+	        		idSapling[index]=Integer.parseInt(temp[0].split("\\(")[0]);
+	        		addMapping(idSapling[index], growSets[0], 0, dieSets[0],deathRates[0], 0.8F, 0.8F,NOType.SAPLING);
+        			TreeIdToMeta.put(idSapling[index],temp[0].split("\\(")[1].replace("\\)", "").split("\\,"));
+	        		idLog[index]=Integer.parseInt(temp[1].split("\\(")[0]);
+	        		addMapping(idLog[index],growSets[1],growthRates[1],dieSets[1],deathRates[1], 1.0F, 1.0F,NOType.LOG,5,5);
+        			TreeIdToMeta.put(idLog[index],temp[1].split("\\(")[1].replace("\\)", "").split("\\,"));
+	        		idLeaf[index]=Integer.parseInt(temp[2].split("\\(")[0]);
+	        		addMapping(idLeaf[index], growSets[9], growthRates[9], dieSets[9],deathRates[9], 1.0F, 1.0F,NOType.LEAVES,60,30 );
+        			TreeIdToMeta.put(idLeaf[index],temp[2].split("\\(")[1].replace("\\)", "").split("\\,"));
+        			LogToLeafMapping.put(idLog[index], idLeaf[index]);
+        			LeafToSaplingMapping.put(idLeaf[index],idSapling[index]);
+        		}
+        	}
+        	index++;
+        }
     	//Saving Forge recommended config file.
     	if (config.hasChanged())
         {        
@@ -814,9 +846,8 @@ public class NatureOverhaul implements ITickHandler{
 		farmingEvent=new AutoFarmingEventHandler(autoFarming);
 		MinecraftForge.EVENT_BUS.register(farmingEvent);
 		autoEvent=new AutoSaplingEventHandler(autoSapling);
-		
-    	if(growthType%2!=0)
-    		MinecraftForge.EVENT_BUS.register(autoEvent);
+    	MinecraftForge.EVENT_BUS.register(autoEvent);
+    	
     	if(growthType%2==0)
     		MinecraftForge.EVENT_BUS.register(new SaplingGrowEventHandler());
     }

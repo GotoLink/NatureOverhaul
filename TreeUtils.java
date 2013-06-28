@@ -1,6 +1,7 @@
 package mods.natureoverhaul;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
@@ -281,10 +282,17 @@ public class TreeUtils {
 	public static void growTree(World world, int i, int j, int k, int id, NOType type) {
 		int lowJ=Utils.getLowestTypeJ(world, i, j, k, type);
 		int leaf = Utils.getLeafFromLog(id);
-		int meta = world.getBlockMetadata(i, lowJ, k);//TODO:Improve metadata support
+		int meta = world.getBlockMetadata(i, lowJ, k);
+		boolean isValidMeta=false;
+		List<String> list = Arrays.asList(NatureOverhaul.instance.getTreeIDMeta().get(leaf));
+		if(list.contains(Integer.toString(meta)))
+		{
+			isValidMeta=true;
+		}
 		
 		if(world.getBlockId(i, lowJ-1, k)==Block.dirt.blockID 
-				|| Utils.getType(world.getBlockId(i, lowJ-1, k)) == NOType.GRASS){
+				|| Utils.getType(world.getBlockId(i, lowJ-1, k)) == NOType.GRASS)
+		{
 			boolean branchFound=false;
 			int[] node=new int[]{i,lowJ,k};
 			List<int[]> branchs=new ArrayList<int[]>();
@@ -302,54 +310,39 @@ public class TreeUtils {
 			if(!branchFound)//We went to the top
 			{
 				world.setBlock(node[0], node[1], node[2], id, meta, 3);
-				if(leaf!=0){
+				if(leaf!=0 && isValidMeta){
 					world.setBlock(node[0], node[1]+1, node[2], leaf, meta, 3);
 					putBlocksAround(world, node[0], node[1], node[2], leaf, meta);
 				}
 			}
 			else//We found at least a branch
 			{	
-				byte branchLength=0;
 				current=branchs.get(world.rand.nextInt(branchs.size()));
-				int[] newBranch=findValidNeighbor(world, current[0], current[1], current[2], id, false);
-				while(newBranch!=null && newBranch!=node && branchLength<8)//We don't want to go in cycle or make too long branch
-				{
-					branchLength++;
-					node=current;
-					current=newBranch;
-					newBranch=findValidNeighbor(world, current[0], current[1], current[2], id, false);
-				}
-				newBranch=findValidNeighbor(world, current[0], current[1], current[2], 0, false);
-				if(newBranch!=null){
-					world.setBlock(newBranch[0], newBranch[1], newBranch[2], id, meta, 3);
-					if(leaf!=0)
-						putBlocksAround(world, newBranch[0], newBranch[1], newBranch[2], leaf, meta);	
-				}
-				else if(leaf!=0)
-					putBlocksAround(world, current[0], current[1], current[2], leaf, meta);
+				doBranching(world,leaf,id,meta,isValidMeta,current,node);
 			}
 		}
 		else{//We are on a branch!
-			byte branchLength=0;
-			int[] node=null;
-			int[] current=new int[]{i,lowJ,k};
-			int[] newBranch=findValidNeighbor(world, current[0], current[1], current[2], id, false);
-			while(newBranch!=null && newBranch!=node && branchLength<8)//We don't want to go in cycle or make too long branch
-			{
-				branchLength++;
-				node=current;
-				current=newBranch;
-				newBranch=findValidNeighbor(world, current[0], current[1], current[2], id, false);
-			}
-			newBranch=findValidNeighbor(world, current[0], current[1], current[2], 0, false);
-			if(newBranch!=null){
-				world.setBlock(newBranch[0], newBranch[1], newBranch[2], id, meta, 3);
-				if(leaf!=0)
-					putBlocksAround(world, newBranch[0], newBranch[1], newBranch[2], leaf, meta);	
-			}
-			else if(leaf!=0)
-				putBlocksAround(world, current[0], current[1], current[2], leaf, meta);
+			doBranching(world,leaf,id,meta,isValidMeta,new int[]{i,lowJ,k},null);
 		}
+	}
+	private static void doBranching(World world,int leaf,int id,int meta,boolean valid,int[] current,int[] node){
+		byte branchLength=0;
+		int[] newBranch=findValidNeighbor(world, current[0], current[1], current[2], id, false);
+		while(newBranch!=null && newBranch!=node && branchLength<8)//We don't want to go in cycle or make too long branch
+		{
+			branchLength++;
+			node=current;
+			current=newBranch;
+			newBranch=findValidNeighbor(world, current[0], current[1], current[2], id, false);
+		}
+		newBranch=findValidNeighbor(world, current[0], current[1], current[2], 0, false);
+		if(newBranch!=null){
+			world.setBlock(newBranch[0], newBranch[1], newBranch[2], id, meta, 3);
+			if(leaf!=0 && valid) 
+				putBlocksAround(world, newBranch[0], newBranch[1], newBranch[2], leaf, meta);	
+		}
+		else if(leaf!=0 && valid)
+			putBlocksAround(world, current[0], current[1], current[2], leaf, meta);
 	}
 	/**
 	* Find coordinates with block of given id around the given coordinates
