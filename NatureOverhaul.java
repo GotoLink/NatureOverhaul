@@ -1,4 +1,4 @@
-package mods.natureoverhaul;
+package assets.natureoverhaul;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -44,10 +44,8 @@ import com.google.common.primitives.Ints;
 import cpw.mods.fml.common.ITickHandler;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.Mod;
-import cpw.mods.fml.common.Mod.Init;
+import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.Mod.Instance;
-import cpw.mods.fml.common.Mod.PostInit;
-import cpw.mods.fml.common.Mod.PreInit;
 import cpw.mods.fml.common.TickType;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
@@ -107,7 +105,7 @@ public class NatureOverhaul implements ITickHandler{
 	private AutoSaplingEventHandler autoEvent;
 	private AutoFarmingEventHandler farmingEvent;
 	
-    @PreInit
+	@EventHandler
     public void preInit(FMLPreInitializationEvent event)
     {
         instance = this;
@@ -149,7 +147,7 @@ public class NatureOverhaul implements ITickHandler{
         wildAnimalDeathRate=config.get(optionsCategory[names.length],"Wild animals death rate",16000).getInt(16000);
         autoFarming=config.get(optionsCategory[names.length], "Plant seeds on player drop", true).getBoolean(true);
     }
-    @Init
+	@EventHandler
     public void load(FMLInitializationEvent event)
     {	
     	TickRegistry.registerTickHandler(this, Side.SERVER);
@@ -601,7 +599,7 @@ public class NatureOverhaul implements ITickHandler{
     {
     	addMapping(id, isGrowing, growthRate, isMortal, deathRate, optTemp, optRain, type, 0, 0);
     }
-    @PostInit//Register blocks with config values and NOType, and log/leaf couples 
+    @EventHandler//Register blocks with config values and NOType, and log/leaf couples 
     public void modsLoaded(FMLPostInitializationEvent event){
     	if(Loader.isModLoaded("mod_MOAPI"))
     	{//We can use reflection to load options in MOAPI

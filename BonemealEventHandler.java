@@ -1,4 +1,4 @@
-package mods.natureoverhaul;
+package assets.natureoverhaul;
 
 import net.minecraft.world.World;
 import net.minecraftforge.event.ForgeSubscribe;

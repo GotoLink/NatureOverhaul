@@ -1,4 +1,4 @@
-package mods.natureoverhaul;
+package assets.natureoverhaul;
 
 /**
  *This enum stores tolerance parameters for biome behaviour, conditions inside which

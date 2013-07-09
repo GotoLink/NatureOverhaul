@@ -1,4 +1,4 @@
-package mods.natureoverhaul;
+package assets.natureoverhaul;
 
 import java.util.ArrayList;
 import java.util.Arrays;

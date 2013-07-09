@@ -1,4 +1,4 @@
-package mods.natureoverhaul;
+package assets.natureoverhaul;
 
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
