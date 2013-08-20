@@ -166,7 +166,8 @@ public class NatureOverhaul implements ITickHandler{
 		if( isGrowing(id) && world.rand.nextFloat() < getGrowthProb(world, i, j, k, id, type)) 
 		{
 			//System.out.println("Block "+id+" growing at "+i+","+j+","+k);
-			grow(world, i, j, k, id, type);				
+			grow(world, i, j, k, id, type);
+			return;
 		}
 		if (isMortal(id) && (hasDied(world, i, j, k, id, type) || world.rand.nextFloat() < getDeathProb(world, i, j, k, id, type)))
 		{
@@ -814,17 +815,17 @@ public class NatureOverhaul implements ITickHandler{
         		temp=param.split("-");
         		if(temp.length==3)
         		{
-	        		idSapling[index]=Integer.parseInt(temp[0].split("\\(")[0]);
-	        		addMapping(idSapling[index], growSets[0], 0, dieSets[0],deathRates[0], 0.8F, 0.8F,NOType.SAPLING);
-        			TreeIdToMeta.put(idSapling[index],temp[0].split("\\(")[1].replace("\\)", "").split("\\,"));
-	        		idLog[index]=Integer.parseInt(temp[1].split("\\(")[0]);
-	        		addMapping(idLog[index],growSets[1],growthRates[1],dieSets[1],deathRates[1], 1.0F, 1.0F,NOType.LOG,5,5);
-        			TreeIdToMeta.put(idLog[index],temp[1].split("\\(")[1].replace("\\)", "").split("\\,"));
-	        		idLeaf[index]=Integer.parseInt(temp[2].split("\\(")[0]);
-	        		addMapping(idLeaf[index], growSets[9], growthRates[9], dieSets[9],deathRates[9], 1.0F, 1.0F,NOType.LEAVES,60,30 );
-        			TreeIdToMeta.put(idLeaf[index],temp[2].split("\\(")[1].replace("\\)", "").split("\\,"));
-        			LogToLeafMapping.put(idLog[index], idLeaf[index]);
-        			LeafToSaplingMapping.put(idLeaf[index],idSapling[index]);
+	        		int idSaplin = Integer.parseInt(temp[0].split("\\(")[0]);
+	        		addMapping(idSaplin, growSets[0], 0, dieSets[0],deathRates[0], 0.8F, 0.8F,NOType.SAPLING);
+        			TreeIdToMeta.put(idSaplin,temp[0].split("\\(")[1].replace("\\)", "").split("\\,"));
+	        		int idLo = Integer.parseInt(temp[1].split("\\(")[0]);
+	        		addMapping(idLo,growSets[1],growthRates[1],dieSets[1],deathRates[1], 1.0F, 1.0F,NOType.LOG,5,5);
+        			TreeIdToMeta.put(idLo,temp[1].split("\\(")[1].replace("\\)", "").split("\\,"));
+	        		int idLef = Integer.parseInt(temp[2].split("\\(")[0]);
+	        		addMapping(idLef, growSets[9], growthRates[9], dieSets[9],deathRates[9], 1.0F, 1.0F,NOType.LEAVES,60,30 );
+        			TreeIdToMeta.put(idLef,temp[2].split("\\(")[1].replace("\\)", "").split("\\,"));
+        			LogToLeafMapping.put(idLo, idLef);
+        			LeafToSaplingMapping.put(idLef,idSaplin);
         		}
         	}
         	index++;
@@ -853,7 +854,7 @@ public class NatureOverhaul implements ITickHandler{
     /**
      * Core method. We make vanilla-like random ticks in loaded chunks.
      */
-	public void tickStart(EnumSet<TickType> type, Object... tickData) 
+	public void tickEnd(EnumSet<TickType> type, Object... tickData)
 	{	
     	if(API)
     	{
@@ -1067,7 +1068,7 @@ public class NatureOverhaul implements ITickHandler{
 	}
 
 	@Override
-	public void tickEnd(EnumSet<TickType> type, Object... tickData) {}
+	public void tickStart(EnumSet<TickType> type, Object... tickData)  {}
 	@Override
 	public EnumSet<TickType> ticks() {
 		return EnumSet.of(TickType.WORLD);//The only TickType we want to get the world ticks.
