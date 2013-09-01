@@ -108,7 +108,6 @@ public class NatureOverhaul implements ITickHandler{
 	@EventHandler
     public void preInit(FMLPreInitializationEvent event)
     {
-        instance = this;
         config = new Configuration(event.getSuggestedConfigurationFile(),true);
         config.load();
         for(String name:optionsCategory)
