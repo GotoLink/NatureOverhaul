@@ -1,8 +1,8 @@
 package assets.natureoverhaul;
 
 import net.minecraft.world.World;
-import net.minecraftforge.event.ForgeSubscribe;
 import net.minecraftforge.event.Event.Result;
+import net.minecraftforge.event.ForgeSubscribe;
 import net.minecraftforge.event.entity.player.BonemealEvent;
 /**
  * From Clinton Alexander idea.
@@ -35,7 +35,7 @@ public class BonemealEventHandler {
 	* @return	true if item is applied
 	*/
 	private boolean applyBonemeal(World world, int i, int j, int k, int id) {
-		if (NatureOverhaul.instance.isValid(id) && NatureOverhaul.instance.isGrowing(id)){
+		if (NatureOverhaul.instance.isRegistered(id) && NatureOverhaul.instance.isGrowing(id)){
 			NOType type = Utils.getType(id);
 			if (type!=NOType.GRASS)
 			{

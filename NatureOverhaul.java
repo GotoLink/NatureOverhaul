@@ -1,6 +1,5 @@
 package assets.natureoverhaul;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -11,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockCactus;
@@ -39,6 +40,7 @@ import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import net.minecraftforge.common.Configuration;
 import net.minecraftforge.common.MinecraftForge;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.primitives.Ints;
 
 import cpw.mods.fml.common.ITickHandler;
@@ -69,12 +71,11 @@ public class NatureOverhaul implements ITickHandler{
 			mossCorruptStone=true,customDimension=true,wildAnimalsBreed=true;
 	private static int wildAnimalBreedRate=0,wildAnimalDeathRate=0,growthType=0;
 	private int updateLCG = (new Random()).nextInt();
-	private static HashMap<String,Integer> valueToGrowthTypeMapping = new HashMap();
-	static{
-		valueToGrowthTypeMapping.put("Neither", 0);
-		valueToGrowthTypeMapping.put("LeafGrowth", 1);
-		valueToGrowthTypeMapping.put("LeafDecay", 2);
-		valueToGrowthTypeMapping.put("Both", 3);
+	private enum GrowthType{
+		NEITHER,
+		LEAFGROWTH,
+		LEAFDECAY,
+		BOTH
 	}
 	private static Map<Integer,NOType> IDToTypeMapping = new HashMap();
 	private static Map<Integer,Boolean> IDToGrowingMapping = new HashMap(),IDToDyingMapping = new HashMap();
@@ -98,16 +99,18 @@ public class NatureOverhaul implements ITickHandler{
     		optionsCategory[names.length]="Misc Options";
     		};
     private Configuration config;
-	private boolean API;
+	private static boolean API;
 	private BonemealEventHandler bonemealEvent;
 	private AnimalEventHandler animalEvent;
 	private PlayerEventHandler lumberEvent;
 	private AutoSaplingEventHandler autoEvent;
 	private AutoFarmingEventHandler farmingEvent;
+	private static Logger logger;
 	
 	@EventHandler
     public void preInit(FMLPreInitializationEvent event)
     {
+		logger = event.getModLog();
         config = new Configuration(event.getSuggestedConfigurationFile(),true);
         config.load();
         for(String name:optionsCategory)
@@ -125,7 +128,7 @@ public class NatureOverhaul implements ITickHandler{
         	growthRates[i]=config.get(optionsCategory[i],names[i]+" Growth Rate",1200).getInt(1200);
         }
         //Toggle between alternative time of growth for sapling
-        growthType=valueToGrowthTypeMapping.get(config.get(optionsCategory[0],"Sapling drops on","Both","Possible values are Neither,LeafGrowth,LeafDecay,Both").getString());
+        growthType=GrowthType.valueOf(config.get(optionsCategory[0],"Sapling drops on","Both","Possible values are Neither,LeafGrowth,LeafDecay,Both").getString().toUpperCase()).ordinal();
         //Toggle for lumberjack system on trees
         lumberjack=config.get(optionsCategory[1],"Enable lumberjack",true).getBoolean(true);
         killLeaves=config.get(optionsCategory[1],"Lumberjack kill leaves",true).getBoolean(true);
@@ -183,7 +186,7 @@ public class NatureOverhaul implements ITickHandler{
 	* @param	k third coordinate
 	* @return	True if plant has died
 	*/
-	private boolean hasDied(World world, int i, int j, int k, int id, NOType type) {
+	public static boolean hasDied(World world, int i, int j, int k, int id, NOType type) {
 		switch(type){
 		case CUSTOM:
 			if (Block.blocksList[id] instanceof IBlockDeath)
@@ -208,7 +211,7 @@ public class NatureOverhaul implements ITickHandler{
 	* @param	k third coordinate
 	* @return	True if plant has starved
 	*/
-	private boolean hasStarved(World world, int i, int j, int k, NOType type) {
+	public static boolean hasStarved(World world, int i, int j, int k, NOType type) {
 		int radius = 1;
 		int maxNeighbours = 9;
 		int foundNeighbours = 0;
@@ -251,7 +254,7 @@ public class NatureOverhaul implements ITickHandler{
 					for(int z = k - radius; z < k + radius; z++) {
 						if((i != x) || (j != y) || (k != z)) {
 							int blockID = world.getBlockId(x, y, z);
-							if(foundNeighbours <= maxNeighbours && isValid(blockID) && Utils.getType(blockID) == type) {
+							if(foundNeighbours <= maxNeighbours && isRegistered(blockID) && Utils.getType(blockID) == type) {
 								foundNeighbours++;
 							}
 						}
@@ -270,7 +273,7 @@ public class NatureOverhaul implements ITickHandler{
 	* @param	j second coordinate
 	* @param	k third coordinate
 	**/
-	private void death(World world, int i, int j, int k, int id, NOType type) {
+	public static void death(World world, int i, int j, int k, int id, NOType type) {
 		switch(type){
 		case CUSTOM:
 			if (Block.blocksList[id] instanceof IBlockDeath)
@@ -335,7 +338,7 @@ public class NatureOverhaul implements ITickHandler{
 	* @param	j second coordinate
 	* @param	k third coordinate
 	**/
-	public void grow(World world, int i, int j, int k, int id, NOType type) {
+	public static void grow(World world, int i, int j, int k, int id, NOType type) {
 		int scanSize;
 		int[] coord;
 		switch(type){
@@ -468,7 +471,7 @@ public class NatureOverhaul implements ITickHandler{
 	* @param 	type the NOType
 	* @return	Growth probability as a float
 	*/
-	private float getGrowthProb(World world, int i, int j, int k, int id, NOType type) {	
+	private static float getGrowthProb(World world, int i, int j, int k, int id, NOType type) {	
 		float freq = type!=NOType.APPLE?getGrowthRate(id):growSets[names.length]?growthRates[names.length]*1.5F:-1F;
 		if(biomeModifiedRate && freq>0 && type!=NOType.NETHERSTALK) {
 			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
@@ -488,13 +491,13 @@ public class NatureOverhaul implements ITickHandler{
 	* Get the death probability.
 	* Called by {@link #onUpdateTick(World, int, int, int, int)}.
 	* @param	world
-	* @param	i
-	* @param	j
-	* @param	k
-	* @param type 
+	* @param	i first coordinate
+	* @param	j second coordinate
+	* @param	k third coordinate
+	* @param 	type the NOType
 	* @return	Death probability as a float
 	*/
-	private float getDeathProb(World world, int i, int j, int k, int id, NOType type) {			
+	private static float getDeathProb(World world, int i, int j, int k, int id, NOType type) {			
 		float freq = getDeathRate(id);
 		if(biomeModifiedRate && freq>0 && type!=NOType.NETHERSTALK) {
 			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
@@ -517,7 +520,7 @@ public class NatureOverhaul implements ITickHandler{
 	* 
 	* @return	True if it can grow in these coordinates
 	*/
-	private boolean appleCanGrow(World world, int i, int k) {
+	private static boolean appleCanGrow(World world, int i, int k) {
 		BiomeGenBase biome = world.getBiomeGenForCoords(i, k);	
 		// Apples can grow in the named biomes
 		return ((biome.temperature >= 0.7F) && (biome.temperature <= 1.0F) 
@@ -529,48 +532,63 @@ public class NatureOverhaul implements ITickHandler{
 	* when type is cocoa.
 	* @return	true if can grow in these coordinates
 	*/
-	private boolean cocoaCanGrow(World world, int i, int k) {
+	private static boolean cocoaCanGrow(World world, int i, int k) {
 		BiomeGenBase biome = world.getBiomeGenForCoords(i,k);	
 		// Cocoa can grow in the named biomes
 		return ((biome.temperature >= 0.7F) && (biome.temperature <= 1.5F) 
 				&& (biome.rainfall >= 0.8F));
 	}
 	////Helper methods to get parameters out of the mappings.////
-	private float getOptTemp(int id) {
+	private static float getOptTemp(int id) {
 		return IDToOptTempMapping.get(Integer.valueOf(id));
 	}
-	private float getOptRain(int id) {
+	private static float getOptRain(int id) {
 		return IDToOptRainMapping.get(Integer.valueOf(id));
 	}
-	private int getGrowthRate(int id) {
+	private static int getGrowthRate(int id) {
 		return IDToGrowthRateMapping.get(Integer.valueOf(id));
 	}
-	private int getDeathRate(int id) {
+	private static int getDeathRate(int id) {
 		return IDToDeathRateMapping.get(Integer.valueOf(id));
 	}
-	public boolean isGrowing(int id){
+	public static boolean isGrowing(int id){
 		return IDToGrowingMapping.get(Integer.valueOf(id));	
 	}
-	public boolean isMortal(int id){
+	public static boolean isMortal(int id){
 		return IDToDyingMapping.get(Integer.valueOf(id));
 	}
-	public boolean isValid(int id){
-		return id>0 && id<4096 && Block.blocksList[id]!=null && IDToTypeMapping.containsKey(Integer.valueOf(id));
+	public static boolean isValid(int id){
+		return id>0 && id<4096 && Block.blocksList[id]!=null;
 	}
-	public boolean isLog(int id){
-		return LogToLeafMapping.containsKey(id) || (isValid(id) && IDToTypeMapping.get(id)==NOType.MUSHROOMCAP);
+	public static boolean isRegistered(int id){
+		return isValid(id) && IDToTypeMapping.containsKey(Integer.valueOf(id));
 	}
-	public Map<Integer, NOType> getIDToTypeMapping(){
-		return IDToTypeMapping;
+	public static boolean isLog(int id){
+		return LogToLeafMapping.containsKey(id) || (isRegistered(id) && IDToTypeMapping.get(id)==NOType.MUSHROOMCAP);
 	}
-	public Map<Integer, Integer> getLogToLeafMapping(){
-		return LogToLeafMapping;
+	public static Map<Integer, NOType> getIDToTypeMapping(){
+		return ImmutableMap.copyOf(IDToTypeMapping);
 	}
-	public Map<Integer, String[]> getTreeIDMeta(){
-		return TreeIdToMeta;
+	public static Map<Integer, Integer> getLogToLeafMapping(){
+		return ImmutableMap.copyOf(LogToLeafMapping);
+	}
+	public static Map<Integer, String[]> getTreeIDMeta(){
+		return ImmutableMap.copyOf(TreeIdToMeta);
 	}
 	////-----------------------------------------------------////
 	/**
+	 * Registers all mappings simultaneously.
+	 * Overloaded method with fire parameters.
+	 * @param fireCatch Related to 3rd parameter in {@link Block.setBurnProperties(int,int,int)}.
+	 * @param firePropagate Related to 2nd parameter in {@link Block.setBurnProperties(int,int,int)}.
+	 */
+    private static void addMapping(int id, boolean isGrowing,int growthRate, boolean isMortal,int deathRate, float optTemp, float optRain, NOType type, int fireCatch,int firePropagate)
+    {
+    	addMapping(id, isGrowing, growthRate, isMortal, deathRate, optTemp, optRain, type);
+        IDToFireCatchMapping.put(Integer.valueOf(id),fireCatch);
+        IDToFirePropagateMapping.put(Integer.valueOf(id),firePropagate);
+    }
+    /**
 	 * Registers all mappings simultaneously.
 	 * @param id The id the block is registered with.
 	 * @param isGrowing Whether the block can call {@link #grow(World, int, int, int, int, NOType)} on tick.
@@ -580,10 +598,8 @@ public class NatureOverhaul implements ITickHandler{
 	 * @param optTemp The optimal temperature parameter for the growth.
 	 * @param optRain The optimal humidity parameter for the growth.
 	 * @param type {@link NOType} Decides which growth and/or death to use, and tolerance to temperature and humidity.
-	 * @param fireCatch Related to 3rd parameter in {@link Block.setBurnProperties(int,int,int)}.
-	 * @param firePropagate Related to 2nd parameter in {@link Block.setBurnProperties(int,int,int)}.
 	 */
-    private static void addMapping(int id, boolean isGrowing,int growthRate, boolean isMortal,int deathRate, float optTemp, float optRain, NOType type, int fireCatch,int firePropagate)
+    private static void addMapping(int id,boolean isGrowing,int growthRate,boolean isMortal,int deathRate, float optTemp, float optRain, NOType type)
     {
     	IDToGrowingMapping.put(Integer.valueOf(id), isGrowing);
     	IDToGrowthRateMapping.put(Integer.valueOf(id),growthRate);
@@ -592,12 +608,6 @@ public class NatureOverhaul implements ITickHandler{
         IDToOptTempMapping.put(Integer.valueOf(id), optTemp);
         IDToOptRainMapping.put(Integer.valueOf(id), optRain);
         IDToTypeMapping.put(Integer.valueOf(id), type);
-        IDToFireCatchMapping.put(Integer.valueOf(id),fireCatch);
-        IDToFirePropagateMapping.put(Integer.valueOf(id),firePropagate);
-    }
-    private static void addMapping(int id,boolean isGrowing,int growthRate,boolean isMortal,int deathRate, float optTemp, float optRain, NOType type)
-    {
-    	addMapping(id, isGrowing, growthRate, isMortal, deathRate, optTemp, optRain, type, 0, 0);
     }
     @EventHandler//Register blocks with config values and NOType, and log/leaf couples 
     public void modsLoaded(FMLPostInitializationEvent event){
@@ -662,61 +672,18 @@ public class NatureOverhaul implements ITickHandler{
 				option=optionClass.getMethod("loadValues").invoke(option);
 				option=optionClass.getMethod("saveValues").invoke(option);
 				//We have saved the values, we can start to get them back
-				Method getBoolean=optionClass.getMethod("getBooleanValue", String.class);
-				Method getSlider=optionClass.getMethod("getSliderValue", String.class);
-				Method getMap=optionClass.getMethod("getMappedValue", String.class);
-				for(int i=0; i<names.length;i++)
-				{
-					growSets[i]= Boolean.class.cast( getBoolean.invoke(subOption, names[i]+" grow")).booleanValue();
-					dieSets[i]=Boolean.class.cast( getBoolean.invoke(subOption, names[i]+" die")).booleanValue();
-					growthRates[i]=Integer.class.cast( getSlider.invoke(subOption, names[i]+" growth rate")).intValue();
-					deathRates[i]=Integer.class.cast( getSlider.invoke(subOption, names[i]+" death rate")).intValue();
-				}
-				growSets[names.length]=Boolean.class.cast( getBoolean.invoke(subOption, "Apple grows")).booleanValue();
-				growthRates[names.length]=Integer.class.cast( getSlider.invoke(subOption, "Apple growth rate")).intValue();
-		        lumberjack=Boolean.class.cast( getBoolean.invoke(lumberJackOption, "Enable")).booleanValue();
-		        killLeaves=Boolean.class.cast( getBoolean.invoke(lumberJackOption, "Kill leaves")).booleanValue();
-		        growthType=Integer.class.cast(getMap.invoke(miscOption, "Sapling drops on")).intValue();
-		        autoSapling=Boolean.class.cast( getBoolean.invoke(miscOption,"AutoSapling")).booleanValue();
-		        autoFarming=Boolean.class.cast( getBoolean.invoke(miscOption, "Plant seeds on player drop")).booleanValue();
-		        decayLeaves=Boolean.class.cast( getBoolean.invoke(miscOption, "Leaves decay on tree death")).booleanValue();
-		        mossCorruptStone=Boolean.class.cast( getBoolean.invoke(miscOption, "Moss growing on stone")).booleanValue();
-		        useStarvingSystem=Boolean.class.cast( getBoolean.invoke(miscOption, "Starving system")).booleanValue();
-		        biomeModifiedRate=Boolean.class.cast( getBoolean.invoke(miscOption, "Biome specific rates")).booleanValue();
-		        moddedBonemeal=Boolean.class.cast( getBoolean.invoke(miscOption, "Modded Bonemeal")).booleanValue();
-		        customDimension=Boolean.class.cast( getBoolean.invoke(miscOption, "Custom dimensions")).booleanValue();
-		        wildAnimalsBreed=Boolean.class.cast( getBoolean.invoke(animalsOption, "Wild breed")).booleanValue();
-		        wildAnimalBreedRate=Integer.class.cast( getSlider.invoke(animalsOption, "Breeding rate")).intValue();
-		        wildAnimalDeathRate=Integer.class.cast( getSlider.invoke(animalsOption, "Death rate")).intValue();
+				getMOAPIValues(optionClass,subOption,lumberJackOption,miscOption,animalsOption);
 		        //We successfully get all options !
 				API=true;
+				logger.finest("NatureOverhaul found MOAPI and loaded all options correctly.");
+			}catch(SecurityException s){
+    			API=false;
 			}catch (ClassNotFoundException c){
 				API=false;
-				System.out.println("Nature Overhaul couldn't find MOAPI, continuing with values in config file.");
-			}
-			catch(NoSuchMethodException n) {
+				logger.info("NatureOverhaul couldn't use MOAPI, continuing with values in config file.");
+			}catch(ReflectiveOperationException n) {
     			API=false;
-				System.err.println("Nature Overhaul couldn't find a MOAPI part, please report to NO author:");
-				n.printStackTrace();
-    		}
-    		catch( SecurityException s){
-    			API=false;
-    			System.err.println("Nature Overhaul encountered a security issue, please report to MOAPI author:");
-				s.printStackTrace();
-    		}
-    		catch( IllegalAccessException i){
-    			API=false;
-    			System.err.println("Nature Overhaul couldn't call a MOAPI function, please report to MOAPI author:");
-				i.printStackTrace();
-    		}
-    		catch( IllegalArgumentException i){
-    			API=false;
-    			System.err.println("Nature Overhaul didn't use a MOAPI function properly, please report to NO author:");
-				i.printStackTrace();
-    		}
-    		catch( InvocationTargetException i){
-    			API=false;
-    			
+				logger.log(Level.WARNING, "NatureOverhaul failed to use MOAPI, please report to NO author:", n);
     		}//Even if it fails, we can still rely on settings stored in Forge recommended config file.
     	}
     	//Now we can register every available blocks at this point.
@@ -806,8 +773,7 @@ public class NatureOverhaul implements ITickHandler{
         }
     	String[] ids=config.get(optionsCategory[names.length],"Sapling-Log-Leaves ids",option).getString().split(";");
         String[] temp;
-        int index=0;
-    	for(String param:ids)
+        for(String param:ids)
         {
         	if(param!=null && param!="")
         	{
@@ -815,19 +781,22 @@ public class NatureOverhaul implements ITickHandler{
         		if(temp.length==3)
         		{
 	        		int idSaplin = Integer.parseInt(temp[0].split("\\(")[0]);
-	        		addMapping(idSaplin, growSets[0], 0, dieSets[0],deathRates[0], 0.8F, 0.8F,NOType.SAPLING);
-        			TreeIdToMeta.put(idSaplin,temp[0].split("\\(")[1].replace("\\)", "").split("\\,"));
 	        		int idLo = Integer.parseInt(temp[1].split("\\(")[0]);
-	        		addMapping(idLo,growSets[1],growthRates[1],dieSets[1],deathRates[1], 1.0F, 1.0F,NOType.LOG,5,5);
-        			TreeIdToMeta.put(idLo,temp[1].split("\\(")[1].replace("\\)", "").split("\\,"));
 	        		int idLef = Integer.parseInt(temp[2].split("\\(")[0]);
-	        		addMapping(idLef, growSets[9], growthRates[9], dieSets[9],deathRates[9], 1.0F, 1.0F,NOType.LEAVES,60,30 );
-        			TreeIdToMeta.put(idLef,temp[2].split("\\(")[1].replace("\\)", "").split("\\,"));
-        			LogToLeafMapping.put(idLo, idLef);
-        			LeafToSaplingMapping.put(idLef,idSaplin);
+	        		//Make sure user input is valid
+	        		if(isValid(idSaplin) && isValid(idLo) && isValid(idLef))
+	        		{
+		        		addMapping(idSaplin, growSets[0], 0, dieSets[0],deathRates[0], 0.8F, 0.8F,NOType.SAPLING);
+	        			TreeIdToMeta.put(idSaplin,temp[0].split("\\(")[1].replace("\\)", "").trim().split("\\,"));
+		        		addMapping(idLo,growSets[1],growthRates[1],dieSets[1],deathRates[1], 1.0F, 1.0F,NOType.LOG,5,5);
+	        			TreeIdToMeta.put(idLo,temp[1].split("\\(")[1].replace("\\)", "").trim().split("\\,"));
+		        		addMapping(idLef, growSets[9], growthRates[9], dieSets[9],deathRates[9], 1.0F, 1.0F,NOType.LEAVES,60,30 );
+	        			TreeIdToMeta.put(idLef,temp[2].split("\\(")[1].replace("\\)", "").trim().split("\\,"));
+	        			LogToLeafMapping.put(idLo, idLef);
+	        			LeafToSaplingMapping.put(idLef,idSaplin);
+	        		}
         		}
         	}
-        	index++;
         }
     	//Saving Forge recommended config file.
     	if (config.hasChanged())
@@ -873,48 +842,11 @@ public class NatureOverhaul implements ITickHandler{
 				//Get "Animals" submenu
 				Object animalsOption=getSubOption.invoke(option, "Animals");
 				//We can start to get the values back
-				Method getBoolean=optionClass.getMethod("getBooleanValue", String.class);
-				Method getSlider=optionClass.getMethod("getSliderValue", String.class);
-				Method getMap=optionClass.getMethod("getMappedValue", String.class);
-				for(int i=0; i<names.length;i++)
-				{
-					growSets[i]= Boolean.class.cast( getBoolean.invoke(subOption, names[i]+" grow")).booleanValue();
-					dieSets[i]=Boolean.class.cast( getBoolean.invoke(subOption, names[i]+" die")).booleanValue();
-					growthRates[i]=Integer.class.cast( getSlider.invoke(subOption, names[i]+" growth rate")).intValue();
-					deathRates[i]=Integer.class.cast( getSlider.invoke(subOption, names[i]+" death rate")).intValue();
-				}
-				growSets[names.length]=Boolean.class.cast( getBoolean.invoke(subOption, "Apple grows")).booleanValue();
-				growthRates[names.length]=Integer.class.cast( getSlider.invoke(subOption, "Apple growth rate")).intValue();
-		        lumberjack=Boolean.class.cast( getBoolean.invoke(lumberJackOption, "Enable")).booleanValue();
-		        killLeaves=Boolean.class.cast( getBoolean.invoke(lumberJackOption, "Kill leaves")).booleanValue();
-		        growthType=Integer.class.cast(getMap.invoke(miscOption, "Sapling drops on")).intValue();
-		        autoSapling=Boolean.class.cast( getBoolean.invoke(miscOption,"AutoSapling")).booleanValue();
-		        autoFarming=Boolean.class.cast( getBoolean.invoke(miscOption, "Plant seeds on player drop")).booleanValue();
-		        decayLeaves=Boolean.class.cast( getBoolean.invoke(miscOption, "Leaves decay on tree death")).booleanValue();
-		        mossCorruptStone=Boolean.class.cast( getBoolean.invoke(miscOption, "Moss growing on stone")).booleanValue();
-		        useStarvingSystem=Boolean.class.cast( getBoolean.invoke(miscOption, "Starving system")).booleanValue();
-		        biomeModifiedRate=Boolean.class.cast( getBoolean.invoke(miscOption, "Biome specific rates")).booleanValue();
-		        moddedBonemeal=Boolean.class.cast( getBoolean.invoke(miscOption, "Modded Bonemeal")).booleanValue();
-		        customDimension=Boolean.class.cast( getBoolean.invoke(miscOption, "Custom dimensions")).booleanValue();
-		        wildAnimalsBreed=Boolean.class.cast( getBoolean.invoke(animalsOption, "Wild breed")).booleanValue();
-		        wildAnimalBreedRate=Integer.class.cast( getSlider.invoke(animalsOption, "Breeding rate")).intValue();
-		        wildAnimalDeathRate=Integer.class.cast( getSlider.invoke(animalsOption, "Death rate")).intValue();
-    		}catch(NoSuchMethodException n) {
+				getMOAPIValues(optionClass,subOption,lumberJackOption,miscOption,animalsOption);
+				
+    		}catch(SecurityException s){
     			API=false;
-    		}
-    		catch( SecurityException s){
-    			API=false;
-    		}
-    		catch( IllegalAccessException 	i){
-    			API=false;
-    		}
-    		catch( IllegalArgumentException i){
-    			API=false;
-    		}
-    		catch( InvocationTargetException i){
-    			API=false;
-    		}
-    		catch( ClassNotFoundException n) {
+    		}catch(ReflectiveOperationException i){
     			API=false;
     		}
     		bonemealEvent.set(moddedBonemeal);
@@ -925,7 +857,7 @@ public class NatureOverhaul implements ITickHandler{
     		NOType typ;
             int index=-1;
     		for(int i=1;i<4096;i++)
-    			if(isValid(i))
+    			if(isRegistered(i))
     			{
     				typ = IDToTypeMapping.get(Integer.valueOf(i));
     				switch(typ){
@@ -1054,7 +986,7 @@ public class NatureOverhaul implements ITickHandler{
 			                        	int j3 = blockStorage.getExtBlockID(k2, i3, l2);
 			                        	Block block = Block.blocksList[j3];
 		
-			                        	if (isValid(j3))
+			                        	if (isRegistered(j3))
 			                        	{
 			                        		onUpdateTick(world, k2 + k, i3 + blockStorage.getYLocation(), l2 + l, j3);
 			                        	}
@@ -1066,6 +998,39 @@ public class NatureOverhaul implements ITickHandler{
     	}
 	}
 
+	private static void getMOAPIValues(Class optionClass, Object subOption, Object lumberJackOption, Object miscOption, Object animalsOption)
+					throws SecurityException, ReflectiveOperationException {
+		Method getBoolean=optionClass.getMethod("getBooleanValue", String.class);
+		Method getSlider=optionClass.getMethod("getSliderValue", String.class);
+		Method getMap=optionClass.getMethod("getMappedValue", String.class);
+		for(int i=0; i<names.length;i++)
+		{
+			growSets[i]=getBooleanFrom(getBoolean,subOption,names[i]+" grow");
+			dieSets[i]=getBooleanFrom(getBoolean,subOption, names[i]+" die");
+			growthRates[i]=Integer.class.cast(getSlider.invoke(subOption, names[i]+" growth rate")).intValue();
+			deathRates[i]=Integer.class.cast(getSlider.invoke(subOption, names[i]+" death rate")).intValue();
+		}
+		growSets[names.length]=getBooleanFrom(getBoolean,subOption, "Apple grows");
+		growthRates[names.length]=Integer.class.cast(getSlider.invoke(subOption, "Apple growth rate")).intValue();
+        lumberjack=getBooleanFrom(getBoolean,lumberJackOption, "Enable");
+        killLeaves=getBooleanFrom(getBoolean,lumberJackOption, "Kill leaves");
+        growthType=Integer.class.cast(getMap.invoke(miscOption, "Sapling drops on")).intValue();
+        autoSapling=getBooleanFrom(getBoolean,miscOption,"AutoSapling");
+        autoFarming=getBooleanFrom(getBoolean,miscOption, "Plant seeds on player drop");
+        decayLeaves=getBooleanFrom(getBoolean,miscOption, "Leaves decay on tree death");
+        mossCorruptStone=getBooleanFrom(getBoolean,miscOption, "Moss growing on stone");
+        useStarvingSystem=getBooleanFrom(getBoolean,miscOption, "Starving system");
+        biomeModifiedRate=getBooleanFrom(getBoolean,miscOption, "Biome specific rates");
+        moddedBonemeal=getBooleanFrom(getBoolean,miscOption, "Modded Bonemeal");
+        customDimension=getBooleanFrom(getBoolean,miscOption, "Custom dimensions");
+        wildAnimalsBreed=getBooleanFrom(getBoolean,animalsOption, "Wild breed");
+        wildAnimalBreedRate=Integer.class.cast(getSlider.invoke(animalsOption, "Breeding rate")).intValue();
+        wildAnimalDeathRate=Integer.class.cast(getSlider.invoke(animalsOption, "Death rate")).intValue();
+	}
+	public static boolean getBooleanFrom(Method meth, Object option, String name) 
+			throws ReflectiveOperationException {
+		return Boolean.class.cast(meth.invoke(option, name)).booleanValue();
+	}
 	@Override
 	public void tickStart(EnumSet<TickType> type, Object... tickData)  {}
 	@Override
