@@ -11,7 +11,7 @@ import net.minecraftforge.event.terraingen.SaplingGrowTreeEvent;
 public class SaplingGrowEventHandler {
 	@ForgeSubscribe
     public void onGrowingSapling(SaplingGrowTreeEvent event){
-    	if (  event.hasResult()){
+    	if (event.hasResult()){
     		event.setResult(Result.DENY);//Sapling doesn't grow vanilla with even growType
     	}
     }

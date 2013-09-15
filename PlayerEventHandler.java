@@ -1,7 +1,5 @@
 package assets.natureoverhaul;
 
-import java.util.Random;
-
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemAxe;
 import net.minecraft.item.ItemStack;

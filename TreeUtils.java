@@ -298,14 +298,14 @@ public class TreeUtils {
 			List<int[]> branchs=new ArrayList<int[]>();
 			int[] current=null;
 			while((node[1]-lowJ)<= MAX_TREE_HEIGHT && world.getBlockId(node[0], node[1], node[2]) == id)
-			{//Try to find a "branch" by looking for neighbor block
+			{//Try to find a "branch" by looking for neighbor log block
 				current=findValidNeighbor(world, node[0], node[1], node[2], id, true);
 				if(current!=null){
 					branchs.add(current);
 					branchFound=true;
 					current=null;
 				}
-				node[1]++;
+				node[1]++;//Only accounts for straight up tree trunks
 			}
 			if(!branchFound)//We went to the top
 			{
@@ -321,10 +321,20 @@ public class TreeUtils {
 				doBranching(world,leaf,id,meta,isValidMeta,current,node);
 			}
 		}
-		else{//We are on a branch!
+		else{//We are on a branch, which might only be a weird floating log block
 			doBranching(world,leaf,id,meta,isValidMeta,new int[]{i,lowJ,k},null);
 		}
 	}
+	/**
+	 * Try to enlarge the branch at given coordinates by going from neighbor to neighbor
+	 * @param world
+	 * @param leaf The leaf block id linked to the log id
+	 * @param id The log block id
+	 * @param meta The log block metadata
+	 * @param valid If given meta is also good for leaf blocks
+	 * @param current Coordinates of a block we know is on a branch
+	 * @param node Coordinates of a block we know is on the trunk, or null
+	 */
 	private static void doBranching(World world,int leaf,int id,int meta,boolean valid,int[] current,int[] node){
 		byte branchLength=0;
 		int[] newBranch=findValidNeighbor(world, current[0], current[1], current[2], id, false);
