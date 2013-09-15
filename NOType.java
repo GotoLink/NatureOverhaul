@@ -35,16 +35,16 @@ public enum NOType {
 		this.rainDeath=rainDeath;
 		this.tempDeath=tempDeath;
 	}
-	protected float getRainGrowth(){
+	public float getRainGrowth(){
 		return this.rainGrowth;
 	}
-	protected float getTempGrowth(){
+	public float getTempGrowth(){
 		return this.tempGrowth;
 	}
-	protected float getRainDeath(){
+	public float getRainDeath(){
 		return this.rainDeath;
 	}
-	protected float getTempDeath(){
+	public float getTempDeath(){
 		return this.tempDeath;
 	}
 }
