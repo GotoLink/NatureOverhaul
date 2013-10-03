@@ -56,15 +56,14 @@ import cpw.mods.fml.common.network.NetworkMod;
 import cpw.mods.fml.common.registry.TickRegistry;
 import cpw.mods.fml.relauncher.Side;
 
-@Mod(modid = "NatureOverhaul", name = "Nature Overhaul", version = "0.5",dependencies="after:mod_MOAPI")
-@NetworkMod(clientSideRequired = false, serverSideRequired = false)
+@Mod(modid = "natureoverhaul", name = "Nature Overhaul", version = "0.6",dependencies="after:mod_MOAPI")
 /**
  * From Clinton Alexander idea.
  * @author Olivier
  *
  */
 public class NatureOverhaul implements ITickHandler{
-	@Instance ("NatureOverhaul")
+	@Instance ("natureoverhaul")
 	public static NatureOverhaul instance;
 	private static boolean autoSapling=true,autoFarming=true,lumberjack=true,moddedBonemeal=true,
 			killLeaves=true,biomeModifiedRate=true,useStarvingSystem=true,decayLeaves=true,
@@ -98,13 +97,13 @@ public class NatureOverhaul implements ITickHandler{
     		}
     		optionsCategory[names.length]="Misc Options";
     		};
-    private Configuration config;
+    private static Configuration config;
 	private static boolean API;
-	private BonemealEventHandler bonemealEvent;
-	private AnimalEventHandler animalEvent;
-	private PlayerEventHandler lumberEvent;
-	private AutoSaplingEventHandler autoEvent;
-	private AutoFarmingEventHandler farmingEvent;
+	private static BonemealEventHandler bonemealEvent;
+	private static AnimalEventHandler animalEvent;
+	private static PlayerEventHandler lumberEvent;
+	private static AutoSaplingEventHandler autoEvent;
+	private static AutoFarmingEventHandler farmingEvent;
 	private static Logger logger;
 	
 	@EventHandler
@@ -934,61 +933,57 @@ public class NatureOverhaul implements ITickHandler{
 						chunk=world.getChunkFromChunkCoords(chunkIntPair.chunkXPos,chunkIntPair.chunkZPos);
 					}
 					if (chunk!=null && chunk.isChunkLoaded && chunk.isTerrainPopulated)
-					{	//We could use reflection to get field_94579_S,
+					{	//We could use reflection to get the pendingTickListEntriesThisTick list,
 						//but it is empty at tickstart (too early) and tickend (too late)
 						/*try
 						{
-							Field f = tickData[0].getClass().getDeclaredField("field_94579_S");
+							Field f = WorldServer.class.getDeclaredFields()[3];
 							f.setAccessible(true);
-							ArrayList<NextTickListEntry> list =  new ArrayList();
-							while(list.isEmpty())
-							{
-								list =  (ArrayList<NextTickListEntry>) f.get(tickData[0]);
-							}
-							if (list!=null && !list.isEmpty())
-							{		
+							Set list =  (Set) f.get(tickData[0]);
+							if(list == null){
 								System.out.println("check 1");
-								Iterator itr=list.iterator();						
-								while(itr.hasNext())				
-								{			
-									NextTickListEntry nextTickEntry= (NextTickListEntry) itr.next();	
-									//itr.remove();
+								return;
+							}
+							if(list.isEmpty()){
+								System.out.println("check 2");
+								return;
+							}
+							Iterator itr=list.iterator();
+							while(itr.hasNext())				
+							{			
+								NextTickListEntry nextTickEntry= (NextTickListEntry) itr.next();
+				                if (nextTickEntry.scheduledTime == world.getTotalWorldTime() && world.getChunkProvider().chunkExists(nextTickEntry.xCoord, nextTickEntry.zCoord))
+				                {
+				                    int k = world.getBlockId(nextTickEntry.xCoord, nextTickEntry.yCoord, nextTickEntry.zCoord);
 
-					                if (world.getChunkProvider().chunkExists(nextTickEntry.xCoord, nextTickEntry.zCoord))
-					                {
-					                    int k = world.getBlockId(nextTickEntry.xCoord, nextTickEntry.yCoord, nextTickEntry.zCoord);
-
-					                    if (k > 0 && Block.isAssociatedBlockID(k, nextTickEntry.blockID) && isValid(nextTickEntry.blockID))						
-					                    {	
-										System.out.println("check 2");
-										onUpdateTick(world,nextTickEntry.xCoord,nextTickEntry.yCoord,nextTickEntry.zCoord,nextTickEntry.blockID);						
-					                    }						
-					                }	
-								}
+				                    if (k > 0 && Block.isAssociatedBlockID(k, nextTickEntry.blockID) && isRegistered(nextTickEntry.blockID))						
+				                    {	
+				                    	System.out.println("check 3");
+				                    	onUpdateTick(world,nextTickEntry.xCoord,nextTickEntry.yCoord,nextTickEntry.zCoord,nextTickEntry.blockID);						
+				                    }						
+				                }
 							}
 						}
-						catch(NoSuchFieldException | SecurityException| IllegalAccessException e)
+						catch(SecurityException| IllegalAccessException e)
 						{
-							System.err.println("NatureOverhaul encountered a problem while getting ticks");
+							System.out.println("NatureOverhaul encountered a problem while getting ticks");
 							e.printStackTrace();
 						}*/
 						int i2;//Vanilla like random ticks for blocks
-						for (ExtendedBlockStorage blockStorage:chunk.getBlockStorageArray())
-							if (blockStorage!=null && !blockStorage.isEmpty() && blockStorage.getNeedsRandomTick())
-								{
-								for (int j2 = 0; j2 < 3; ++j2)
-			                    	{
+						for (ExtendedBlockStorage blockStorage:chunk.getBlockStorageArray()){
+							if (blockStorage!=null && !blockStorage.isEmpty() && blockStorage.getNeedsRandomTick()){
+								for (int j2 = 0; j2 < 3; ++j2){
 			                        	this.updateLCG = this.updateLCG * 3 + 1013904223;
 			                        	i2 = this.updateLCG >> 2;
 			                        	int k2 = i2 & 15;
 			                        	int l2 = i2 >> 8 & 15;
 			                        	int i3 = i2 >> 16 & 15;
 			                        	int j3 = blockStorage.getExtBlockID(k2, i3, l2);
-			                        	if (isRegistered(j3))
-			                        	{
+			                        	if (isRegistered(j3)){
 			                        		onUpdateTick(world, k2 + k, i3 + blockStorage.getYLocation(), l2 + l, j3);
 			                        	}
-			                    	}				
+			                    	}
+							}
 						}
 					}
 				}//end
