@@ -984,8 +984,6 @@ public class NatureOverhaul implements ITickHandler{
 			                        	int l2 = i2 >> 8 & 15;
 			                        	int i3 = i2 >> 16 & 15;
 			                        	int j3 = blockStorage.getExtBlockID(k2, i3, l2);
-			                        	Block block = Block.blocksList[j3];
-		
 			                        	if (isRegistered(j3))
 			                        	{
 			                        		onUpdateTick(world, k2 + k, i3 + blockStorage.getYLocation(), l2 + l, j3);

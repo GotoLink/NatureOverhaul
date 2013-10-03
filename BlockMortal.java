@@ -28,6 +28,7 @@ public abstract class BlockMortal extends Block implements IBlockDeath {
 	* @param	k
 	* @return	True if plant has died
 	*/
+	@Override
 	public boolean hasDied(World world, int i, int j, int k) {
 		return (hasStarved(world, i, j, k));
 	}
@@ -42,6 +43,7 @@ public abstract class BlockMortal extends Block implements IBlockDeath {
 	* @param	k
 	* @return	True if plant has starved
 	*/
+	@Override
 	public boolean hasStarved(World world, int i, int j, int k) {
 		int radius 		= getPrivacyRadius(world, i, j, k);
 		int maxNeighbours 	= getMaxNeighbours(world, i, j, k);
@@ -103,6 +105,7 @@ public abstract class BlockMortal extends Block implements IBlockDeath {
 	* @param	j
 	* @param	k
 	*/
+	@Override
 	public void death(World world, int i, int j, int k) {
 		world.setBlockToAir(i, j, k);
 	}

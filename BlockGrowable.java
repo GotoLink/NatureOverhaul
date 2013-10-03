@@ -22,6 +22,7 @@ public abstract class BlockGrowable extends Block implements IGrowable {
 	* Grows a block:Metadata change or block added on top
 	* This behavior is an example
 	*/
+	@Override
 	public void grow(World world, int i, int j, int k) {
 		int metadata = world.getBlockMetadata(i, j, k);
 		int id = world.getBlockId(i, j, k);

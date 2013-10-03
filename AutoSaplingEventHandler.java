@@ -13,7 +13,7 @@ import net.minecraftforge.event.entity.item.ItemExpireEvent;
  */
 public class AutoSaplingEventHandler {
 	private boolean auto;
-	public AutoSaplingEventHandler(Boolean autoSapling) {
+	public AutoSaplingEventHandler(boolean autoSapling) {
 		this.auto=autoSapling;
 	}
 
@@ -35,7 +35,7 @@ public class AutoSaplingEventHandler {
     	}
     }
 
-	public void set(Boolean autoSapling) {
+	public void set(boolean autoSapling) {
 		this.auto=autoSapling;
 	}
 }

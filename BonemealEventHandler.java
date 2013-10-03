@@ -11,7 +11,7 @@ import net.minecraftforge.event.entity.player.BonemealEvent;
  */
 public class BonemealEventHandler {
 	private boolean bonemeal;
-	public BonemealEventHandler(Boolean moddedBonemeal) {
+	public BonemealEventHandler(boolean moddedBonemeal) {
 		this.bonemeal=moddedBonemeal;
 	}
 
@@ -49,7 +49,7 @@ public class BonemealEventHandler {
 		}
 	}
 
-	public void set(Boolean moddedBonemeal) {
+	public void set(boolean moddedBonemeal) {
 		this.bonemeal=moddedBonemeal;
 	}
 }
