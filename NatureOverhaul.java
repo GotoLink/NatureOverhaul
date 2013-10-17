@@ -1,36 +1,17 @@
 package assets.natureoverhaul;
 
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockCactus;
-import net.minecraft.block.BlockCocoa;
-import net.minecraft.block.BlockCrops;
-import net.minecraft.block.BlockFlower;
-import net.minecraft.block.BlockGrass;
-import net.minecraft.block.BlockLeaves;
-import net.minecraft.block.BlockLog;
-import net.minecraft.block.BlockMushroom;
-import net.minecraft.block.BlockMushroomCap;
-import net.minecraft.block.BlockMycelium;
-import net.minecraft.block.BlockNetherStalk;
-import net.minecraft.block.BlockReed;
-import net.minecraft.block.BlockSapling;
-import net.minecraft.block.BlockStem;
-import net.minecraft.block.material.Material;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
+import net.minecraft.block.*;
 import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
@@ -39,6 +20,12 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import net.minecraftforge.common.Configuration;
 import net.minecraftforge.common.MinecraftForge;
+import assets.natureoverhaul.handlers.AnimalEventHandler;
+import assets.natureoverhaul.handlers.AutoFarmingEventHandler;
+import assets.natureoverhaul.handlers.AutoSaplingEventHandler;
+import assets.natureoverhaul.handlers.BonemealEventHandler;
+import assets.natureoverhaul.handlers.PlayerEventHandler;
+import assets.natureoverhaul.handlers.SaplingGrowEventHandler;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.primitives.Ints;
@@ -52,52 +39,44 @@ import cpw.mods.fml.common.TickType;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
-import cpw.mods.fml.common.network.NetworkMod;
 import cpw.mods.fml.common.registry.TickRegistry;
 import cpw.mods.fml.relauncher.Side;
 
-@Mod(modid = "natureoverhaul", name = "Nature Overhaul", version = "0.6",dependencies="after:mod_MOAPI")
+@Mod(modid = "natureoverhaul", name = "Nature Overhaul", version = "0.7", dependencies = "after:mod_MOAPI")
 /**
  * From Clinton Alexander idea.
  * @author Olivier
  *
  */
-public class NatureOverhaul implements ITickHandler{
-	@Instance ("natureoverhaul")
-	public static NatureOverhaul instance;
-	private static boolean autoSapling=true,autoFarming=true,lumberjack=true,moddedBonemeal=true,
-			killLeaves=true,biomeModifiedRate=true,useStarvingSystem=true,decayLeaves=true,
-			mossCorruptStone=true,customDimension=true,wildAnimalsBreed=true;
-	private static int wildAnimalBreedRate=0,wildAnimalDeathRate=0,growthType=0;
-	private int updateLCG = (new Random()).nextInt();
-	private enum GrowthType{
-		NEITHER,
-		LEAFGROWTH,
-		LEAFDECAY,
-		BOTH
+public class NatureOverhaul implements ITickHandler {
+	private enum GrowthType {
+		NEITHER, LEAFGROWTH, LEAFDECAY, BOTH
 	}
-	private static Map<Integer,NOType> IDToTypeMapping = new HashMap();
-	private static Map<Integer,Boolean> IDToGrowingMapping = new HashMap(),IDToDyingMapping = new HashMap();
-	private static Map<Integer,Float> IDToOptTempMapping = new HashMap(),IDToOptRainMapping = new HashMap();
-	private static Map<Integer,Integer> IDToGrowthRateMapping= new HashMap(),IDToDeathRateMapping= new HashMap(),
-			LogToLeafMapping=new HashMap(),IDToFireCatchMapping=new HashMap(),
-			IDToFirePropagateMapping=new HashMap(),LeafToSaplingMapping=new HashMap();
-	private static Map<Integer, String[]> TreeIdToMeta=new HashMap();
-	private static String[] names=new String[]
-    	{
-    	"Sapling","Tree","Plants","Netherwort","Grass","Reed","Cactus","Mushroom","Mushroom Tree","Leaf","Crops","Moss","Cocoa"
-    	};
-    private static boolean[] dieSets=new boolean[names.length],growSets=new boolean[names.length+1];
-	private static int[] deathRates=new int[names.length],growthRates=new int[names.length+1];
-    private static String[] optionsCategory=new String[names.length+1];
-    		static{
-    		for(int i=0;i<names.length;i++)
-    		{
-    			optionsCategory[i]=names[i]+" Options";
-    		}
-    		optionsCategory[names.length]="Misc Options";
-    		};
-    private static Configuration config;
+
+	@Instance("natureoverhaul")
+	public static NatureOverhaul instance;
+	private static boolean autoSapling = true, autoFarming = true, lumberjack = true, moddedBonemeal = true, killLeaves = true, biomeModifiedRate = true;
+	public static boolean useStarvingSystem = true, decayLeaves = true, mossCorruptStone = true;
+	private static boolean customDimension = true, wildAnimalsBreed = true;
+	private static int wildAnimalBreedRate = 0, wildAnimalDeathRate = 0;
+	public static int growthType = 0;
+	private int updateLCG = (new Random()).nextInt();
+	private static Map<Integer, NOType> IDToTypeMapping = new HashMap();
+	private static Map<Integer, Boolean> IDToGrowingMapping = new HashMap(), IDToDyingMapping = new HashMap();
+	private static Map<Integer, Integer> LogToLeafMapping = new HashMap(), IDToFireCatchMapping = new HashMap(), IDToFirePropagateMapping = new HashMap(), LeafToSaplingMapping = new HashMap();
+	private static Map<Integer, String[]> TreeIdToMeta = new HashMap();
+	private static String[] names = new String[] { "Sapling", "Tree", "Plants", "Netherwort", "Grass", "Reed", "Cactus", "Mushroom", "Mushroom Tree", "Leaf", "Crops", "Moss", "Cocoa" };
+	private static boolean[] dieSets = new boolean[names.length], growSets = new boolean[names.length + 1];
+	private static float[] deathRates = new float[names.length], growthRates = new float[names.length + 1];
+	private static String[] optionsCategory = new String[names.length + 1];
+	static {
+		for (int i = 0; i < names.length; i++) {
+			optionsCategory[i] = names[i] + " Options";
+		}
+		optionsCategory[names.length] = "Misc Options";
+	};
+	private static Configuration config;
+	private static Class api;
 	private static boolean API;
 	private static BonemealEventHandler bonemealEvent;
 	private static AnimalEventHandler animalEvent;
@@ -105,550 +84,57 @@ public class NatureOverhaul implements ITickHandler{
 	private static AutoSaplingEventHandler autoEvent;
 	private static AutoFarmingEventHandler farmingEvent;
 	private static Logger logger;
-	
+
+	@Override
+	public String getLabel() {
+		return "Nature Overhaul Tick";
+	}
+
 	@EventHandler
-    public void preInit(FMLPreInitializationEvent event)
-    {
-		logger = event.getModLog();
-        config = new Configuration(event.getSuggestedConfigurationFile(),true);
-        config.load();
-        for(String name:optionsCategory)
-        {
-        	config.addCustomCategoryComment(name,"The lower the rate, the faster the changes happen.");
-        }
-    	config.addCustomCategoryComment(optionsCategory[2],"Plants are flower, deadbush, lilypad and tallgrass");
-    	
-    	autoSapling=config.get(optionsCategory[0],"AutoSapling",true).getBoolean(true);
-        for (int i=0;i<names.length;i++)
-        {     
-        	dieSets[i]=config.get(optionsCategory[i],names[i]+" Die",true).getBoolean(true);
-        	growSets[i]=config.get(optionsCategory[i],names[i]+" Grow",true).getBoolean(true);
-        	deathRates[i]=config.get(optionsCategory[i],names[i]+" Death Rate",1200).getInt(1200);
-        	growthRates[i]=config.get(optionsCategory[i],names[i]+" Growth Rate",1200).getInt(1200);
-        }
-        //Toggle between alternative time of growth for sapling
-        growthType=GrowthType.valueOf(config.get(optionsCategory[0],"Sapling drops on","Both","Possible values are Neither,LeafGrowth,LeafDecay,Both").getString().toUpperCase()).ordinal();
-        //Toggle for lumberjack system on trees
-        lumberjack=config.get(optionsCategory[1],"Enable lumberjack",true).getBoolean(true);
-        killLeaves=config.get(optionsCategory[1],"Lumberjack kill leaves",true).getBoolean(true);
-        //Apples don't have a dying system, because it is only an item
-        growSets[names.length]=config.get(optionsCategory[9],"Apple Grows",true).getBoolean(true);
-        growthRates[names.length]=config.get(optionsCategory[9],"Apple Growth Rate",3000).getInt(3000);            
-        //Force remove leaves after killing a tree, instead of letting Minecraft doing it
-        decayLeaves=config.get(optionsCategory[9],"Enable leaves decay on tree death",true).getBoolean(true);      
-        //Toggle so Stone can turn into Mossy Cobblestone
-        mossCorruptStone=config.get(optionsCategory[11],"Enable moss growing on stone",true).getBoolean(true);      
-        //Misc options
-        useStarvingSystem=config.get(optionsCategory[names.length],"Enable starving system",true).getBoolean(true);      
-        biomeModifiedRate=config.get(optionsCategory[names.length],"Enable biome specific rates",true).getBoolean(true);
-        moddedBonemeal=config.get(optionsCategory[names.length],"Enable modded Bonemeal",true).getBoolean(true);
-        customDimension=config.get(optionsCategory[names.length],"Enable custom dimensions",true).getBoolean(true);
-        wildAnimalsBreed=config.get(optionsCategory[names.length],"Enable wild animals Breed",true).getBoolean(true);
-        wildAnimalBreedRate=config.get(optionsCategory[names.length],"Wild animals breed rate",16000).getInt(16000);
-        wildAnimalDeathRate=config.get(optionsCategory[names.length],"Wild animals death rate",16000).getInt(16000);
-        autoFarming=config.get(optionsCategory[names.length], "Plant seeds on player drop", true).getBoolean(true);
-    }
+	public void load(FMLInitializationEvent event) {
+		TickRegistry.registerTickHandler(this, Side.SERVER);
+	}
+
 	@EventHandler
-    public void load(FMLInitializationEvent event)
-    {	
-    	TickRegistry.registerTickHandler(this, Side.SERVER);
-    }
-   
-	/**
-	* Called from the world tick {@link #tickStart(EnumSet, Object...)} with a {@link #isValid(int)} id.
-	* Checks with {@link #isGrowing(int)} or {@link #isMortal(int)} booleans, 
-	* and probabilities with {@link #getGrowthProb(World, int, int, int, int, NOType)} or 
-	* {@link #getDeathProb(World, int, int, int, int, NOType)}
-	* then call {@link #grow(World, int, int, int, int, NOType)} or {@link #death(World, int, int, int, int, NOType)}.
-	*/
-	private void onUpdateTick(World world, int i, int j, int k, int id)	
-	{	
-		NOType type=Utils.getType(id);
-		if( isGrowing(id) && world.rand.nextFloat() < getGrowthProb(world, i, j, k, id, type)) 
-		{
-			//System.out.println("Block "+id+" growing at "+i+","+j+","+k);
-			grow(world, i, j, k, id, type);
-			return;
-		}
-		if (isMortal(id) && (hasDied(world, i, j, k, id, type) || world.rand.nextFloat() < getDeathProb(world, i, j, k, id, type)))
-		{
-			//System.out.println("Block "+id+" dying at "+i+","+j+","+k);		
-			death(world, i, j, k, id, type);
-		}
-	}
-	/**
-	 * Called by {@link #onUpdateTick(World, int, int, int, int)}.
-	* Checks whether this block has died on this tick for any reason
-	* @param	world
-	* @param	i first coordinate
-	* @param	j second coordinate
-	* @param	k third coordinate
-	* @return	True if plant has died
-	*/
-	public static boolean hasDied(World world, int i, int j, int k, int id, NOType type) {
-		switch(type){
-		case CUSTOM:
-			if (Block.blocksList[id] instanceof IBlockDeath)
-				return ((IBlockDeath)Block.blocksList[id]).hasDied(world,i,j,k);
-			return false;
-		case CACTUS:case REED:case GRASS:case PLANT:case MUSHROOM:case COCOA:
-			case FERTILIZED:case MOSS:case NETHERSTALK:case SAPLING:
-				return useStarvingSystem && hasStarved(world, i, j, k, type);
-		case LOG:case MUSHROOMCAP:case LEAVES://Trees and leaves are only randomly dying
-			return false;	
-		default:
-			return false;	
-		}	
-	}
-	/**
-	* Checks whether this block has starved on this tick
-	* by being surrounded by too many of it's kind (ie {@link NOType}).
-	* Unused if {@link #useStarvingSystem} is set to false.
-	* @param	world
-	* @param	i first coordinate
-	* @param	j second coordinate
-	* @param	k third coordinate
-	* @return	True if plant has starved
-	*/
-	public static boolean hasStarved(World world, int i, int j, int k, NOType type) {
-		int radius = 1;
-		int maxNeighbours = 9;
-		int foundNeighbours = 0;
-		switch(type){
-		case CACTUS:case REED:
-			radius = 2;
-			break;
-		case MOSS:
-			maxNeighbours = 15;
-			break;
-		case NETHERSTALK:case COCOA:case GRASS:case MUSHROOM:case PLANT:
-			maxNeighbours = 5;
-			break;
-		case FERTILIZED:
-			maxNeighbours = 6;
-			break;
-		case SAPLING:
-			radius = 2;
-			maxNeighbours = 5;
-			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);		
-			if(biome.temperature > 1F) {
-				radius = 4;
-				maxNeighbours = 1;
-			}		
-			if(biome.rainfall < 0.5F) {
-				radius++;
-			}					
-			if(biome.temperature <= 0F) 
-				maxNeighbours = 1;			
-			maxNeighbours = maxNeighbours + (int) Math.ceil(biome.rainfall / 0.2) - 2;		
-			if(maxNeighbours < 0) 
-				maxNeighbours=0;		
-			break;
-		default://All cases have been set, this is for safety
-			return false;
-		}	
-		if((radius > 0) && (radius < 10)) {
-			for(int x = i - radius; x < i + radius; x++) {
-				for(int y = j - radius; y < j + radius; y++) {
-					for(int z = k - radius; z < k + radius; z++) {
-						if((i != x) || (j != y) || (k != z)) {
-							int blockID = world.getBlockId(x, y, z);
-							if(foundNeighbours <= maxNeighbours && isRegistered(blockID) && Utils.getType(blockID) == type) {
-								foundNeighbours++;
-							}
-						}
-					}
-				}
-			}
-		}	
-		return (foundNeighbours > maxNeighbours);
-	}
-	/**
-	 * The death general method.
-	* Called by {@link #onUpdateTick(World, int, int, int, int)}
-	* when conditions are fulfilled.
-	* @param	world
-	* @param	i first coordinate
-	* @param	j second coordinate
-	* @param	k third coordinate
-	**/
-	public static void death(World world, int i, int j, int k, int id, NOType type) {
-		switch(type){
-		case CUSTOM:
-			if (Block.blocksList[id] instanceof IBlockDeath)
-				((IBlockDeath)Block.blocksList[id]).death(world, i, j, k);
-			return;
-		case CACTUS:case REED://Disappear completely from top to bottom
-			int y = j;
-			// Get to the top so to avoid any being dropped since this is death
-			while(world.getBlockId(i, y + 1, k) == id) {
-				y = y + 1;
-			}
-			// Scan back down and delete
-			while(world.getBlockId(i, y, k) == id) {
-				world.setBlockToAir(i, y, k);
-				y--;
-			}
-			return;		
-		case LOG:case MUSHROOMCAP:
-			if(TreeUtils.isTree(world, i, j, k, type, false))
-			{
-				TreeUtils.killTree(world, i, Utils.getLowestTypeJ(world, i, j, k , type), k, id, type==NOType.LOG?decayLeaves:false);
-			}
-			return;
-		case MOSS://Return to cobblestone
-			world.setBlock(i,j,k,Block.cobblestone.blockID);
-			return;
-		case LEAVES://Has a chance to emit a sapling if sets accordingly
-			int sap = LeafToSaplingMapping.get(id);
-			if(growthType > 1 && world.rand.nextFloat() < getGrowthProb(world, i, j, k, sap, NOType.SAPLING))
-			{
-				List<String> list = Arrays.asList(TreeIdToMeta.get(sap));
-				if(list.contains(Integer.toString((world.getBlockMetadata(i, j, k) % 4))));
-					Utils.emitItem(world, i, j, k, new ItemStack(sap, 1, world.getBlockMetadata(i, j, k) % 4));
-			}
-			world.setBlockToAir(i, j, k);//Then disappear
-			return;
-		case NETHERSTALK:case PLANT:case MUSHROOM:case COCOA:case SAPLING:
-			world.setBlockToAir(i, j, k);//Disappear
-			return;
-		case GRASS: //Return to dirt
-			world.setBlock(i,j,k,Block.dirt.blockID);
-			return;
-		case FERTILIZED: //Ungrow, or turn to dirt if too low
-			int meta = world.getBlockMetadata(i, j, k);
-			if (meta>=1)
-				world.setBlockMetadataWithNotify(i, j, k, meta-1, 2);
-			else {
-				world.setBlockToAir(i,j,k);
-				world.setBlock(i,j-1,k,Block.dirt.blockID);
-			}	
-			return;
-		default:
-			return;		
-		}
-	}
-	/**
-	 * The general growing method.
-	* Called by {@link #onUpdateTick(World, int, int, int, int)}.
-	* when conditions are fulfilled.
-	* @param	world
-	* @param	i first coordinate
-	* @param	j second coordinate
-	* @param	k third coordinate
-	**/
-	public static void grow(World world, int i, int j, int k, int id, NOType type) {
-		int scanSize;
-		int[] coord;
-		switch(type){
-		case CUSTOM:
-			if (Block.blocksList[id] instanceof IGrowable)
-				((IGrowable)Block.blocksList[id]).grow(world, i, j, k);
-			return;
-		case CACTUS:case REED://Grow on top if too low, or on a neighbor spot		
-			if(TreeUtils.getTreeHeight(world, i, j, k, id)>2)
-			{//Find a neighbor spot for new one
-				scanSize = 2;
-				for(int attempt=0;attempt<18;attempt++){
-					coord=Utils.findRandomNeighbour(i, j, k, scanSize);
-					if(Block.blocksList[id].canPlaceBlockAt(world, coord[0], coord[1], coord[2])){
-						world.setBlock(coord[0], coord[1], coord[2], id);
-						return;
-					}		
-				}
-			}
-			else{
-				int height = j;
-				// Get to the top
-				while(world.getBlockId(i, height + 1, k) == id) {
-					height = height + 1;
-				}
-				if (world.getBlockId(i, height + 1, k) == 0)
-					world.setBlock(i, height + 1, k, id);//Grow on top
-			}				
-			return;
-		case COCOA://Emit cocoa dye
-			if(world.getBlockId(i, j - 1, k) == 0 && cocoaCanGrow(world,i,k)) {
-				Utils.emitItem(world, i, j - 1, k, new ItemStack(Item.dyePowder, 1, 3));			
-			}
-			return;
-		case LEAVES://Emit apples and saplings (with odd growthType)
-			if (world.getBlockId(i, j - 1, k) == 0 && appleCanGrow(world, i, k) 
-			&& Math.random()<(double)getGrowthProb( world, i, j, k, id, NOType.APPLE))
-				Utils.emitItem(world, i, j - 1, k, new ItemStack(Item.appleRed));
-			if(growthType % 2 ==1 && world.getBlockId(i, j + 1, k) == 0) 
-			{
-				int sap = LeafToSaplingMapping.get(id);
-				List<String> list = Arrays.asList(TreeIdToMeta.get(sap));
-			if(list.contains(Integer.toString((world.getBlockMetadata(i, j, k) % 4))));
-				Utils.emitItem(world, i, j + 1, k, new ItemStack(sap, 1, world.getBlockMetadata(i, j, k) % 4));
-			}
-			return;
-		case SAPLING://Use sapling vanilla method for growing a tree
-			((BlockSapling) Block.blocksList[id]).growTree(world, i, j, k, world.rand);
-			return;
-		case LOG://case MUSHROOMCAP:
-			if (TreeUtils.isTree(world, i, j, k, type, false))
-			{		
-				TreeUtils.growTree(world, i, j, k, id, type);
-			}		
-			return;
-		case GRASS://Replace surrounding dirt with grass
-			scanSize = 1;
-			for(int x = i - scanSize; x <= i + scanSize; x++) {
-				for(int y = j - scanSize; y <= j + scanSize; y++) {
-					for(int z = k - scanSize; z <= k + scanSize; z++) {
-						if(world.getBlockId(x, y, z) == Block.dirt.blockID){
-							world.setBlock(x, y, z, id);
-						}
-					}
-				}
-			}
-			return;
-		case PLANT:case NETHERSTALK:
-			scanSize = 2;
-			for(int attempt=0;attempt<18;attempt++){
-				coord=Utils.findRandomNeighbour(i, j, k, scanSize);
-				if( Block.blocksList[id].canPlaceBlockAt(world, coord[0], coord[1], coord[2]) && world.getBlockMaterial(coord[0], coord[1], coord[2])!=Material.water){
-					if (id!=Block.tallGrass.blockID)
-					{
-						world.setBlock(coord[0], coord[1], coord[2], id);							
-					}
-					else//Metadata sensitive for tall grass
-					{
-						world.setBlock(coord[0], coord[1], coord[2], id, world.getBlockMetadata(i, j, k), 3);
-					}
-					return;
-				}
-			}
-			return;
-		case MOSS://Moss grows on both stone (or only cobblestone), changing only one block
-			scanSize = 1;
-			int iD;
-			for(int attempt=0;attempt<15;attempt++){
-				coord=Utils.findRandomNeighbour(i, j, k, scanSize);
-				iD= world.getBlockId(coord[0], coord[1], coord[2]);
-				if((mossCorruptStone && iD == Block.stone.blockID) || iD == Block.cobblestone.blockID) {
-					world.setBlock(coord[0], coord[1], coord[2], id);
-					return;
-				}
-			}
-			return;
-		case MUSHROOM://Small chance of having a mushroom tree, grown using vanilla method
-			if (Math.random()<(double)getGrowthProb(world, i, j, k, id+60 ,NOType.MUSHROOMCAP))
-				((BlockMushroom) Block.blocksList[id]).fertilizeMushroom(world, i, j, k, world.rand);
-			else//Grow a similar mushroom nearby
-			{
-				scanSize = 3;
-				for(int attempt=0;attempt<15;attempt++){
-					coord=Utils.findRandomNeighbour(i, j, k, scanSize);
-					if(((BlockMushroom) Block.blocksList[id]).canPlaceBlockAt(world, coord[0], coord[1], coord[2])) {
-						world.setBlock(coord[0], coord[1], coord[2], id);
-						return;
-					}
-				}
-			}
-			return;
-		case FERTILIZED://Blocks that uses fertilize function for grow
-			if (Block.blocksList[id] instanceof BlockStem)
-				((BlockStem)Block.blocksList[id]).fertilizeStem(world, i, j, k);
-			else if (Block.blocksList[id] instanceof BlockCrops)
-				((BlockCrops)Block.blocksList[id]).fertilize(world, i, j, k);
-			return;
-		default:
-			return;
-		}
-	}
-	
-	/**
-	* Get the growth probability.
-	* Called by {@link #onUpdateTick(World, int, int, int, int)}.
-	* @param	world
-	* @param	i first coordinate
-	* @param	j second coordinate
-	* @param	k third coordinate
-	* @param 	type the NOType
-	* @return	Growth probability as a float
-	*/
-	private static float getGrowthProb(World world, int i, int j, int k, int id, NOType type) {	
-		float freq = type!=NOType.APPLE?getGrowthRate(id):growSets[names.length]?growthRates[names.length]*1.5F:-1F;
-		if(biomeModifiedRate && freq>0 && type!=NOType.NETHERSTALK) {
-			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
-			if(type!=NOType.CACTUS && ((biome.rainfall == 0) || (biome.temperature > 1.5F))) {
-				return 0.01F;
-			} else if(type!=NOType.CUSTOM){
-			freq *= Utils.getOptValueMult(biome.rainfall, type!=NOType.APPLE?getOptRain(id):0.8F, type.getRainGrowth());
-			freq *= Utils.getOptValueMult(biome.temperature, type!=NOType.APPLE?getOptTemp(id):0.7F, type.getTempGrowth());
-			}
-		}
-		if(freq>0)
-			return 1F / freq;
-		else
-			return -1F;
-	}
-	/**
-	* Get the death probability.
-	* Called by {@link #onUpdateTick(World, int, int, int, int)}.
-	* @param	world
-	* @param	i first coordinate
-	* @param	j second coordinate
-	* @param	k third coordinate
-	* @param 	type the NOType
-	* @return	Death probability as a float
-	*/
-	private static float getDeathProb(World world, int i, int j, int k, int id, NOType type) {			
-		float freq = getDeathRate(id);
-		if(biomeModifiedRate && freq>0 && type!=NOType.NETHERSTALK) {
-			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
-			if(type!=NOType.CACTUS && ((biome.rainfall == 0) || (biome.temperature > 1.5F))) {
-				return 1F;
-			} else if(type!=NOType.CUSTOM){
-			freq *= Utils.getOptValueMult(biome.rainfall, getOptRain(id), type.getRainDeath());
-			freq *= Utils.getOptValueMult(biome.temperature, getOptTemp(id), type.getTempDeath());		
-			}
-		}
-		if(freq>0)
-			return 1F / freq;
-		else
-			return -1F;
-	}
-	/**
-	* Checks if an apple can grow in this biome.
-	* Used in {@link #grow(World, int, int, int, int, NOType)}
-	* when type is leaf.
-	* 
-	* @return	True if it can grow in these coordinates
-	*/
-	private static boolean appleCanGrow(World world, int i, int k) {
-		BiomeGenBase biome = world.getBiomeGenForCoords(i, k);	
-		// Apples can grow in the named biomes
-		return ((biome.temperature >= 0.7F) && (biome.temperature <= 1.0F) 
-				&& (biome.rainfall > 0.4F));
-	}
-	/**
-	* Checks if an cocoa can grow in this biome.
-	* Used in {@link #grow(World, int, int, int, int, NOType)}
-	* when type is cocoa.
-	* @return	true if can grow in these coordinates
-	*/
-	private static boolean cocoaCanGrow(World world, int i, int k) {
-		BiomeGenBase biome = world.getBiomeGenForCoords(i,k);	
-		// Cocoa can grow in the named biomes
-		return ((biome.temperature >= 0.7F) && (biome.temperature <= 1.5F) 
-				&& (biome.rainfall >= 0.8F));
-	}
-	////Helper methods to get parameters out of the mappings.////
-	private static float getOptTemp(int id) {
-		return IDToOptTempMapping.get(Integer.valueOf(id));
-	}
-	private static float getOptRain(int id) {
-		return IDToOptRainMapping.get(Integer.valueOf(id));
-	}
-	private static int getGrowthRate(int id) {
-		return IDToGrowthRateMapping.get(Integer.valueOf(id));
-	}
-	private static int getDeathRate(int id) {
-		return IDToDeathRateMapping.get(Integer.valueOf(id));
-	}
-	public static boolean isGrowing(int id){
-		return IDToGrowingMapping.get(Integer.valueOf(id));	
-	}
-	public static boolean isMortal(int id){
-		return IDToDyingMapping.get(Integer.valueOf(id));
-	}
-	public static boolean isValid(int id){
-		return id>0 && id<4096 && Block.blocksList[id]!=null;
-	}
-	public static boolean isRegistered(int id){
-		return isValid(id) && IDToTypeMapping.containsKey(Integer.valueOf(id));
-	}
-	public static boolean isLog(int id){
-		return LogToLeafMapping.containsKey(id) || (isRegistered(id) && IDToTypeMapping.get(id)==NOType.MUSHROOMCAP);
-	}
-	public static Map<Integer, NOType> getIDToTypeMapping(){
-		return ImmutableMap.copyOf(IDToTypeMapping);
-	}
-	public static Map<Integer, Integer> getLogToLeafMapping(){
-		return ImmutableMap.copyOf(LogToLeafMapping);
-	}
-	public static Map<Integer, String[]> getTreeIDMeta(){
-		return ImmutableMap.copyOf(TreeIdToMeta);
-	}
-	////-----------------------------------------------------////
-	/**
-	 * Registers all mappings simultaneously.
-	 * Overloaded method with fire parameters.
-	 * @param fireCatch Related to 3rd parameter in {@link Block.setBurnProperties(int,int,int)}.
-	 * @param firePropagate Related to 2nd parameter in {@link Block.setBurnProperties(int,int,int)}.
-	 */
-    private static void addMapping(int id, boolean isGrowing,int growthRate, boolean isMortal,int deathRate, float optTemp, float optRain, NOType type, int fireCatch,int firePropagate)
-    {
-    	addMapping(id, isGrowing, growthRate, isMortal, deathRate, optTemp, optRain, type);
-        IDToFireCatchMapping.put(Integer.valueOf(id),fireCatch);
-        IDToFirePropagateMapping.put(Integer.valueOf(id),firePropagate);
-    }
-    /**
-	 * Registers all mappings simultaneously.
-	 * @param id The id the block is registered with.
-	 * @param isGrowing Whether the block can call {@link #grow(World, int, int, int, int, NOType)} on tick.
-	 * @param growthRate How often the {@link #grow(World, int, int, int, int, NOType)} method will be called.
-	 * @param isMortal Whether the block can call {@link #death(World, int, int, int, int, NOType)} method on tick.
-	 * @param deathRate How often the {@link #death(World, int, int, int, int, NOType)} method will be called.
-	 * @param optTemp The optimal temperature parameter for the growth.
-	 * @param optRain The optimal humidity parameter for the growth.
-	 * @param type {@link NOType} Decides which growth and/or death to use, and tolerance to temperature and humidity.
-	 */
-    private static void addMapping(int id,boolean isGrowing,int growthRate,boolean isMortal,int deathRate, float optTemp, float optRain, NOType type)
-    {
-    	IDToGrowingMapping.put(Integer.valueOf(id), isGrowing);
-    	IDToGrowthRateMapping.put(Integer.valueOf(id),growthRate);
-        IDToDyingMapping.put(Integer.valueOf(id), isMortal);
-        IDToDeathRateMapping.put(Integer.valueOf(id),deathRate);
-        IDToOptTempMapping.put(Integer.valueOf(id), optTemp);
-        IDToOptRainMapping.put(Integer.valueOf(id), optRain);
-        IDToTypeMapping.put(Integer.valueOf(id), type);
-    }
-    @EventHandler//Register blocks with config values and NOType, and log/leaf couples 
-    public void modsLoaded(FMLPostInitializationEvent event){
-    	if(Loader.isModLoaded("mod_MOAPI"))
-    	{//We can use reflection to load options in MOAPI
+	//Register blocks with config values and NOType, and log/leaf couples
+	public void modsLoaded(FMLPostInitializationEvent event) {
+		if (Loader.isModLoaded("mod_MOAPI")) {//We can use reflection to load options in MOAPI
 			try {
-				Class api = Class.forName("moapi.ModOptionsAPI");
-				Method addMod = api.getMethod("addMod",String.class);
+				api = Class.forName("moapi.ModOptionsAPI");
+				Method addMod = api.getMethod("addMod", String.class);
 				//"addMod" is static, we don't need an instance
-				Object option =addMod.invoke(null,"Nature Overhaul");
-				Class optionClass= addMod.getReturnType();
+				Object option = addMod.invoke(null, "Nature Overhaul");
+				Class optionClass = addMod.getReturnType();
 				//Set options as able to be used on a server,get the instance back
-				option=optionClass.getMethod("setServerMode").invoke(option);
+				option = optionClass.getMethod("setServerMode").invoke(option);
 				//"addBooleanOption" and "addSliderOption" aren't static, we need options class and an instance
-				Method addBoolean = optionClass.getMethod("addBooleanOption", new Class[]{String.class, boolean.class});
-				Method addSlider = optionClass.getMethod("addSliderOption",new Class[]{String.class, int.class,int.class});
-				Method addMap = optionClass.getMethod("addMappedOption", new Class[]{String.class,String[].class,int[].class});
+				Method addBoolean = optionClass.getMethod("addBooleanOption", new Class[] { String.class, boolean.class });
+				Method addSlider = optionClass.getMethod("addSliderOption", new Class[] { String.class, int.class, int.class });
+				Method addMap = optionClass.getMethod("addMappedOption", new Class[] { String.class, String[].class, int[].class });
 				Method setSliderValue = Class.forName("moapi.ModOptionSlider").getMethod("setValue", int.class);
 				//To create a submenu
-				Method addSubOption= optionClass.getMethod("addSubOption", String.class);
+				Method addSubOption = optionClass.getMethod("addSubOption", String.class);
 				//Create "General" submenu and options
-				Object subOption= addSubOption.invoke(option, "General");
+				Object subOption = addSubOption.invoke(option, "General");
 				Object slidOption;
-				for(int i=0; i<names.length;i++)
-				{
-					addBoolean.invoke(subOption, names[i]+" grow", true);
-					addBoolean.invoke(subOption, names[i]+" die", true);
-					slidOption = addSlider.invoke(subOption, names[i]+" growth rate",0,10000);
-					setSliderValue.invoke(slidOption,1200);
-					slidOption = addSlider.invoke(subOption, names[i]+" death rate",0,10000);
-					setSliderValue.invoke(slidOption,1200);		
+				for (int i = 0; i < names.length; i++) {
+					addBoolean.invoke(subOption, names[i] + " grow", true);
+					addBoolean.invoke(subOption, names[i] + " die", true);
+					slidOption = addSlider.invoke(subOption, names[i] + " growth rate", 0, 10000);
+					setSliderValue.invoke(slidOption, 1200);
+					slidOption = addSlider.invoke(subOption, names[i] + " death rate", 0, 10000);
+					setSliderValue.invoke(slidOption, 1200);
 				}
 				addBoolean.invoke(subOption, "Apple grows", true);
-				slidOption = addSlider.invoke(subOption, "Apple growth rate",0,10000);
-				setSliderValue.invoke(slidOption,3000);
+				slidOption = addSlider.invoke(subOption, "Apple growth rate", 0, 10000);
+				setSliderValue.invoke(slidOption, 3000);
 				//Create "LumberJack" submenu and options
-				Object lumberJackOption=addSubOption.invoke(option, "LumberJack");
+				Object lumberJackOption = addSubOption.invoke(option, "LumberJack");
 				addBoolean.invoke(lumberJackOption, "Enable", true);
 				addBoolean.invoke(lumberJackOption, "Kill leaves", true);
 				//Create "Misc" submenu and options
-				Object miscOption=addSubOption.invoke(option, "Misc");
-				addMap.invoke(miscOption, "Sapling drops on",new String[]{"Both","LeafDecay","LeafGrowth","Neither"},new int[]{3,2,1,0});
+				Object miscOption = addSubOption.invoke(option, "Misc");
+				addMap.invoke(miscOption, "Sapling drops on", new String[] { "Both", "LeafDecay", "LeafGrowth", "Neither" }, new int[] { 3, 2, 1, 0 });
 				addBoolean.invoke(miscOption, "AutoSapling", true);
 				addBoolean.invoke(miscOption, "Plant seeds on player drop", true);
 				addBoolean.invoke(miscOption, "Leaves decay on tree death", true);
@@ -658,380 +144,562 @@ public class NatureOverhaul implements ITickHandler{
 				addBoolean.invoke(miscOption, "Modded Bonemeal", true);
 				addBoolean.invoke(miscOption, "Custom dimensions", true);
 				//Create "Animals" submenu and options
-				Object animalsOption=addSubOption.invoke(option, "Animals");
+				Object animalsOption = addSubOption.invoke(option, "Animals");
 				addBoolean.invoke(animalsOption, "Wild breed", true);
-				slidOption = addSlider.invoke(animalsOption, "Breeding rate",1,10000);
-				setSliderValue.invoke(slidOption,10000);
-				slidOption = addSlider.invoke(animalsOption, "Death rate",1,10000);
-				setSliderValue.invoke(slidOption,10000);
+				slidOption = addSlider.invoke(animalsOption, "Breeding rate", 1, 10000);
+				setSliderValue.invoke(slidOption, 10000);
+				slidOption = addSlider.invoke(animalsOption, "Death rate", 1, 10000);
+				setSliderValue.invoke(slidOption, 10000);
 				//Create "Fire" submenu and options
-				Object fireOption=addSubOption.invoke(option, "Fire");
-				addSlider.invoke(fireOption, "WIP-This has no effect",0,100);
+				Object fireOption = addSubOption.invoke(option, "Fire");
+				addSlider.invoke(fireOption, "WIP-This has no effect", 0, 100);
 				//Loads and saves values
-				option=optionClass.getMethod("loadValues").invoke(option);
-				option=optionClass.getMethod("saveValues").invoke(option);
+				option = optionClass.getMethod("loadValues").invoke(option);
+				option = optionClass.getMethod("saveValues").invoke(option);
 				//We have saved the values, we can start to get them back
-				getMOAPIValues(optionClass,subOption,lumberJackOption,miscOption,animalsOption);
-		        //We successfully get all options !
-				API=true;
+				getMOAPIValues(optionClass, subOption, lumberJackOption, miscOption, animalsOption);
+				//We successfully get all options !
+				API = true;
 				logger.finest("NatureOverhaul found MOAPI and loaded all options correctly.");
-			}catch(SecurityException s){
-    			API=false;
-			}catch (ClassNotFoundException c){
-				API=false;
+			} catch (SecurityException s) {
+				API = false;
+			} catch (ClassNotFoundException c) {
+				API = false;
 				logger.info("NatureOverhaul couldn't use MOAPI, continuing with values in config file.");
-			}catch(ReflectiveOperationException n) {
-    			API=false;
+			} catch (ReflectiveOperationException n) {
+				API = false;
 				logger.log(Level.WARNING, "NatureOverhaul failed to use MOAPI, please report to NO author:", n);
-    		}//Even if it fails, we can still rely on settings stored in Forge recommended config file.
-    	}
-    	//Now we can register every available blocks at this point.
-    	Set<Integer> logID=new HashSet(),leafID=new HashSet(),saplingID=new HashSet();
-    	//If a block is registered after, it won't be accounted for.
-    	for (int i=1;i<Block.blocksList.length;i++)
-    	{
-    		if (Block.blocksList[i]!=null)
-    		{
-    			if (Block.blocksList[i] instanceof IGrowable && Block.blocksList[i] instanceof IBlockDeath)//Priority to Blocks using the API
-    			{
-    				addMapping(i,true,((IGrowable)Block.blocksList[i]).getGrowthRate(),true, ((IBlockDeath)Block.blocksList[i]).getDeathRate(),-1.0F,-1.0F,NOType.CUSTOM);
-    			}
-    			else if (Block.blocksList[i] instanceof IGrowable)
-    			{
-    				addMapping(i,true,((IGrowable)Block.blocksList[i]).getGrowthRate(),false,-1,-1.0F,-1.0F,NOType.CUSTOM);
-    			}
-    			else if (Block.blocksList[i] instanceof IBlockDeath)
-    			{
-    				addMapping(i, false, -1, true, ((IBlockDeath)Block.blocksList[i]).getDeathRate(), -1.0F, -1.0F,NOType.CUSTOM);
-    			} 
-    			else if(Block.blocksList[i] instanceof BlockSapling)
-    			{
-					saplingID.add(i);
-    			}
-    			else if(Block.blocksList[i] instanceof BlockLog)
-    			{
-					logID.add(i);		
-    			}	
-    			else if(Block.blocksList[i] instanceof BlockNetherStalk)//In the Nether, we don't use biome dependent parameter
-    			{
-    				addMapping(i,growSets[3],growthRates[3],dieSets[3],deathRates[3],1.0F,1.0F,NOType.NETHERSTALK);
-    			}			
-    			else if (Block.blocksList[i] instanceof BlockGrass||Block.blocksList[i] instanceof BlockMycelium)
-    			{
-    				addMapping(i, growSets[4], growthRates[4], dieSets[4], deathRates[4], 0.7F, 0.5F,NOType.GRASS);		
-    			}
-    			else if(Block.blocksList[i] instanceof BlockReed)
-    			{
-    				addMapping(i,growSets[5],growthRates[5],dieSets[5],deathRates[5],0.8F,0.8F,NOType.REED);
-    			}
-    			else if(Block.blocksList[i] instanceof BlockCactus)
-    			{
-    				addMapping(i, growSets[6],growthRates[6], dieSets[6],deathRates[6], 1.5F, 0.2F,NOType.CACTUS);
-    			}	
-    			else if (Block.blocksList[i] instanceof BlockMushroom)
-    			{
-    				addMapping(i,growSets[7],growthRates[7],dieSets[7],deathRates[7],0.9F,1.0F,NOType.MUSHROOM);
-    			}
-    			else if(Block.blocksList[i] instanceof BlockMushroomCap)
-    			{
-    				addMapping(i,growSets[8],growthRates[8],dieSets[8],deathRates[8],0.9F,1.0F,NOType.MUSHROOMCAP);
-    			}
-    			else if(Block.blocksList[i] instanceof BlockLeaves)
-    			{
-					leafID.add(i);
-    			}
-    			else if(Block.blocksList[i] instanceof BlockCrops || Block.blocksList[i] instanceof BlockStem)
-    			{
-    				addMapping(i,growSets[10],growthRates[10],dieSets[10],deathRates[10],1.0F,1.0F,NOType.FERTILIZED);
-    			}
-    			else if(Block.blocksList[i] instanceof BlockFlower)//Flower ,deadbush, lilypad, tallgrass
-    			{
-    				addMapping(i,growSets[2],growthRates[2],dieSets[2],deathRates[2],0.6F,0.7F,NOType.PLANT,100,60);
-    			}			
-    			else if(i==Block.cobblestoneMossy.blockID)
-    			{
-    				addMapping(i,growSets[11],growthRates[11],dieSets[11],deathRates[11],0.7F,1.0F,NOType.MOSS);
-    			}
-    			else if(Block.blocksList[i] instanceof BlockCocoa)
-    			{
-    				addMapping(i,growSets[12],growthRates[12],dieSets[12],deathRates[12],1.0F,1.0F,NOType.COCOA);
-    			}
-    			if(Block.blocksList[i].isCollidable() && Block.blocksList[i].renderAsNormalBlock())
-    			{
-	    			IDToFirePropagateMapping.put(i,config.get("Fire",Block.blocksList[i].getUnlocalizedName().substring(5)+ " chance to encourage fire",IDToFirePropagateMapping.containsKey(i)?IDToFirePropagateMapping.get(i):0).getInt());
-	    			IDToFireCatchMapping.put(i,config.get("Fire",Block.blocksList[i].getUnlocalizedName().substring(5)+ " chance to catch fire",IDToFireCatchMapping.containsKey(i)?IDToFireCatchMapping.get(i):0).getInt());	
-	        		Block.setBurnProperties(i, IDToFirePropagateMapping.get(i), IDToFireCatchMapping.get(i));
-    			}
-    		}	
-    	}
-    	int[] idLog=Ints.toArray(logID),idLeaf=Ints.toArray(leafID),idSapling=Ints.toArray(saplingID);
-        String option="";
-    	for(int index=0;index<Math.min(Math.min(idLog.length, idLeaf.length),idSapling.length);index++)
-        {
-        	option=option.concat(idSapling[index]+"(0,1,2,3)-"+idLog[index]+"(0,1,2,3)-"+idLeaf[index]+"(0,1,2,3);");
-        }
-    	String[] ids=config.get(optionsCategory[names.length],"Sapling-Log-Leaves ids",option).getString().split(";");
-        String[] temp;
-        for(String param:ids)
-        {
-        	if(param!=null && param!="")
-        	{
-        		temp=param.split("-");
-        		if(temp.length==3)
-        		{
-	        		int idSaplin = Integer.parseInt(temp[0].split("\\(")[0]);
-	        		int idLo = Integer.parseInt(temp[1].split("\\(")[0]);
-	        		int idLef = Integer.parseInt(temp[2].split("\\(")[0]);
-	        		//Make sure user input is valid
-	        		if(isValid(idSaplin) && isValid(idLo) && isValid(idLef))
-	        		{
-		        		addMapping(idSaplin, growSets[0], 0, dieSets[0],deathRates[0], 0.8F, 0.8F,NOType.SAPLING);
-	        			TreeIdToMeta.put(idSaplin,temp[0].split("\\(")[1].replace("\\)", "").trim().split("\\,"));
-		        		addMapping(idLo,growSets[1],growthRates[1],dieSets[1],deathRates[1], 1.0F, 1.0F,NOType.LOG,5,5);
-	        			TreeIdToMeta.put(idLo,temp[1].split("\\(")[1].replace("\\)", "").trim().split("\\,"));
-		        		addMapping(idLef, growSets[9], growthRates[9], dieSets[9],deathRates[9], 1.0F, 1.0F,NOType.LEAVES,60,30 );
-	        			TreeIdToMeta.put(idLef,temp[2].split("\\(")[1].replace("\\)", "").trim().split("\\,"));
-	        			LogToLeafMapping.put(idLo, idLef);
-	        			LeafToSaplingMapping.put(idLef,idSaplin);
-	        		}
-        		}
-        	}
-        }
-    	//Saving Forge recommended config file.
-    	if (config.hasChanged())
-        {        
-      	  config.save();     	
-        }
-    	//Registering event listeners.
-    	bonemealEvent=new BonemealEventHandler(moddedBonemeal);
-		MinecraftForge.EVENT_BUS.register(bonemealEvent);
-		animalEvent=new AnimalEventHandler(wildAnimalsBreed,wildAnimalBreedRate,wildAnimalDeathRate);
-		MinecraftForge.EVENT_BUS.register(animalEvent);
-		lumberEvent=new PlayerEventHandler(lumberjack,killLeaves);
-		MinecraftForge.EVENT_BUS.register(lumberEvent);
-		farmingEvent=new AutoFarmingEventHandler(autoFarming);
-		MinecraftForge.EVENT_BUS.register(farmingEvent);
-		autoEvent=new AutoSaplingEventHandler(autoSapling);
-    	MinecraftForge.EVENT_BUS.register(autoEvent);
-    	
-    	if(growthType%2==0)
-    		MinecraftForge.EVENT_BUS.register(new SaplingGrowEventHandler());
-    }
-    @Override
-    /**
-     * Core method. We make vanilla-like random ticks in loaded chunks.
-     */
-	public void tickEnd(EnumSet<TickType> type, Object... tickData)
-	{	
-    	if(API)
-    	{
-    		try{
-	    		Class api = Class.forName("moapi.ModOptionsAPI");
-				Method getMod = api.getMethod("getModOptions",String.class);
-				//"getMod" is static, we don't need an instance
-				Object option =getMod.invoke(null,"Nature Overhaul");
-				Class optionClass= getMod.getReturnType();
-				//To get a submenu
-				Method getSubOption= optionClass.getMethod("getOption", String.class);
-				Object subOption= getSubOption.invoke(option, "General");
-				//Get "LumberJack" submenu
-				Object lumberJackOption=getSubOption.invoke(option, "LumberJack");
-				//Get "Misc" submenu
-				Object miscOption=getSubOption.invoke(option, "Misc");
-				//Get "Animals" submenu
-				Object animalsOption=getSubOption.invoke(option, "Animals");
-				//We can start to get the values back
-				getMOAPIValues(optionClass,subOption,lumberJackOption,miscOption,animalsOption);
-				
-    		}catch(SecurityException s){
-    			API=false;
-    		}catch(ReflectiveOperationException i){
-    			API=false;
-    		}
-    		bonemealEvent.set(moddedBonemeal);
-    		animalEvent.set(wildAnimalsBreed,wildAnimalBreedRate,wildAnimalDeathRate);
-    		lumberEvent.set(lumberjack,killLeaves);
-    		autoEvent.set(autoSapling);
-    		farmingEvent.set(autoFarming);
-    		NOType typ;
-            int index=-1;
-    		for(int i=1;i<4096;i++)
-    			if(isRegistered(i))
-    			{
-    				typ = IDToTypeMapping.get(Integer.valueOf(i));
-    				switch(typ){
-					case SAPLING:
-						index = 0;
-						break;
-					case LOG:
-						index = 1;
-						break;
-					case PLANT:
-						index = 2;
-						break;
-					case NETHERSTALK:
-						index = 3;
-						break;
-					case GRASS:
-						index = 4;
-						break;
-					case REED:
-						index = 5;
-						break;
-					case CACTUS:
-						index = 6;
-						break;
-					case MUSHROOM:
-						index = 7;
-						break;
-					case MUSHROOMCAP:
-						index = 8;
-						break;
-					case LEAVES:
-						index = 9;
-						break;
-					case FERTILIZED:
-						index = 10;
-						break;
-					case MOSS:
-						index = 11;
-						break;
-					case COCOA:
-						index = 12;
-						break;
-					case CUSTOM:case APPLE:default:
-						index=-1;
-						break;
-    				}
-    				if(index>-1)
-    				{
-	    				if(growSets[index]!=IDToGrowingMapping.get(Integer.valueOf(i)))
-							IDToGrowingMapping.put(Integer.valueOf(i),growSets[index]);
-						if(dieSets[index]!=IDToDyingMapping.get(Integer.valueOf(i)))
-							IDToDyingMapping.put(Integer.valueOf(i),dieSets[index]);
-						if(growthRates[index]!=IDToGrowthRateMapping.get(Integer.valueOf(i)))
-							IDToGrowthRateMapping.put(Integer.valueOf(i),growthRates[index]);
-						if(deathRates[index]!=IDToDeathRateMapping.get(Integer.valueOf(i)))
-							IDToDeathRateMapping.put(Integer.valueOf(i),deathRates[index]);
-    				}    
-    			}
-    	}
-    	if (tickData.length>0 && tickData[0] instanceof WorldServer)
-    	{
-    		WorldServer world = (WorldServer) tickData[0];
-    		if((world.provider.dimensionId==0|| (customDimension && world.provider.dimensionId!=1)) && !world.activeChunkSet.isEmpty())
-    		{//start
-				Iterator it=world.activeChunkSet.iterator();			
-				while (it.hasNext())
-				{
-					ChunkCoordIntPair chunkIntPair = (ChunkCoordIntPair) it.next();
-					int k = chunkIntPair.chunkXPos * 16;
-		            int l = chunkIntPair.chunkZPos * 16;
-					Chunk chunk=null;
-					if(world.getChunkProvider().chunkExists(chunkIntPair.chunkXPos,chunkIntPair.chunkZPos))
-					{
-						chunk=world.getChunkFromChunkCoords(chunkIntPair.chunkXPos,chunkIntPair.chunkZPos);
-					}
-					if (chunk!=null && chunk.isChunkLoaded && chunk.isTerrainPopulated)
-					{	//We could use reflection to get the pendingTickListEntriesThisTick list,
-						//but it is empty at tickstart (too early) and tickend (too late)
-						/*try
-						{
-							Field f = WorldServer.class.getDeclaredFields()[3];
-							f.setAccessible(true);
-							Set list =  (Set) f.get(tickData[0]);
-							if(list == null){
-								System.out.println("check 1");
-								return;
-							}
-							if(list.isEmpty()){
-								System.out.println("check 2");
-								return;
-							}
-							Iterator itr=list.iterator();
-							while(itr.hasNext())				
-							{			
-								NextTickListEntry nextTickEntry= (NextTickListEntry) itr.next();
-				                if (nextTickEntry.scheduledTime == world.getTotalWorldTime() && world.getChunkProvider().chunkExists(nextTickEntry.xCoord, nextTickEntry.zCoord))
-				                {
-				                    int k = world.getBlockId(nextTickEntry.xCoord, nextTickEntry.yCoord, nextTickEntry.zCoord);
-
-				                    if (k > 0 && Block.isAssociatedBlockID(k, nextTickEntry.blockID) && isRegistered(nextTickEntry.blockID))						
-				                    {	
-				                    	System.out.println("check 3");
-				                    	onUpdateTick(world,nextTickEntry.xCoord,nextTickEntry.yCoord,nextTickEntry.zCoord,nextTickEntry.blockID);						
-				                    }						
-				                }
-							}
-						}
-						catch(SecurityException| IllegalAccessException e)
-						{
-							System.out.println("NatureOverhaul encountered a problem while getting ticks");
-							e.printStackTrace();
-						}*/
-						int i2;//Vanilla like random ticks for blocks
-						for (ExtendedBlockStorage blockStorage:chunk.getBlockStorageArray()){
-							if (blockStorage!=null && !blockStorage.isEmpty() && blockStorage.getNeedsRandomTick()){
-								for (int j2 = 0; j2 < 3; ++j2){
-			                        	this.updateLCG = this.updateLCG * 3 + 1013904223;
-			                        	i2 = this.updateLCG >> 2;
-			                        	int k2 = i2 & 15;
-			                        	int l2 = i2 >> 8 & 15;
-			                        	int i3 = i2 >> 16 & 15;
-			                        	int j3 = blockStorage.getExtBlockID(k2, i3, l2);
-			                        	if (isRegistered(j3)){
-			                        		onUpdateTick(world, k2 + k, i3 + blockStorage.getYLocation(), l2 + l, j3);
-			                        	}
-			                    	}
-							}
-						}
-					}
-				}//end
-    		}			
-    	}
-	}
-
-	private static void getMOAPIValues(Class optionClass, Object subOption, Object lumberJackOption, Object miscOption, Object animalsOption)
-					throws SecurityException, ReflectiveOperationException {
-		Method getBoolean=optionClass.getMethod("getBooleanValue", String.class);
-		Method getSlider=optionClass.getMethod("getSliderValue", String.class);
-		Method getMap=optionClass.getMethod("getMappedValue", String.class);
-		for(int i=0; i<names.length;i++)
-		{
-			growSets[i]=getBooleanFrom(getBoolean,subOption,names[i]+" grow");
-			dieSets[i]=getBooleanFrom(getBoolean,subOption, names[i]+" die");
-			growthRates[i]=Integer.class.cast(getSlider.invoke(subOption, names[i]+" growth rate")).intValue();
-			deathRates[i]=Integer.class.cast(getSlider.invoke(subOption, names[i]+" death rate")).intValue();
+			}//Even if it fails, we can still rely on settings stored in Forge recommended config file.
 		}
-		growSets[names.length]=getBooleanFrom(getBoolean,subOption, "Apple grows");
-		growthRates[names.length]=Integer.class.cast(getSlider.invoke(subOption, "Apple growth rate")).intValue();
-        lumberjack=getBooleanFrom(getBoolean,lumberJackOption, "Enable");
-        killLeaves=getBooleanFrom(getBoolean,lumberJackOption, "Kill leaves");
-        growthType=Integer.class.cast(getMap.invoke(miscOption, "Sapling drops on")).intValue();
-        autoSapling=getBooleanFrom(getBoolean,miscOption,"AutoSapling");
-        autoFarming=getBooleanFrom(getBoolean,miscOption, "Plant seeds on player drop");
-        decayLeaves=getBooleanFrom(getBoolean,miscOption, "Leaves decay on tree death");
-        mossCorruptStone=getBooleanFrom(getBoolean,miscOption, "Moss growing on stone");
-        useStarvingSystem=getBooleanFrom(getBoolean,miscOption, "Starving system");
-        biomeModifiedRate=getBooleanFrom(getBoolean,miscOption, "Biome specific rates");
-        moddedBonemeal=getBooleanFrom(getBoolean,miscOption, "Modded Bonemeal");
-        customDimension=getBooleanFrom(getBoolean,miscOption, "Custom dimensions");
-        wildAnimalsBreed=getBooleanFrom(getBoolean,animalsOption, "Wild breed");
-        wildAnimalBreedRate=Integer.class.cast(getSlider.invoke(animalsOption, "Breeding rate")).intValue();
-        wildAnimalDeathRate=Integer.class.cast(getSlider.invoke(animalsOption, "Death rate")).intValue();
+		//Now we can register every available blocks at this point.
+		Set<Integer> logID = new HashSet(), leafID = new HashSet(), saplingID = new HashSet();
+		//If a block is registered after, it won't be accounted for.
+		for (int i = 1; i < Block.blocksList.length; i++) {
+			if (Block.blocksList[i] != null) {
+				if (Block.blocksList[i] instanceof IGrowable && Block.blocksList[i] instanceof IBlockDeath) {//Priority to Blocks using the API
+					addMapping(i, true, ((IGrowable) Block.blocksList[i]).getGrowthRate(), true, ((IBlockDeath) Block.blocksList[i]).getDeathRate(), -1.0F, -1.0F, NOType.CUSTOM);
+				} else if (Block.blocksList[i] instanceof IGrowable) {
+					addMapping(i, true, ((IGrowable) Block.blocksList[i]).getGrowthRate(), false, -1, -1.0F, -1.0F, NOType.CUSTOM);
+				} else if (Block.blocksList[i] instanceof IBlockDeath) {
+					addMapping(i, false, -1, true, ((IBlockDeath) Block.blocksList[i]).getDeathRate(), -1.0F, -1.0F, NOType.CUSTOM);
+				} else if (Block.blocksList[i] instanceof BlockSapling) {
+					saplingID.add(i);
+				} else if (Block.blocksList[i] instanceof BlockLog) {
+					logID.add(i);
+				} else if (Block.blocksList[i] instanceof BlockNetherStalk) {//In the Nether, we don't use biome dependent parameter
+					addMapping(i, growSets[3], growthRates[3], dieSets[3], deathRates[3], 1.0F, 1.0F, NOType.NETHERSTALK);
+				} else if (Block.blocksList[i] instanceof BlockGrass || Block.blocksList[i] instanceof BlockMycelium) {
+					addMapping(i, growSets[4], growthRates[4], dieSets[4], deathRates[4], 0.7F, 0.5F, NOType.GRASS);
+				} else if (Block.blocksList[i] instanceof BlockReed) {
+					addMapping(i, growSets[5], growthRates[5], dieSets[5], deathRates[5], 0.8F, 0.8F, NOType.REED);
+				} else if (Block.blocksList[i] instanceof BlockCactus) {
+					addMapping(i, growSets[6], growthRates[6], dieSets[6], deathRates[6], 1.5F, 0.2F, NOType.CACTUS);
+				} else if (Block.blocksList[i] instanceof BlockMushroom) {
+					addMapping(i, growSets[7], growthRates[7], dieSets[7], deathRates[7], 0.9F, 1.0F, NOType.MUSHROOM);
+				} else if (Block.blocksList[i] instanceof BlockMushroomCap) {
+					addMapping(i, growSets[8], growthRates[8], dieSets[8], deathRates[8], 0.9F, 1.0F, NOType.MUSHROOMCAP);
+				} else if (Block.blocksList[i] instanceof BlockLeaves) {
+					leafID.add(i);
+				} else if (Block.blocksList[i] instanceof BlockCrops || Block.blocksList[i] instanceof BlockStem) {
+					addMapping(i, growSets[10], growthRates[10], dieSets[10], deathRates[10], 1.0F, 1.0F, NOType.FERTILIZED);
+				} else if (Block.blocksList[i] instanceof BlockFlower) {//Flower ,deadbush, lilypad, tallgrass
+					addMapping(i, growSets[2], growthRates[2], dieSets[2], deathRates[2], 0.6F, 0.7F, NOType.PLANT, 100, 60);
+				} else if (i == Block.cobblestoneMossy.blockID) {
+					addMapping(i, growSets[11], growthRates[11], dieSets[11], deathRates[11], 0.7F, 1.0F, NOType.MOSS);
+				} else if (Block.blocksList[i] instanceof BlockCocoa) {
+					addMapping(i, growSets[12], growthRates[12], dieSets[12], deathRates[12], 1.0F, 1.0F, NOType.COCOA);
+				}
+				if (Block.blocksList[i].isCollidable() && Block.blocksList[i].renderAsNormalBlock()) {
+					IDToFirePropagateMapping.put(
+							i,
+							config.get("Fire", Block.blocksList[i].getUnlocalizedName().substring(5) + " chance to encourage fire",
+									IDToFirePropagateMapping.containsKey(i) ? IDToFirePropagateMapping.get(i) : 0).getInt());
+					IDToFireCatchMapping.put(i,
+							config.get("Fire", Block.blocksList[i].getUnlocalizedName().substring(5) + " chance to catch fire", IDToFireCatchMapping.containsKey(i) ? IDToFireCatchMapping.get(i) : 0)
+									.getInt());
+					Block.setBurnProperties(i, IDToFirePropagateMapping.get(i), IDToFireCatchMapping.get(i));
+				}
+			}
+		}
+		int[] idLog = Ints.toArray(logID), idLeaf = Ints.toArray(leafID), idSapling = Ints.toArray(saplingID);
+		String option = "";
+		for (int index = 0; index < Math.min(Math.min(idLog.length, idLeaf.length), idSapling.length); index++) {
+			option = option.concat(idSapling[index] + "(0,1,2,3)-" + idLog[index] + "(0,1,2,3)-" + idLeaf[index] + "(0,1,2,3);");
+		}
+		String[] ids = config.get(optionsCategory[names.length], "Sapling-Log-Leaves ids", option).getString().split(";");
+		String[] temp;
+		for (String param : ids) {
+			if (param != null && param != "") {
+				temp = param.split("-");
+				if (temp.length == 3) {
+					int idSaplin, idLo, idLef;
+					try {
+						idSaplin = Integer.parseInt(temp[0].split("\\(")[0]);
+						idLo = Integer.parseInt(temp[1].split("\\(")[0]);
+						idLef = Integer.parseInt(temp[2].split("\\(")[0]);
+					} catch (NumberFormatException e) {
+						continue;
+					}
+					//Make sure user input is valid
+					if (isValid(idSaplin) && isValid(idLo) && isValid(idLef)) {
+						addMapping(idSaplin, growSets[0], 0, dieSets[0], deathRates[0], 0.8F, 0.8F, NOType.SAPLING);
+						TreeIdToMeta.put(idSaplin, temp[0].split("\\(")[1].replace("\\)", "").trim().split("\\,"));
+						addMapping(idLo, growSets[1], growthRates[1], dieSets[1], deathRates[1], 1.0F, 1.0F, NOType.LOG, 5, 5);
+						TreeIdToMeta.put(idLo, temp[1].split("\\(")[1].replace("\\)", "").trim().split("\\,"));
+						addMapping(idLef, growSets[9], growthRates[9], dieSets[9], deathRates[9], 1.0F, 1.0F, NOType.LEAVES, 60, 30);
+						TreeIdToMeta.put(idLef, temp[2].split("\\(")[1].replace("\\)", "").trim().split("\\,"));
+						LogToLeafMapping.put(idLo, idLef);
+						LeafToSaplingMapping.put(idLef, idSaplin);
+					}
+				}
+			}
+		}
+		//Saving Forge recommended config file.
+		if (config.hasChanged()) {
+			config.save();
+		}
+		//Registering event listeners.
+		bonemealEvent = new BonemealEventHandler(moddedBonemeal);
+		MinecraftForge.EVENT_BUS.register(bonemealEvent);
+		animalEvent = new AnimalEventHandler(wildAnimalsBreed, wildAnimalBreedRate, wildAnimalDeathRate);
+		MinecraftForge.EVENT_BUS.register(animalEvent);
+		lumberEvent = new PlayerEventHandler(lumberjack, killLeaves);
+		MinecraftForge.EVENT_BUS.register(lumberEvent);
+		farmingEvent = new AutoFarmingEventHandler(autoFarming);
+		MinecraftForge.EVENT_BUS.register(farmingEvent);
+		autoEvent = new AutoSaplingEventHandler(autoSapling);
+		MinecraftForge.EVENT_BUS.register(autoEvent);
+		if (growthType % 2 == 0)
+			MinecraftForge.EVENT_BUS.register(new SaplingGrowEventHandler());
 	}
-	public static boolean getBooleanFrom(Method meth, Object option, String name) 
-			throws ReflectiveOperationException {
-		return Boolean.class.cast(meth.invoke(option, name)).booleanValue();
+
+	@EventHandler
+	public void preInit(FMLPreInitializationEvent event) {
+		logger = event.getModLog();
+		config = new Configuration(event.getSuggestedConfigurationFile(), true);
+		config.load();
+		for (String name : optionsCategory) {
+			config.addCustomCategoryComment(name, "The lower the rate, the faster the changes happen.");
+		}
+		config.addCustomCategoryComment(optionsCategory[2], "Plants are flower, deadbush, lilypad and tallgrass");
+		autoSapling = config.get(optionsCategory[0], "AutoSapling", true).getBoolean(true);
+		for (int i = 0; i < names.length; i++) {
+			dieSets[i] = config.get(optionsCategory[i], names[i] + " Die", true).getBoolean(true);
+			growSets[i] = config.get(optionsCategory[i], names[i] + " Grow", true).getBoolean(true);
+			deathRates[i] = config.get(optionsCategory[i], names[i] + " Death Rate", 1200).getInt(1200);
+			growthRates[i] = config.get(optionsCategory[i], names[i] + " Growth Rate", 1200).getInt(1200);
+		}
+		//Toggle between alternative time of growth for sapling
+		growthType = GrowthType.valueOf(config.get(optionsCategory[0], "Sapling drops on", "Both", "Possible values are Neither,LeafGrowth,LeafDecay,Both").getString().toUpperCase()).ordinal();
+		//Toggle for lumberjack system on trees
+		lumberjack = config.get(optionsCategory[1], "Enable lumberjack", true).getBoolean(true);
+		killLeaves = config.get(optionsCategory[1], "Lumberjack kill leaves", true).getBoolean(true);
+		//Apples don't have a dying system, because it is only an item
+		growSets[names.length] = config.get(optionsCategory[9], "Apple Grows", true).getBoolean(true);
+		growthRates[names.length] = config.get(optionsCategory[9], "Apple Growth Rate", 3000).getInt(3000);
+		//Force remove leaves after killing a tree, instead of letting Minecraft doing it
+		decayLeaves = config.get(optionsCategory[9], "Enable leaves decay on tree death", true).getBoolean(true);
+		//Toggle so Stone can turn into Mossy Cobblestone
+		mossCorruptStone = config.get(optionsCategory[11], "Enable moss growing on stone", true).getBoolean(true);
+		//Misc options
+		useStarvingSystem = config.get(optionsCategory[names.length], "Enable starving system", true).getBoolean(true);
+		biomeModifiedRate = config.get(optionsCategory[names.length], "Enable biome specific rates", true).getBoolean(true);
+		moddedBonemeal = config.get(optionsCategory[names.length], "Enable modded Bonemeal", true).getBoolean(true);
+		customDimension = config.get(optionsCategory[names.length], "Enable custom dimensions", true).getBoolean(true);
+		wildAnimalsBreed = config.get(optionsCategory[names.length], "Enable wild animals Breed", true).getBoolean(true);
+		wildAnimalBreedRate = config.get(optionsCategory[names.length], "Wild animals breed rate", 16000).getInt(16000);
+		wildAnimalDeathRate = config.get(optionsCategory[names.length], "Wild animals death rate", 16000).getInt(16000);
+		autoFarming = config.get(optionsCategory[names.length], "Plant seeds on player drop", true).getBoolean(true);
 	}
+
 	@Override
-	public void tickStart(EnumSet<TickType> type, Object... tickData)  {}
+	public void tickEnd(EnumSet<TickType> type, Object... tickData) {
+	}
+
 	@Override
 	public EnumSet<TickType> ticks() {
 		return EnumSet.of(TickType.WORLD);//The only TickType we want to get the world ticks.
 	}
+
 	@Override
-	public String getLabel() {
-		return "Nature Overhaul Tick";
+	/**
+	 * Core method. We make vanilla-like random ticks in loaded chunks.
+	 */
+	public void tickStart(EnumSet<TickType> type, Object... tickData) {
+		if (API) {
+			try {
+				Method getMod = api.getMethod("getModOptions", String.class);
+				//"getMod" is static, we don't need an instance
+				Object option = getMod.invoke(null, "Nature Overhaul");
+				Class optionClass = getMod.getReturnType();
+				//To get a submenu
+				Method getSubOption = optionClass.getMethod("getOption", String.class);
+				Object subOption = getSubOption.invoke(option, "General");
+				//Get "LumberJack" submenu
+				Object lumberJackOption = getSubOption.invoke(option, "LumberJack");
+				//Get "Misc" submenu
+				Object miscOption = getSubOption.invoke(option, "Misc");
+				//Get "Animals" submenu
+				Object animalsOption = getSubOption.invoke(option, "Animals");
+				//We can start to get the values back
+				getMOAPIValues(optionClass, subOption, lumberJackOption, miscOption, animalsOption);
+			} catch (SecurityException s) {
+				API = false;
+			} catch (ReflectiveOperationException i) {
+				API = false;
+			}
+			bonemealEvent.set(moddedBonemeal);
+			animalEvent.set(wildAnimalsBreed, wildAnimalBreedRate, wildAnimalDeathRate);
+			lumberEvent.set(lumberjack, killLeaves);
+			autoEvent.set(autoSapling);
+			farmingEvent.set(autoFarming);
+			int index = -1;
+			for (int i : IDToTypeMapping.keySet()) {
+				index = IDToTypeMapping.get(Integer.valueOf(i)).getIndex();
+				if (index > -1) {
+					Behavior behav = BehaviorManager.getBehavior(i);
+					float[] data = behav.getData();
+					if (growSets[index] != IDToGrowingMapping.get(Integer.valueOf(i)))
+						IDToGrowingMapping.put(Integer.valueOf(i), growSets[index]);
+					if (dieSets[index] != IDToDyingMapping.get(Integer.valueOf(i)))
+						IDToDyingMapping.put(Integer.valueOf(i), dieSets[index]);
+					if (growthRates[index] != data[0] || deathRates[index] != data[1]) {
+						data[0] = growthRates[index];
+						data[1] = deathRates[index];
+						behav.setData(data);
+						BehaviorManager.setBehavior(i, behav);
+					}
+				}
+			}
+		}
+		if (tickData.length > 0 && tickData[0] instanceof WorldServer) {
+			WorldServer world = (WorldServer) tickData[0];
+			if ((world.provider.dimensionId == 0 || (customDimension && world.provider.dimensionId != 1)) && !world.activeChunkSet.isEmpty()) {
+				Iterator it = world.activeChunkSet.iterator();
+				while (it.hasNext()) {
+					ChunkCoordIntPair chunkIntPair = (ChunkCoordIntPair) it.next();
+					int k = chunkIntPair.chunkXPos * 16;
+					int l = chunkIntPair.chunkZPos * 16;
+					Chunk chunk = null;
+					if (world.getChunkProvider().chunkExists(chunkIntPair.chunkXPos, chunkIntPair.chunkZPos)) {
+						chunk = world.getChunkFromChunkCoords(chunkIntPair.chunkXPos, chunkIntPair.chunkZPos);
+					}
+					if (chunk != null && chunk.isChunkLoaded && chunk.isTerrainPopulated) {
+						int i2, k2, l2, i3, j3;//Vanilla like random ticks for blocks
+						for (ExtendedBlockStorage blockStorage : chunk.getBlockStorageArray()) {
+							if (blockStorage != null && !blockStorage.isEmpty() && blockStorage.getNeedsRandomTick()) {
+								for (int j2 = 0; j2 < 3; ++j2) {
+									this.updateLCG = this.updateLCG * 3 + 1013904223;
+									i2 = this.updateLCG >> 2;
+									k2 = i2 & 15;
+									l2 = i2 >> 8 & 15;
+									i3 = i2 >> 16 & 15;
+									j3 = blockStorage.getExtBlockID(k2, i3, l2);
+									if (isRegistered(j3)) {
+										onUpdateTick(world, k2 + k, i3 + blockStorage.getYLocation(), l2 + l, j3);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * The death general method. Called by
+	 * {@link #onUpdateTick(World, int, int, int, int)} when conditions are
+	 * fulfilled.
+	 **/
+	public static void death(World world, int i, int j, int k, int id) {
+		if (Block.blocksList[id] instanceof IBlockDeath) {
+			((IBlockDeath) Block.blocksList[id]).death(world, i, j, k, id);
+		} else {
+			BehaviorManager.getBehavior(id, null).death(world, i, j, k, id);
+		}
+	}
+
+	/**
+	 * Special case for apples, since they don't have a corresponding block
+	 *
+	 * @return apple growth probability at given coordinates
+	 */
+	public static float getAppleGrowthProb(World world, int i, int j, int k) {
+		float freq = growSets[names.length] ? growthRates[names.length] * 1.5F : -1F;
+		if (biomeModifiedRate && freq > 0) {
+			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
+			if (biome.rainfall == 0 || biome.temperature > 1.5F) {
+				return 0.01F;
+			} else {
+				freq *= Utils.getOptValueMult(biome.rainfall, 0.8F, 4.0F);
+				freq *= Utils.getOptValueMult(biome.temperature, 0.7F, 4.0F);
+			}
+		}
+		if (freq > 0)
+			return 1F / freq;
+		else
+			return -1F;
+	}
+
+	/**
+	 * Get the growth probability. Called by
+	 * {@link #onUpdateTick(World, int, int, int, int)}.
+	 *
+	 * @return growth probability for given blockid and NOType at given
+	 *         coordinates
+	 */
+	public static float getGrowthProb(World world, int i, int j, int k, int id, NOType type) {
+		float freq = getGrowthRate(id);
+		if (biomeModifiedRate && freq > 0 && type != NOType.NETHERSTALK) {
+			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
+			if (type != NOType.CACTUS && ((biome.rainfall == 0) || (biome.temperature > 1.5F))) {
+				return 0.01F;
+			} else if (type != NOType.CUSTOM) {
+				freq *= Utils.getOptValueMult(biome.rainfall, getOptRain(id), type.getRainGrowth());
+				freq *= Utils.getOptValueMult(biome.temperature, getOptTemp(id), type.getTempGrowth());
+			}
+		}
+		if (freq > 0)
+			return 1F / freq;
+		else
+			return -1F;
+	}
+
+	public static Map<Integer, NOType> getIDToTypeMapping() {
+		return ImmutableMap.copyOf(IDToTypeMapping);
+	}
+
+	public static Map<Integer, Integer> getLeafToSaplingMapping() {
+		return ImmutableMap.copyOf(LeafToSaplingMapping);
+	}
+
+	public static Map<Integer, Integer> getLogToLeafMapping() {
+		return ImmutableMap.copyOf(LogToLeafMapping);
+	}
+
+	public static Map<Integer, String[]> getTreeIDMeta() {
+		return ImmutableMap.copyOf(TreeIdToMeta);
+	}
+
+	/**
+	 * The general growing method. Called by
+	 * {@link #onUpdateTick(World, int, int, int, int)}. when conditions are
+	 * fulfilled.
+	 **/
+	public static void grow(World world, int i, int j, int k, int id) {
+		if (Block.blocksList[id] instanceof IGrowable) {
+			((IGrowable) Block.blocksList[id]).grow(world, i, j, k, id);
+		} else {
+			BehaviorManager.getBehavior(Integer.valueOf(id)).grow(world, i, j, k, id);
+		}
+	}
+
+	/**
+	 * Check if given block id is registered as growing
+	 *
+	 * @param id
+	 *            the block id to check
+	 * @return true if block can grow
+	 */
+	public static boolean isGrowing(int id) {
+		return IDToGrowingMapping.get(Integer.valueOf(id));
+	}
+
+	/**
+	 * Check if given block id is registered as a log (may be part of a tree)
+	 *
+	 * @param id
+	 *            the block id to check
+	 * @return true if block is a log
+	 */
+	public static boolean isLog(int id) {
+		return LogToLeafMapping.containsKey(id) || (isRegistered(id) && IDToTypeMapping.get(id) == NOType.MUSHROOMCAP);
+	}
+
+	public static boolean isRegistered(int id) {
+		return isValid(id) && IDToTypeMapping.containsKey(Integer.valueOf(id));
+	}
+
+	public static boolean isValid(int id) {
+		return id > 0 && id < 4096 && Block.blocksList[id] != null;
+	}
+
+	/**
+	 * Registers all mappings simultaneously.
+	 *
+	 * @param id
+	 *            The id the block is registered with.
+	 * @param isGrowing
+	 *            Whether the block can call
+	 *            {@link #grow(World, int, int, int, int, NOType)} on tick.
+	 * @param growthRate
+	 *            How often the {@link #grow(World, int, int, int, int, NOType)}
+	 *            method will be called.
+	 * @param isMortal
+	 *            Whether the block can call
+	 *            {@link #death(World, int, int, int, int, NOType)} method on
+	 *            tick.
+	 * @param deathRate
+	 *            How often the
+	 *            {@link #death(World, int, int, int, int, NOType)} method will
+	 *            be called.
+	 * @param optTemp
+	 *            The optimal temperature parameter for the growth.
+	 * @param optRain
+	 *            The optimal humidity parameter for the growth.
+	 * @param type
+	 *            {@link NOType} Decides which growth and/or death to use, and
+	 *            tolerance to temperature and humidity.
+	 */
+	private static void addMapping(int id, boolean isGrowing, float growthRate, boolean isMortal, float deathRate, float optTemp, float optRain, NOType type) {
+		IDToGrowingMapping.put(Integer.valueOf(id), isGrowing);
+		IDToDyingMapping.put(Integer.valueOf(id), isMortal);
+		IDToTypeMapping.put(Integer.valueOf(id), type);
+		BehaviorManager.setBehavior(Integer.valueOf(id), BehaviorManager.getBehavior(type).setData(growthRate, deathRate, optRain, optTemp));
+	}
+
+	/**
+	 * Registers all mappings simultaneously. Overloaded method with fire
+	 * parameters.
+	 *
+	 * @param fireCatch
+	 *            Related to 3rd parameter in {@link
+	 *            Block.setBurnProperties(int,int,int)}.
+	 * @param firePropagate
+	 *            Related to 2nd parameter in {@link
+	 *            Block.setBurnProperties(int,int,int)}.
+	 */
+	private static void addMapping(int id, boolean isGrowing, float growthRate, boolean isMortal, float deathRate, float optTemp, float optRain, NOType type, int fireCatch, int firePropagate) {
+		addMapping(id, isGrowing, growthRate, isMortal, deathRate, optTemp, optRain, type);
+		IDToFireCatchMapping.put(Integer.valueOf(id), fireCatch);
+		IDToFirePropagateMapping.put(Integer.valueOf(id), firePropagate);
+	}
+
+	/**
+	 * Helper reflection method for booleans
+	 */
+	private static boolean getBooleanFrom(Method meth, Object option, String name) throws ReflectiveOperationException {
+		return Boolean.class.cast(meth.invoke(option, name)).booleanValue();
+	}
+
+	/**
+	 * Get the death probability. Called by
+	 * {@link #onUpdateTick(World, int, int, int, int)}.
+	 *
+	 * @return Death probability for given blockid and NOType at given
+	 *         coordinates
+	 */
+	private static float getDeathProb(World world, int i, int j, int k, int id, NOType type) {
+		float freq = getDeathRate(id);
+		if (biomeModifiedRate && freq > 0 && type != NOType.NETHERSTALK) {
+			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
+			if (type != NOType.CACTUS && ((biome.rainfall == 0) || (biome.temperature > 1.5F))) {
+				return 1F;
+			} else if (type != NOType.CUSTOM) {
+				freq *= Utils.getOptValueMult(biome.rainfall, getOptRain(id), type.getRainDeath());
+				freq *= Utils.getOptValueMult(biome.temperature, getOptTemp(id), type.getTempDeath());
+			}
+		}
+		if (freq > 0)
+			return 1F / freq;
+		else
+			return -1F;
+	}
+
+	private static float getDeathRate(int id) {
+		if (Block.blocksList[id] instanceof IBlockDeath) {
+			return ((IBlockDeath) Block.blocksList[id]).getDeathRate();
+		} else {
+			return BehaviorManager.getBehavior(Integer.valueOf(id)).getDeathRate();
+		}
+	}
+
+	private static float getGrowthRate(int id) {
+		if (Block.blocksList[id] instanceof IGrowable) {
+			return ((IGrowable) Block.blocksList[id]).getGrowthRate();
+		} else {
+			return BehaviorManager.getBehavior(Integer.valueOf(id)).getGrowthRate();
+		}
+	}
+
+	private static int getIntFrom(Method meth, Object obj, String name) throws ReflectiveOperationException {
+		return Integer.class.cast(meth.invoke(obj, name)).intValue();
+	}
+
+	private static void getMOAPIValues(Class optionClass, Object subOption, Object lumberJackOption, Object miscOption, Object animalsOption) throws SecurityException, ReflectiveOperationException {
+		Method getBoolean = optionClass.getMethod("getBooleanValue", String.class);
+		Method getSlider = optionClass.getMethod("getSliderValue", String.class);
+		Method getMap = optionClass.getMethod("getMappedValue", String.class);
+		for (int i = 0; i < names.length; i++) {
+			growSets[i] = getBooleanFrom(getBoolean, subOption, names[i] + " grow");
+			dieSets[i] = getBooleanFrom(getBoolean, subOption, names[i] + " die");
+			growthRates[i] = getIntFrom(getSlider, subOption, names[i] + " growth rate");
+			deathRates[i] = getIntFrom(getSlider, subOption, names[i] + " death rate");
+		}
+		growSets[names.length] = getBooleanFrom(getBoolean, subOption, "Apple grows");
+		growthRates[names.length] = getIntFrom(getSlider, subOption, "Apple growth rate");
+		lumberjack = getBooleanFrom(getBoolean, lumberJackOption, "Enable");
+		killLeaves = getBooleanFrom(getBoolean, lumberJackOption, "Kill leaves");
+		growthType = getIntFrom(getMap, miscOption, "Sapling drops on");
+		autoSapling = getBooleanFrom(getBoolean, miscOption, "AutoSapling");
+		autoFarming = getBooleanFrom(getBoolean, miscOption, "Plant seeds on player drop");
+		decayLeaves = getBooleanFrom(getBoolean, miscOption, "Leaves decay on tree death");
+		mossCorruptStone = getBooleanFrom(getBoolean, miscOption, "Moss growing on stone");
+		useStarvingSystem = getBooleanFrom(getBoolean, miscOption, "Starving system");
+		biomeModifiedRate = getBooleanFrom(getBoolean, miscOption, "Biome specific rates");
+		moddedBonemeal = getBooleanFrom(getBoolean, miscOption, "Modded Bonemeal");
+		customDimension = getBooleanFrom(getBoolean, miscOption, "Custom dimensions");
+		wildAnimalsBreed = getBooleanFrom(getBoolean, animalsOption, "Wild breed");
+		wildAnimalBreedRate = getIntFrom(getSlider, animalsOption, "Breeding rate");
+		wildAnimalDeathRate = getIntFrom(getSlider, animalsOption, "Death rate");
+	}
+
+	private static float getOptRain(int id) {
+		return BehaviorManager.getBehavior(Integer.valueOf(id)).getOptRain();
+	}
+
+	private static float getOptTemp(int id) {
+		return BehaviorManager.getBehavior(Integer.valueOf(id)).getOptTemp();
+	}
+
+	/**
+	 * Called by {@link #onUpdateTick(World, int, int, int, int)}. Checks
+	 * whether this block has died on this tick for any reason
+	 *
+	 * @return True if plant has died
+	 */
+	private static boolean hasDied(World world, int i, int j, int k, int id) {
+		if (Block.blocksList[id] instanceof IBlockDeath) {
+			return ((IBlockDeath) Block.blocksList[id]).hasDied(world, i, j, k, id);
+		} else {
+			return BehaviorManager.getBehavior(Integer.valueOf(id)).hasDied(world, i, j, k, id);
+		}
+	}
+
+	private static boolean isMortal(int id) {
+		return IDToDyingMapping.get(Integer.valueOf(id));
+	}
+
+	/**
+	 * Called from the world tick {@link #tickStart(EnumSet, Object...)} with a
+	 * {@link #isValid(int)} id. Checks with {@link #isGrowing(int)} or
+	 * {@link #isMortal(int)} booleans, and probabilities with
+	 * {@link #getGrowthProb(World, int, int, int, int, NOType)} or
+	 * {@link #getDeathProb(World, int, int, int, int, NOType)} then call
+	 * {@link #grow(World, int, int, int, int)} or
+	 * {@link #death(World, int, int, int, int)}.
+	 */
+	private static void onUpdateTick(World world, int i, int j, int k, int id) {
+		NOType type = Utils.getType(id);
+		if (isGrowing(id) && world.rand.nextFloat() < getGrowthProb(world, i, j, k, id, type)) {
+			//System.out.println("Block "+id+" growing at "+i+","+j+","+k);
+			grow(world, i, j, k, id);
+			return;
+		}
+		if (isMortal(id) && (hasDied(world, i, j, k, id) || world.rand.nextFloat() < getDeathProb(world, i, j, k, id, type))) {
+			//System.out.println("Block "+id+" dying at "+i+","+j+","+k);
+			death(world, i, j, k, id);
+		}
 	}
 }
