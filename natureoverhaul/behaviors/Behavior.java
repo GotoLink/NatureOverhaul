@@ -1,4 +1,6 @@
-package natureoverhaul;
+package natureoverhaul.behaviors;
+
+import natureoverhaul.IBehave;
 
 public abstract class Behavior implements IBehave {
 	private float[] data = new float[4];

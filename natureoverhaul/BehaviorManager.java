@@ -3,22 +3,20 @@ package natureoverhaul;
 import java.util.HashMap;
 import java.util.Map;
 
-import natureoverhaul.behaviors.BehaviorCactus;
-import natureoverhaul.behaviors.BehaviorCocoa;
-import natureoverhaul.behaviors.BehaviorCrops;
-import natureoverhaul.behaviors.BehaviorDummy;
-import natureoverhaul.behaviors.BehaviorGrass;
-import natureoverhaul.behaviors.BehaviorLeaf;
-import natureoverhaul.behaviors.BehaviorMoss;
-import natureoverhaul.behaviors.BehaviorMushroom;
-import natureoverhaul.behaviors.BehaviorPlant;
-import natureoverhaul.behaviors.BehaviorSapling;
-import natureoverhaul.behaviors.BehaviorTree;
-
+import natureoverhaul.behaviors.*;
 
 public class BehaviorManager {
 	private static Map<Integer, IBehave> blockBehaviors = new HashMap();
 	private static final Behavior DUMMY = new BehaviorDummy();
+
+	/**
+	 * @param id
+	 *            the block id to check
+	 * @return true if such block id has a registered behavior
+	 */
+	public static boolean isRegistered(int id) {
+		return blockBehaviors.containsKey(Integer.valueOf(id));
+	}
 
 	/**
 	 * Used to register new behaviors
