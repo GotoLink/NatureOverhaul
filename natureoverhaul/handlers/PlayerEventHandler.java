@@ -3,15 +3,17 @@ package natureoverhaul.handlers;
 import natureoverhaul.NatureOverhaul;
 import natureoverhaul.TreeUtils;
 import natureoverhaul.Utils;
+import natureoverhaul.events.LumberJackEvent;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemAxe;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.ForgeSubscribe;
 import net.minecraftforge.event.world.BlockEvent.HarvestDropsEvent;
 
 /**
  * Event for Lumberjack system, from Clinton Alexander idea.
- *
+ * 
  * @author Olivier
  */
 public class PlayerEventHandler {
@@ -32,7 +34,7 @@ public class PlayerEventHandler {
 				if (it instanceof ItemAxe) {
 					int id = event.block.blockID;
 					//Check for a registered log block
-					if (NatureOverhaul.isLog(id)) {
+					if (NatureOverhaul.isLog(id) && !MinecraftForge.EVENT_BUS.post(new LumberJackEvent(event, (ItemAxe) it))) {
 						if (TreeUtils.isTree(event.world, event.x, event.y, event.z, Utils.getType(id), true)) {
 							// Damage axe compared to the number of blocks found
 							int damage = TreeUtils.killTree(event.world, event.x, event.y, event.z, id, leafKill);

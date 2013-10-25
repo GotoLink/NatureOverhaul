@@ -1,6 +1,5 @@
 package natureoverhaul.behaviors;
 
-import natureoverhaul.Behavior;
 import net.minecraft.world.World;
 
 public abstract class BehaviorRandomDeath extends Behavior {

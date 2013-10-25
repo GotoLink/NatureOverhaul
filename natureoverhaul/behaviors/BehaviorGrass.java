@@ -21,11 +21,15 @@ public class BehaviorGrass extends BehaviorDeathSwitch {
 		for (int x = i - scanSize; x <= i + scanSize; x++) {
 			for (int y = j - scanSize; y <= j + scanSize; y++) {
 				for (int z = k - scanSize; z <= k + scanSize; z++) {
-					if (world.getBlockId(x, y, z) == Block.dirt.blockID) {
+					if (isExtendBlockId(world.getBlockId(x, y, z))) {
 						world.setBlock(x, y, z, id);
 					}
 				}
 			}
 		}
+	}
+
+	public boolean isExtendBlockId(int id) {
+		return id == Block.dirt.blockID;
 	}
 }

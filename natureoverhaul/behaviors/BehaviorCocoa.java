@@ -6,21 +6,19 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 
-public class BehaviorCocoa extends BehaviorDeathDisappear{
-
+public class BehaviorCocoa extends BehaviorDeathDisappear {
 	/**
-	 * Checks if a cocoa can drop in this biome. Used in
-	 * {@link #grow(World, int, int, int)} when type is cocoa.
+	 * Checks if a cocoa can drop in this biome.
 	 * 
 	 * @return true if can drop in these coordinates
 	 */
 	public boolean canDropItem(World world, int i, int j, int k) {
 		BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
 		// Cocoa can grow in the named biomes
-		return  biome.temperature >= 0.7F && biome.temperature <= 1.5F && biome.rainfall >= 0.8F;
+		return world.getBlockId(i, j, k) == 0 && biome.temperature >= 0.7F && biome.temperature <= 1.5F && biome.rainfall >= 0.8F;
 	}
+
 	/**
-	 * 
 	 * @return the {@link ItemStack} to emit on growth
 	 */
 	public ItemStack getDroppedItem() {
@@ -35,7 +33,7 @@ public class BehaviorCocoa extends BehaviorDeathDisappear{
 	@Override
 	public void grow(World world, int i, int j, int k, int id) {
 		//Emit item if possible
-		if (world.getBlockId(i, j - 1, k) == 0 && canDropItem(world, i, j, k)) {
+		if (canDropItem(world, i, j - 1, k)) {
 			Utils.emitItem(world, i, j - 1, k, getDroppedItem());
 		}
 	}

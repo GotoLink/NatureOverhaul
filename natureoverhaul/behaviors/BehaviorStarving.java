@@ -1,6 +1,5 @@
 package natureoverhaul.behaviors;
 
-import natureoverhaul.Behavior;
 import natureoverhaul.NatureOverhaul;
 import natureoverhaul.Utils;
 import net.minecraft.world.World;

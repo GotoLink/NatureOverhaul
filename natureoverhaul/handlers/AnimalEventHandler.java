@@ -4,14 +4,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
+import natureoverhaul.events.WildBreedingEvent;
 import net.minecraft.entity.EntityAgeable;
 import net.minecraft.entity.passive.EntityAnimal;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.ForgeSubscribe;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 
 /**
  * Event for wild animals breeding, from Clinton Alexander idea.
- *
+ * 
  * @author Olivier
  */
 public class AnimalEventHandler {
@@ -33,19 +35,21 @@ public class AnimalEventHandler {
 				EntityAnimal mate = getNearbyMate(ent);
 				if (mate != null && ent.getRNG().nextFloat() < 1 / breedRate) {
 					EntityAgeable entityageable = ent.createChild(mate);//create the baby
+					entityageable = WildBreedingEvent.getResult(new WildBreedingEvent.Pre(ent, mate, entityageable));
 					if (entityageable != null) {
 						ent.setGrowingAge(6000);//reset parents mating counter
 						mate.setGrowingAge(6000);
 						entityageable.setGrowingAge(-24000);//set child aging counter
 						entityageable.setLocationAndAngles(ent.posX, ent.posY, ent.posZ, 0.0F, 0.0F);
 						ent.worldObj.spawnEntityInWorld(entityageable);
+						MinecraftForge.EVENT_BUS.post(new WildBreedingEvent.Post(ent, mate, entityageable));
 						Random random = ent.getRNG();
 						for (int i = 0; i < 7; ++i) {
 							double d0 = random.nextGaussian() * 0.02D;
 							double d1 = random.nextGaussian() * 0.02D;
 							double d2 = random.nextGaussian() * 0.02D;
-							ent.worldObj.spawnParticle("heart", ent.posX + random.nextFloat() * ent.width * 2.0F - ent.width, ent.posY + 0.5D
-									+ random.nextFloat() * ent.height, ent.posZ + random.nextFloat() * ent.width * 2.0F - ent.width, d0, d1, d2);
+							ent.worldObj.spawnParticle("heart", ent.posX + random.nextFloat() * ent.width * 2.0F - ent.width, ent.posY + 0.5D + random.nextFloat() * ent.height,
+									ent.posZ + random.nextFloat() * ent.width * 2.0F - ent.width, d0, d1, d2);
 						}
 					}
 				} else if (ent.getRNG().nextFloat() < 1 / deathRate) {//low chance of dying
