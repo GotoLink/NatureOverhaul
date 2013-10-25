@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import natureoverhaul.behaviors.BehaviorFire;
 import natureoverhaul.handlers.*;
 import net.minecraft.block.*;
 import net.minecraft.world.ChunkCoordIntPair;
@@ -37,7 +38,7 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.registry.TickRegistry;
 import cpw.mods.fml.relauncher.Side;
 
-@Mod(modid = "natureoverhaul", name = "Nature Overhaul", version = "0.7", dependencies = "after:mod_MOAPI")
+@Mod(modid = "natureoverhaul", name = "Nature Overhaul", version = "0.8", dependencies = "after:mod_MOAPI")
 /**
  * From Clinton Alexander idea.
  * @author Olivier
@@ -54,13 +55,13 @@ public class NatureOverhaul implements ITickHandler {
 	public static boolean useStarvingSystem = true, decayLeaves = true, mossCorruptStone = true;
 	private static boolean customDimension = true, wildAnimalsBreed = true;
 	private static int wildAnimalBreedRate = 0, wildAnimalDeathRate = 0;
-	public static int growthType = 0;
+	public static int growthType = 0, fireRange = 2;
 	private int updateLCG = (new Random()).nextInt();
 	private static Map<Integer, NOType> IDToTypeMapping = new HashMap();
 	private static Map<Integer, Boolean> IDToGrowingMapping = new HashMap(), IDToDyingMapping = new HashMap();
 	private static Map<Integer, Integer> LogToLeafMapping = new HashMap(), IDToFireCatchMapping = new HashMap(), IDToFirePropagateMapping = new HashMap(), LeafToSaplingMapping = new HashMap();
 	private static Map<Integer, String[]> TreeIdToMeta = new HashMap();
-	private static String[] names = new String[] { "Sapling", "Tree", "Plants", "Netherwort", "Grass", "Reed", "Cactus", "Mushroom", "Mushroom Tree", "Leaf", "Crops", "Moss", "Cocoa" };
+	private static String[] names = new String[] { "Sapling", "Tree", "Plants", "Netherwort", "Grass", "Reed", "Cactus", "Mushroom", "Mushroom Tree", "Leaf", "Crops", "Moss", "Cocoa", "Fire" };
 	private static boolean[] dieSets = new boolean[names.length], growSets = new boolean[names.length + 1];
 	private static float[] deathRates = new float[names.length], growthRates = new float[names.length + 1];
 	private static String[] optionsCategory = new String[names.length + 1];
@@ -147,12 +148,13 @@ public class NatureOverhaul implements ITickHandler {
 				setSliderValue.invoke(slidOption, 10000);
 				//Create "Fire" submenu and options
 				Object fireOption = addSubOption.invoke(option, "Fire");
-				addSlider.invoke(fireOption, "WIP-This has no effect", 0, 100);
+				slidOption = addSlider.invoke(fireOption, "Propagation range", 0, 20);
+				setSliderValue.invoke(slidOption, 2);
 				//Loads and saves values
 				option = optionClass.getMethod("loadValues").invoke(option);
 				option = optionClass.getMethod("saveValues").invoke(option);
 				//We have saved the values, we can start to get them back
-				getMOAPIValues(optionClass, subOption, lumberJackOption, miscOption, animalsOption);
+				getMOAPIValues(optionClass, subOption, lumberJackOption, miscOption, animalsOption, fireOption);
 				//We successfully get all options !
 				API = true;
 				logger.finest("NatureOverhaul found MOAPI and loaded all options correctly.");
@@ -203,28 +205,46 @@ public class NatureOverhaul implements ITickHandler {
 					addMapping(i, growSets[11], growthRates[11], dieSets[11], deathRates[11], 0.7F, 1.0F, NOType.MOSS);
 				} else if (Block.blocksList[i] instanceof BlockCocoa) {
 					addMapping(i, growSets[12], growthRates[12], dieSets[12], deathRates[12], 1.0F, 1.0F, NOType.COCOA);
+				} else if (Block.blocksList[i] instanceof BlockFire) {
+					addMapping(i, growSets[13], 0, dieSets[13], 0, 0.0F, 0.0F, NOType.CUSTOM);
+					BehaviorManager.setBehavior(i, new BehaviorFire().setData(growthRates[13], deathRates[13]));
 				}
 				if (Block.blocksList[i].isCollidable() && Block.blocksList[i].renderAsNormalBlock()) {
 					IDToFirePropagateMapping.put(
 							i,
-							config.get("Fire", Block.blocksList[i].getUnlocalizedName().substring(5) + " chance to encourage fire",
+							config.get("Fire Options", Block.blocksList[i].getUnlocalizedName().substring(5) + " chance to encourage fire",
 									IDToFirePropagateMapping.containsKey(i) ? IDToFirePropagateMapping.get(i) : 0).getInt());
-					IDToFireCatchMapping.put(i,
-							config.get("Fire", Block.blocksList[i].getUnlocalizedName().substring(5) + " chance to catch fire", IDToFireCatchMapping.containsKey(i) ? IDToFireCatchMapping.get(i) : 0)
-									.getInt());
-					Block.setBurnProperties(i, IDToFirePropagateMapping.get(i), IDToFireCatchMapping.get(i));
+					IDToFireCatchMapping.put(
+							i,
+							config.get("Fire Options", Block.blocksList[i].getUnlocalizedName().substring(5) + " chance to catch fire",
+									IDToFireCatchMapping.containsKey(i) ? IDToFireCatchMapping.get(i) : 0).getInt());
 				}
 			}
 		}
 		int[] idLog = Ints.toArray(logID), idLeaf = Ints.toArray(leafID), idSapling = Ints.toArray(saplingID);
-		String option = "";
+		String option = "", sData = "(", gData = "(", fData = "(";
+		Set<Integer> sapData = new HashSet(), logData = new HashSet(), leafData = new HashSet();
 		for (int index = 0; index < Math.min(Math.min(idLog.length, idLeaf.length), idSapling.length); index++) {
-			option = option.concat(idSapling[index] + "(0,1,2,3)-" + idLog[index] + "(0,1,2,3)-" + idLeaf[index] + "(0,1,2,3);");
+			for (int meta = 0; meta < 16; meta++) {
+				sapData.add(Block.blocksList[idSapling[index]].damageDropped(meta));
+				logData.add(Block.blocksList[idLog[index]].damageDropped(meta));
+				leafData.add(Block.blocksList[idLeaf[index]].damageDropped(meta));
+			}
+			for (int meta : sapData) {
+				sData = sData.concat(meta + ",");
+			}
+			for (int meta : logData) {
+				gData = gData.concat(meta + ",");
+			}
+			for (int meta : leafData) {
+				fData = fData.concat(meta + ",");
+			}
+			option = option.concat(idSapling[index] + sData + ")-" + idLog[index] + gData + ")-" + idLeaf[index] + fData + ");");
 		}
 		String[] ids = config.get(optionsCategory[names.length], "Sapling-Log-Leaves ids", option).getString().split(";");
 		String[] temp;
 		for (String param : ids) {
-			if (param != null && param != "") {
+			if (param != null && !param.equals("")) {
 				temp = param.split("-");
 				if (temp.length == 3) {
 					int idSaplin, idLo, idLef;
@@ -241,7 +261,7 @@ public class NatureOverhaul implements ITickHandler {
 						TreeIdToMeta.put(idSaplin, temp[0].split("\\(")[1].replace("\\)", "").trim().split("\\,"));
 						addMapping(idLo, growSets[1], growthRates[1], dieSets[1], deathRates[1], 1.0F, 1.0F, NOType.LOG, 5, 5);
 						TreeIdToMeta.put(idLo, temp[1].split("\\(")[1].replace("\\)", "").trim().split("\\,"));
-						addMapping(idLef, growSets[9], growthRates[9], dieSets[9], deathRates[9], 1.0F, 1.0F, NOType.LEAVES, 60, 30);
+						addMapping(idLef, growSets[9], growthRates[9], dieSets[9], deathRates[9], 1.0F, 1.0F, NOType.LEAVES, 60, 10);
 						TreeIdToMeta.put(idLef, temp[2].split("\\(")[1].replace("\\)", "").trim().split("\\,"));
 						LogToLeafMapping.put(idLo, idLef);
 						LeafToSaplingMapping.put(idLef, idSaplin);
@@ -252,6 +272,9 @@ public class NatureOverhaul implements ITickHandler {
 		//Saving Forge recommended config file.
 		if (config.hasChanged()) {
 			config.save();
+		}
+		for (int i : IDToFirePropagateMapping.keySet()) {
+			Block.setBurnProperties(i, IDToFirePropagateMapping.get(i), IDToFireCatchMapping.get(i));
 		}
 		//Registering event listeners.
 		bonemealEvent = new BonemealEventHandler(moddedBonemeal);
@@ -277,6 +300,7 @@ public class NatureOverhaul implements ITickHandler {
 			config.addCustomCategoryComment(name, "The lower the rate, the faster the changes happen.");
 		}
 		config.addCustomCategoryComment(optionsCategory[2], "Plants are flower, deadbush, lilypad and tallgrass");
+		config.addCustomCategoryComment(optionsCategory[13], "");
 		autoSapling = config.get(optionsCategory[0], "AutoSapling", true).getBoolean(true);
 		for (int i = 0; i < names.length; i++) {
 			dieSets[i] = config.get(optionsCategory[i], names[i] + " Die", true).getBoolean(true);
@@ -336,12 +360,18 @@ public class NatureOverhaul implements ITickHandler {
 				Object miscOption = getSubOption.invoke(option, "Misc");
 				//Get "Animals" submenu
 				Object animalsOption = getSubOption.invoke(option, "Animals");
+				//Get "Fire submenu
+				Object fireOption = getSubOption.invoke(option, "Fire");
 				//We can start to get the values back
-				getMOAPIValues(optionClass, subOption, lumberJackOption, miscOption, animalsOption);
+				getMOAPIValues(optionClass, subOption, lumberJackOption, miscOption, animalsOption, fireOption);
 			} catch (SecurityException s) {
 				API = false;
 			} catch (ReflectiveOperationException i) {
 				API = false;
+			}
+			BehaviorFire fire = ((BehaviorFire) BehaviorManager.getBehavior(Block.fire.blockID));
+			if (fire.getRange() != fireRange) {
+				fire.setRange(fireRange);
 			}
 			bonemealEvent.set(moddedBonemeal);
 			animalEvent.set(wildAnimalsBreed, wildAnimalBreedRate, wildAnimalDeathRate);
@@ -508,11 +538,11 @@ public class NatureOverhaul implements ITickHandler {
 	 * @return true if block is a log
 	 */
 	public static boolean isLog(int id) {
-		return LogToLeafMapping.containsKey(id) || (isRegistered(id) && IDToTypeMapping.get(id) == NOType.MUSHROOMCAP);
+		return LogToLeafMapping.containsKey(id) || IDToTypeMapping.get(id) == NOType.MUSHROOMCAP;
 	}
 
 	public static boolean isRegistered(int id) {
-		return isValid(id) && IDToTypeMapping.containsKey(Integer.valueOf(id));
+		return isValid(id) && BehaviorManager.isRegistered(id);
 	}
 
 	public static boolean isValid(int id) {
@@ -621,7 +651,8 @@ public class NatureOverhaul implements ITickHandler {
 		return Integer.class.cast(meth.invoke(obj, name)).intValue();
 	}
 
-	private static void getMOAPIValues(Class optionClass, Object subOption, Object lumberJackOption, Object miscOption, Object animalsOption) throws SecurityException, ReflectiveOperationException {
+	private static void getMOAPIValues(Class optionClass, Object subOption, Object lumberJackOption, Object miscOption, Object animalsOption, Object fireOption) throws SecurityException,
+			ReflectiveOperationException {
 		Method getBoolean = optionClass.getMethod("getBooleanValue", String.class);
 		Method getSlider = optionClass.getMethod("getSliderValue", String.class);
 		Method getMap = optionClass.getMethod("getMappedValue", String.class);
@@ -647,6 +678,7 @@ public class NatureOverhaul implements ITickHandler {
 		wildAnimalsBreed = getBooleanFrom(getBoolean, animalsOption, "Wild breed");
 		wildAnimalBreedRate = getIntFrom(getSlider, animalsOption, "Breeding rate");
 		wildAnimalDeathRate = getIntFrom(getSlider, animalsOption, "Death rate");
+		fireRange = getIntFrom(getSlider, fireOption, "Propagation range");
 	}
 
 	private static float getOptRain(int id) {
@@ -687,12 +719,10 @@ public class NatureOverhaul implements ITickHandler {
 	private static void onUpdateTick(World world, int i, int j, int k, int id) {
 		NOType type = Utils.getType(id);
 		if (isGrowing(id) && world.rand.nextFloat() < getGrowthProb(world, i, j, k, id, type)) {
-			//System.out.println("Block "+id+" growing at "+i+","+j+","+k);
 			grow(world, i, j, k, id);
 			return;
 		}
 		if (isMortal(id) && (hasDied(world, i, j, k, id) || world.rand.nextFloat() < getDeathProb(world, i, j, k, id, type))) {
-			//System.out.println("Block "+id+" dying at "+i+","+j+","+k);
 			death(world, i, j, k, id);
 		}
 	}
