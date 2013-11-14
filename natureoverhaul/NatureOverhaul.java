@@ -14,6 +14,8 @@ import java.util.logging.Logger;
 import natureoverhaul.behaviors.BehaviorFire;
 import natureoverhaul.handlers.*;
 import net.minecraft.block.*;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemAxe;
 import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
@@ -184,7 +186,7 @@ public class NatureOverhaul implements ITickHandler {
 				} else if (Block.blocksList[i] instanceof BlockLog) {
 					logID.add(i);
 				} else if (Block.blocksList[i] instanceof BlockNetherStalk) {//In the Nether, we don't use biome dependent parameter
-					addMapping(i, growSets[3], growthRates[3], dieSets[3], deathRates[3], 1.0F, 1.0F, NOType.NETHERSTALK);
+					addMapping(i, growSets[3], growthRates[3], dieSets[3], deathRates[3], 0.0F, 0.0F, NOType.NETHERSTALK);
 				} else if (Block.blocksList[i] instanceof BlockGrass || Block.blocksList[i] instanceof BlockMycelium) {
 					addMapping(i, growSets[4], growthRates[4], dieSets[4], deathRates[4], 0.7F, 0.5F, NOType.GRASS);
 				} else if (Block.blocksList[i] instanceof BlockReed) {
@@ -241,7 +243,7 @@ public class NatureOverhaul implements ITickHandler {
 			}
 			option = option.concat(idSapling[index] + sData + ")-" + idLog[index] + gData + ")-" + idLeaf[index] + fData + ");");
 		}
-		String[] ids = config.get(optionsCategory[names.length], "Sapling-Log-Leaves ids", option).getString().split(";");
+		String[] ids = config.get(optionsCategory[names.length], "Sapling-Log-Leaves ids", option, "Separate groups with ;").getString().split(";");
 		String[] temp;
 		for (String param : ids) {
 			if (param != null && !param.equals("")) {
@@ -266,6 +268,22 @@ public class NatureOverhaul implements ITickHandler {
 						LogToLeafMapping.put(idLo, idLef);
 						LeafToSaplingMapping.put(idLef, idSaplin);
 					}
+				}
+			}
+		}
+		option = "";
+		for (Item it : Item.itemsList) {
+			if (it instanceof ItemAxe) {
+				option = option.concat(it.itemID + ",");
+			}
+		}
+		ids = config.get(optionsCategory[1], "Lumberjack compatible item ids", option, "Separate item ids with comma").getString().split(",");
+		for (String param : ids) {
+			if (param != null && !param.equals("")) {
+				try {
+					PlayerEventHandler.ids.add(Integer.parseInt(param));
+				} catch (NumberFormatException e) {
+					continue;
 				}
 			}
 		}
