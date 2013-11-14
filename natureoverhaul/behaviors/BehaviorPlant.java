@@ -2,8 +2,6 @@ package natureoverhaul.behaviors;
 
 import natureoverhaul.Utils;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockTallGrass;
-import net.minecraft.block.material.Material;
 import net.minecraft.world.World;
 
 public class BehaviorPlant extends BehaviorDeathDisappear {
@@ -18,7 +16,7 @@ public class BehaviorPlant extends BehaviorDeathDisappear {
 		int coord[];
 		for (int attempt = 0; attempt < 18; attempt++) {
 			coord = Utils.findRandomNeighbour(i, j, k, scanSize);
-			if (Block.blocksList[id].canPlaceBlockAt(world, coord[0], coord[1], coord[2]) && world.getBlockMaterial(coord[0], coord[1], coord[2]) != Material.water) {
+			if (Block.blocksList[id].canPlaceBlockAt(world, coord[0], coord[1], coord[2]) && !world.getBlockMaterial(coord[0], coord[1], coord[2]).isLiquid()) {
 				if (!isMetadataSensitive(id)) {
 					world.setBlock(coord[0], coord[1], coord[2], id);
 				} else {
@@ -30,6 +28,6 @@ public class BehaviorPlant extends BehaviorDeathDisappear {
 	}
 
 	public boolean isMetadataSensitive(int id) {
-		return Block.blocksList[id] instanceof BlockTallGrass;//Metadata sensitive for tall grass
+		return true;
 	}
 }
