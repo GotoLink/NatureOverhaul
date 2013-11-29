@@ -79,7 +79,7 @@ public class TreeUtils {
 		int leaf = Utils.getLeafFromLog(id);
 		int meta = world.getBlockMetadata(i, lowJ, k);
 		boolean isValidMeta = false;
-		List<String> list = Arrays.asList(NatureOverhaul.instance.getTreeIDMeta().get(leaf));
+		List<String> list = Arrays.asList(NatureOverhaul.getTreeIDMeta().get(leaf));
 		if (list.contains(Integer.toString(meta))) {
 			isValidMeta = true;
 		}

@@ -59,10 +59,10 @@ public class NatureOverhaul implements ITickHandler {
 	private static int wildAnimalBreedRate = 0, wildAnimalDeathRate = 0;
 	public static int growthType = 0, fireRange = 2;
 	private int updateLCG = (new Random()).nextInt();
-	private static Map<Integer, NOType> IDToTypeMapping = new HashMap();
-	private static Map<Integer, Boolean> IDToGrowingMapping = new HashMap(), IDToDyingMapping = new HashMap();
-	private static Map<Integer, Integer> LogToLeafMapping = new HashMap(), IDToFireCatchMapping = new HashMap(), IDToFirePropagateMapping = new HashMap(), LeafToSaplingMapping = new HashMap();
-	private static Map<Integer, String[]> TreeIdToMeta = new HashMap();
+	private static Map<Integer, NOType> IDToTypeMapping = new HashMap<Integer, NOType>();
+	private static Map<Integer, Boolean> IDToGrowingMapping = new HashMap<Integer, Boolean>(), IDToDyingMapping = new HashMap<Integer, Boolean>();
+	private static Map<Integer, Integer> LogToLeafMapping = new HashMap<Integer, Integer>(), IDToFireCatchMapping = new HashMap<Integer, Integer>(), IDToFirePropagateMapping = new HashMap<Integer, Integer>(), LeafToSaplingMapping = new HashMap<Integer, Integer>();
+	private static Map<Integer, String[]> TreeIdToMeta = new HashMap<Integer, String[]>();
 	private static String[] names = new String[] { "Sapling", "Tree", "Plants", "Netherwort", "Grass", "Reed", "Cactus", "Mushroom", "Mushroom Tree", "Leaf", "Crops", "Moss", "Cocoa", "Fire" };
 	private static boolean[] dieSets = new boolean[names.length], growSets = new boolean[names.length + 1];
 	private static float[] deathRates = new float[names.length], growthRates = new float[names.length + 1];
@@ -74,7 +74,7 @@ public class NatureOverhaul implements ITickHandler {
 		optionsCategory[names.length] = "Misc Options";
 	};
 	private static Configuration config;
-	private static Class api;
+	private static Class<?> api;
 	private static boolean API;
 	private static BonemealEventHandler bonemealEvent;
 	private static AnimalEventHandler animalEvent;
@@ -102,7 +102,7 @@ public class NatureOverhaul implements ITickHandler {
 				Method addMod = api.getMethod("addMod", String.class);
 				//"addMod" is static, we don't need an instance
 				Object option = addMod.invoke(null, "Nature Overhaul");
-				Class optionClass = addMod.getReturnType();
+				Class<?> optionClass = addMod.getReturnType();
 				//Set options as able to be used on a server,get the instance back
 				option = optionClass.getMethod("setServerMode").invoke(option);
 				//"addBooleanOption" and "addSliderOption" aren't static, we need options class and an instance
@@ -171,7 +171,7 @@ public class NatureOverhaul implements ITickHandler {
 			}//Even if it fails, we can still rely on settings stored in Forge recommended config file.
 		}
 		//Now we can register every available blocks at this point.
-		Set<Integer> logID = new HashSet(), leafID = new HashSet(), saplingID = new HashSet();
+		Set<Integer> logID = new HashSet<Integer>(), leafID = new HashSet<Integer>(), saplingID = new HashSet<Integer>();
 		//If a block is registered after, it won't be accounted for.
 		for (int i = 1; i < Block.blocksList.length; i++) {
 			if (Block.blocksList[i] != null) {
@@ -225,7 +225,7 @@ public class NatureOverhaul implements ITickHandler {
 		}
 		int[] idLog = Ints.toArray(logID), idLeaf = Ints.toArray(leafID), idSapling = Ints.toArray(saplingID);
 		String option = "", sData = "(", gData = "(", fData = "(";
-		Set<Integer> sapData = new HashSet(), logData = new HashSet(), leafData = new HashSet();
+		Set<Integer> sapData = new HashSet<Integer>(), logData = new HashSet<Integer>(), leafData = new HashSet<Integer>();
 		for (int index = 0; index < Math.min(Math.min(idLog.length, idLeaf.length), idSapling.length); index++) {
 			for (int meta = 0; meta < 16; meta++) {
 				sapData.add(Block.blocksList[idSapling[index]].damageDropped(meta));
@@ -368,7 +368,7 @@ public class NatureOverhaul implements ITickHandler {
 				Method getMod = api.getMethod("getModOptions", String.class);
 				//"getMod" is static, we don't need an instance
 				Object option = getMod.invoke(null, "Nature Overhaul");
-				Class optionClass = getMod.getReturnType();
+				Class<?> optionClass = getMod.getReturnType();
 				//To get a submenu
 				Method getSubOption = optionClass.getMethod("getOption", String.class);
 				Object subOption = getSubOption.invoke(option, "General");
@@ -417,7 +417,7 @@ public class NatureOverhaul implements ITickHandler {
 		if (tickData.length > 0 && tickData[0] instanceof WorldServer) {
 			WorldServer world = (WorldServer) tickData[0];
 			if ((world.provider.dimensionId == 0 || (customDimension && world.provider.dimensionId != 1)) && !world.activeChunkSet.isEmpty()) {
-				Iterator it = world.activeChunkSet.iterator();
+				Iterator<?> it = world.activeChunkSet.iterator();
 				while (it.hasNext()) {
 					ChunkCoordIntPair chunkIntPair = (ChunkCoordIntPair) it.next();
 					int k = chunkIntPair.chunkXPos * 16;
@@ -669,7 +669,7 @@ public class NatureOverhaul implements ITickHandler {
 		return Integer.class.cast(meth.invoke(obj, name)).intValue();
 	}
 
-	private static void getMOAPIValues(Class optionClass, Object subOption, Object lumberJackOption, Object miscOption, Object animalsOption, Object fireOption) throws SecurityException,
+	private static void getMOAPIValues(Class<?> optionClass, Object subOption, Object lumberJackOption, Object miscOption, Object animalsOption, Object fireOption) throws SecurityException,
 			ReflectiveOperationException {
 		Method getBoolean = optionClass.getMethod("getBooleanValue", String.class);
 		Method getSlider = optionClass.getMethod("getSliderValue", String.class);

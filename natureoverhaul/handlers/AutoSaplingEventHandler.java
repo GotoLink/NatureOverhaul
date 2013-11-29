@@ -32,7 +32,7 @@ public class AutoSaplingEventHandler {
 				int x = MathHelper.floor_double(ent.posX);
 				int y = MathHelper.floor_double(ent.posY);
 				int z = MathHelper.floor_double(ent.posZ);
-				if (NatureOverhaul.instance.isRegistered(id) && Utils.getType(id) == NOType.SAPLING && Block.blocksList[id].canPlaceBlockAt(ent.worldObj, x, y, z)) {
+				if (NatureOverhaul.isRegistered(id) && Utils.getType(id) == NOType.SAPLING && Block.blocksList[id].canPlaceBlockAt(ent.worldObj, x, y, z)) {
 					ent.worldObj.setBlock(x, y, z, id, item.getItemDamage(), 3);
 				}
 			}

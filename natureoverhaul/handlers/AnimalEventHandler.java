@@ -67,10 +67,10 @@ public class AnimalEventHandler {
 
 	private static EntityAnimal getNearbyMate(EntityAnimal ent) {
 		double d0 = 8.0D;//search entities around
-		List list = ent.worldObj.getEntitiesWithinAABB(ent.getClass(), ent.boundingBox.expand(d0, d0, d0));
+		List<?> list = ent.worldObj.getEntitiesWithinAABB(ent.getClass(), ent.boundingBox.expand(d0, d0, d0));
 		d0 = Double.MAX_VALUE;
 		EntityAnimal entityanimal = null;
-		Iterator iterator = list.iterator();
+		Iterator<?> iterator = list.iterator();
 		while (iterator.hasNext()) {
 			EntityAnimal entityanimal1 = (EntityAnimal) iterator.next();
 			if (ent.getClass() == entityanimal1.getClass() && ent != entityanimal1 && ent.getDistanceSqToEntity(entityanimal1) < d0) {

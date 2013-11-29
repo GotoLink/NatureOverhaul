@@ -18,7 +18,7 @@ import net.minecraftforge.event.world.BlockEvent.HarvestDropsEvent;
  */
 public class PlayerEventHandler {
 	private boolean leafKill, lumber;
-	public static ArrayList<Integer> ids = new ArrayList();
+	public static ArrayList<Integer> ids = new ArrayList<Integer>();
 
 	public PlayerEventHandler(boolean lumberjack, boolean killLeaves) {
 		this.leafKill = killLeaves;

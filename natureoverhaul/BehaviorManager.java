@@ -6,7 +6,7 @@ import java.util.Map;
 import natureoverhaul.behaviors.*;
 
 public class BehaviorManager {
-	private static Map<Integer, IBehave> blockBehaviors = new HashMap();
+	private static Map<Integer, IBehave> blockBehaviors = new HashMap<Integer, IBehave>();
 	private static final Behavior DUMMY = new BehaviorDummy();
 
 	/**
