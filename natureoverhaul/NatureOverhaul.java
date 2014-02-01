@@ -264,7 +264,7 @@ public class NatureOverhaul {
         Item it = null;
 		for (Iterator itr = GameData.itemRegistry.iterator();itr.hasNext(); it=(Item)itr.next()) {
 			if (it instanceof ItemAxe) {
-				option = option.concat(it + ",");
+				option = option.concat(GameData.itemRegistry.func_148750_c(it)+ ",");
 			}
 		}
 		ids = config.get(optionsCategory[1], "Lumberjack compatible items", option, "Separate item names with comma").getString().split(",");
@@ -272,7 +272,7 @@ public class NatureOverhaul {
 			if (param != null && !param.equals("")) {
 				try {
 					PlayerEventHandler.ids.add(GameData.itemRegistry.get(param));
-				} catch (NumberFormatException e) {
+				} catch (Exception e) {
 					continue;
 				}
 			}
