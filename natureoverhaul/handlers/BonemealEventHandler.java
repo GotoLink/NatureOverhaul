@@ -1,11 +1,12 @@
 package natureoverhaul.handlers;
 
+import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import natureoverhaul.NOType;
 import natureoverhaul.NatureOverhaul;
 import natureoverhaul.Utils;
+import net.minecraft.block.Block;
 import net.minecraft.world.World;
-import net.minecraftforge.event.Event.Result;
-import net.minecraftforge.event.ForgeSubscribe;
+import cpw.mods.fml.common.eventhandler.Event.Result;
 import net.minecraftforge.event.entity.player.BonemealEvent;
 
 /**
@@ -20,10 +21,10 @@ public class BonemealEventHandler {
 		this.bonemeal = moddedBonemeal;
 	}
 
-	@ForgeSubscribe
+	@SubscribeEvent
 	public void onBoneMealUse(BonemealEvent event) {
 		if (bonemeal) {
-			if (applyBonemeal(event.world, event.X, event.Y, event.Z, event.ID)) {
+			if (applyBonemeal(event.world, event.x, event.y, event.z, event.block)) {
 				event.setResult(Result.ALLOW);//BoneMeal is consumed, but doesn't act vanilla
 			}
 		}
@@ -38,7 +39,7 @@ public class BonemealEventHandler {
 	 *
 	 * @return true if item is applied
 	 */
-	private boolean applyBonemeal(World world, int i, int j, int k, int id) {
+	private boolean applyBonemeal(World world, int i, int j, int k, Block id) {
 		if (NatureOverhaul.isRegistered(id) && NatureOverhaul.isGrowing(id)) {
 			if (Utils.getType(id) != NOType.GRASS) {
 				if(!world.isRemote){

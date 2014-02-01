@@ -2,6 +2,7 @@ package natureoverhaul.behaviors;
 
 import natureoverhaul.NatureOverhaul;
 import natureoverhaul.Utils;
+import net.minecraft.block.Block;
 import net.minecraft.world.World;
 
 public abstract class BehaviorStarving extends Behavior {
@@ -18,7 +19,7 @@ public abstract class BehaviorStarving extends Behavior {
 	}
 
 	@Override
-	public boolean hasDied(World world, int i, int j, int k, int id) {
+	public boolean hasDied(World world, int i, int j, int k, Block id) {
 		return NatureOverhaul.useStarvingSystem && hasStarved(world, i, j, k, id);
 	}
 
@@ -28,7 +29,7 @@ public abstract class BehaviorStarving extends Behavior {
 	 * 
 	 * @return True if plant has starved
 	 */
-	public boolean hasStarved(World world, int i, int j, int k, int id) {
+	public boolean hasStarved(World world, int i, int j, int k, Block id) {
 		int radius = getStarvingRadius(world, i, j, k);
 		int max = getMaxNeighbour(world, i, j, k);
 		int foundNeighbours = 0;
@@ -37,7 +38,7 @@ public abstract class BehaviorStarving extends Behavior {
 				for (int y = j - radius; y < j + radius; y++) {
 					for (int z = k - radius; z < k + radius; z++) {
 						if (i != x || j != y || k != z) {
-							int blockID = world.getBlockId(x, y, z);
+							Block blockID = world.func_147439_a(x, y, z);
 							if (foundNeighbours <= max && (id == blockID || (NatureOverhaul.isRegistered(blockID) && Utils.getType(blockID) == Utils.getType(id)))) {
 								foundNeighbours++;
 							}

@@ -2,7 +2,9 @@ package natureoverhaul;
 
 import java.util.Random;
 
+import net.minecraft.block.Block;
 import net.minecraft.entity.item.EntityItem;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 
@@ -19,7 +21,7 @@ public class Utils {
 	 * Emit a specific item at given location
 	 *
 	 * @param item
-	 *            {@link #ItemStack} to emit
+	 *            {@link ItemStack} to emit
 	 */
 	public static void emitItem(World world, int i, int j, int k, ItemStack item) {
 		if (!world.isRemote) {
@@ -56,26 +58,26 @@ public class Utils {
 	 *            The log block id.
 	 * @return The leaf block id corresponding to the given log block id.
 	 */
-	public static int getLeafFromLog(int id) {
+	public static Block getLeafFromLog(Block id) {
 		try {
-			return NatureOverhaul.getLogToLeafMapping().get(Integer.valueOf(id));
+			return NatureOverhaul.getLogToLeafMapping().get(id);
 		} catch (NullPointerException n) {
 			System.err.println("NatureOverhaul failed to find corresponding leaf to log block with id " + id + " in config file");
-			return 0;
+			return Blocks.air;
 		}
 	}
 
 	/**
-	 * Gets the j location of the lowest block of the specified {@link #NOType}
+	 * Gets the j location of the lowest block of the specified {@link NOType}
 	 * below the block from given coordinates.
 	 *
 	 * @param type
-	 *            The {@link #NOType} searched
+	 *            The {@link NOType} searched
 	 * @return lowest block j location
 	 */
 	public static int getLowestTypeJ(World world, int i, int j, int k, NOType type) {
 		int low = j;
-		while (getType(world.getBlockId(i, low - 1, k)) == type) {
+		while (getType(world.func_147439_a(i, low - 1, k)) == type) {
 			low--;
 		}
 		return low;
@@ -102,13 +104,13 @@ public class Utils {
 	}
 
 	/**
-	 * Helper method to get a {@link #NOType} from a block id.
+	 * Helper method to get a {@link NOType} from a block
 	 *
-	 * @param id
-	 * @return The stored {@link #NOType} from the given block id.
+	 * @param block
+	 * @return The stored {@link NOType} from the given block
 	 */
-	public static NOType getType(int id) {
-		return NatureOverhaul.getIDToTypeMapping().get(Integer.valueOf(id));
+	public static NOType getType(Block block) {
+		return NatureOverhaul.getIDToTypeMapping().get(block);
 	}
 
 	/**
@@ -121,14 +123,14 @@ public class Utils {
 	 *            If center block should be ignored
 	 * @return True if at least one block is nearby
 	 */
-	public static boolean hasNearbyBlock(World world, int i, int j, int k, int id, int radius, boolean ignoreSelf) {
+	public static boolean hasNearbyBlock(World world, int i, int j, int k, Block id, int radius, boolean ignoreSelf) {
 		for (int y = -radius; y <= radius; y++) {
 			for (int x = -radius; x <= radius; x++) {
 				for (int z = -radius; z <= radius; z++) {
 					if (ignoreSelf && x == 0 && y == 0 && z == 0) {
 						z++;
 					}
-					if (world.getBlockId(i + x, j + y, k + z) == id) {
+					if (world.func_147439_a(i + x, j + y, k + z) == id) {
 						return true;
 					}
 				}

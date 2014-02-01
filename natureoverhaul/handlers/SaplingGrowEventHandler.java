@@ -1,8 +1,8 @@
 package natureoverhaul.handlers;
 
+import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import natureoverhaul.NatureOverhaul;
-import net.minecraftforge.event.Event.Result;
-import net.minecraftforge.event.ForgeSubscribe;
+import cpw.mods.fml.common.eventhandler.Event.Result;
 import net.minecraftforge.event.terraingen.SaplingGrowTreeEvent;
 
 /**
@@ -11,7 +11,7 @@ import net.minecraftforge.event.terraingen.SaplingGrowTreeEvent;
  * @author Olivier
  */
 public class SaplingGrowEventHandler {
-	@ForgeSubscribe
+	@SubscribeEvent
 	public void onGrowingSapling(SaplingGrowTreeEvent event) {
 		if (NatureOverhaul.growthType % 2 == 0) {
 			event.setResult(Result.DENY);//Sapling doesn't grow vanilla with even growType

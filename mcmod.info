@@ -1,0 +1,17 @@
+[
+{
+  "modid": "natureoverhaul",
+  "name": "Nature Overhaul",
+  "description": "",
+  "version": $version,
+  "credits": "",
+  "logoFile": "",
+  "mcversion": $mcversion,
+  "url": "http://www.minecraftforum.net/topic/191599-",
+  "updateUrl": "",
+  "authors": ["Clintonio","GotoLink"],
+  "parent":"",
+  "screenshots": [],
+  "dependencies": []
+}
+]

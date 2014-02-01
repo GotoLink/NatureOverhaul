@@ -1,19 +1,21 @@
 package natureoverhaul;
 
 import java.lang.reflect.Method;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
+import cpw.mods.fml.common.FMLCommonHandler;
+import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.gameevent.TickEvent;
+import cpw.mods.fml.common.registry.GameData;
 import natureoverhaul.behaviors.BehaviorFire;
 import natureoverhaul.handlers.*;
 import net.minecraft.block.*;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemAxe;
 import net.minecraft.world.ChunkCoordIntPair;
@@ -22,31 +24,26 @@ import net.minecraft.world.WorldServer;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
-import net.minecraftforge.common.Configuration;
+import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.common.MinecraftForge;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.primitives.Ints;
 
-import cpw.mods.fml.common.ITickHandler;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.Mod.Instance;
-import cpw.mods.fml.common.TickType;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
-import cpw.mods.fml.common.registry.TickRegistry;
-import cpw.mods.fml.relauncher.Side;
 
-@Mod(modid = "natureoverhaul", name = "Nature Overhaul", version = "0.8", dependencies = "after:mod_MOAPI")
 /**
  * From Clinton Alexander idea.
  * @author Olivier
  *
  */
-public class NatureOverhaul implements ITickHandler {
+@Mod(modid = "natureoverhaul", name = "Nature Overhaul", version = "0.8", dependencies = "after:mod_MOAPI")
+public class NatureOverhaul {
 	private enum GrowthType {
 		NEITHER, LEAFGROWTH, LEAFDECAY, BOTH
 	}
@@ -59,10 +56,12 @@ public class NatureOverhaul implements ITickHandler {
 	private static int wildAnimalBreedRate = 0, wildAnimalDeathRate = 0;
 	public static int growthType = 0, fireRange = 2;
 	private int updateLCG = (new Random()).nextInt();
-	private static Map<Integer, NOType> IDToTypeMapping = new HashMap<Integer, NOType>();
-	private static Map<Integer, Boolean> IDToGrowingMapping = new HashMap<Integer, Boolean>(), IDToDyingMapping = new HashMap<Integer, Boolean>();
-	private static Map<Integer, Integer> LogToLeafMapping = new HashMap<Integer, Integer>(), IDToFireCatchMapping = new HashMap<Integer, Integer>(), IDToFirePropagateMapping = new HashMap<Integer, Integer>(), LeafToSaplingMapping = new HashMap<Integer, Integer>();
-	private static Map<Integer, String[]> TreeIdToMeta = new HashMap<Integer, String[]>();
+	private static Map<Block, NOType> IDToTypeMapping = new HashMap<Block, NOType>();
+	private static Map<Block, Boolean> IDToGrowingMapping = new HashMap<Block, Boolean>(), IDToDyingMapping = new HashMap<Block, Boolean>();
+	private static Map<Block, Block> LogToLeafMapping = new HashMap<Block, Block>();
+    private static Map<Block, Integer> IDToFireCatchMapping = new HashMap<Block, Integer>(), IDToFirePropagateMapping = new HashMap<Block, Integer>();
+    private static Map<Block, Block> LeafToSaplingMapping = new HashMap<Block, Block>();
+	private static Map<Block, String[]> TreeIdToMeta = new HashMap<Block, String[]>();
 	private static String[] names = new String[] { "Sapling", "Tree", "Plants", "Netherwort", "Grass", "Reed", "Cactus", "Mushroom", "Mushroom Tree", "Leaf", "Crops", "Moss", "Cocoa", "Fire" };
 	private static boolean[] dieSets = new boolean[names.length], growSets = new boolean[names.length + 1];
 	private static float[] deathRates = new float[names.length], growthRates = new float[names.length + 1];
@@ -72,7 +71,7 @@ public class NatureOverhaul implements ITickHandler {
 			optionsCategory[i] = names[i] + " Options";
 		}
 		optionsCategory[names.length] = "Misc Options";
-	};
+	}
 	private static Configuration config;
 	private static Class<?> api;
 	private static boolean API;
@@ -81,20 +80,15 @@ public class NatureOverhaul implements ITickHandler {
 	private static PlayerEventHandler lumberEvent;
 	private static AutoSaplingEventHandler autoEvent;
 	private static AutoFarmingEventHandler farmingEvent;
-	private static Logger logger;
-
-	@Override
-	public String getLabel() {
-		return "Nature Overhaul Tick";
-	}
+	private static org.apache.logging.log4j.Logger logger;
 
 	@EventHandler
 	public void load(FMLInitializationEvent event) {
-		TickRegistry.registerTickHandler(this, Side.SERVER);
+		FMLCommonHandler.instance().bus().register(this);
 	}
 
+    //Register blocks with config values and NOType, and log/leaf couples
 	@EventHandler
-	//Register blocks with config values and NOType, and log/leaf couples
 	public void modsLoaded(FMLPostInitializationEvent event) {
 		if (Loader.isModLoaded("mod_MOAPI")) {//We can use reflection to load options in MOAPI
 			try {
@@ -159,7 +153,7 @@ public class NatureOverhaul implements ITickHandler {
 				getMOAPIValues(optionClass, subOption, lumberJackOption, miscOption, animalsOption, fireOption);
 				//We successfully get all options !
 				API = true;
-				logger.finest("NatureOverhaul found MOAPI and loaded all options correctly.");
+				logger.info("NatureOverhaul found MOAPI and loaded all options correctly.");
 			} catch (SecurityException s) {
 				API = false;
 			} catch (ClassNotFoundException c) {
@@ -167,70 +161,71 @@ public class NatureOverhaul implements ITickHandler {
 				logger.info("NatureOverhaul couldn't use MOAPI, continuing with values in config file.");
 			} catch (ReflectiveOperationException n) {
 				API = false;
-				logger.log(Level.WARNING, "NatureOverhaul failed to use MOAPI, please report to NO author:", n);
+				logger.warn("NatureOverhaul failed to use MOAPI, please report to NO author:", n);
 			}//Even if it fails, we can still rely on settings stored in Forge recommended config file.
 		}
 		//Now we can register every available blocks at this point.
-		Set<Integer> logID = new HashSet<Integer>(), leafID = new HashSet<Integer>(), saplingID = new HashSet<Integer>();
+		Set<Block> logID = new HashSet<Block>(), leafID = new HashSet<Block>(), saplingID = new HashSet<Block>();
 		//If a block is registered after, it won't be accounted for.
-		for (int i = 1; i < Block.blocksList.length; i++) {
-			if (Block.blocksList[i] != null) {
-				if (Block.blocksList[i] instanceof IGrowable && Block.blocksList[i] instanceof IBlockDeath) {//Priority to Blocks using the API
-					addMapping(i, true, ((IGrowable) Block.blocksList[i]).getGrowthRate(), true, ((IBlockDeath) Block.blocksList[i]).getDeathRate(), -1.0F, -1.0F, NOType.CUSTOM);
-				} else if (Block.blocksList[i] instanceof IGrowable) {
-					addMapping(i, true, ((IGrowable) Block.blocksList[i]).getGrowthRate(), false, -1, -1.0F, -1.0F, NOType.CUSTOM);
-				} else if (Block.blocksList[i] instanceof IBlockDeath) {
-					addMapping(i, false, -1, true, ((IBlockDeath) Block.blocksList[i]).getDeathRate(), -1.0F, -1.0F, NOType.CUSTOM);
-				} else if (Block.blocksList[i] instanceof BlockSapling) {
+        Block i = null;
+		for (Iterator itr=GameData.blockRegistry.iterator();itr.hasNext(); i = (Block)itr.next()) {
+			if (i != null) {
+				if (i instanceof IGrowable && i instanceof IBlockDeath) {//Priority to Blocks using the API
+					addMapping(i, true, ((IGrowable) i).getGrowthRate(), true, ((IBlockDeath) i).getDeathRate(), -1.0F, -1.0F, NOType.CUSTOM);
+				} else if (i instanceof IGrowable) {
+					addMapping(i, true, ((IGrowable) i).getGrowthRate(), false, -1, -1.0F, -1.0F, NOType.CUSTOM);
+				} else if (i instanceof IBlockDeath) {
+					addMapping(i, false, -1, true, ((IBlockDeath) i).getDeathRate(), -1.0F, -1.0F, NOType.CUSTOM);
+				} else if (i instanceof BlockSapling) {
 					saplingID.add(i);
-				} else if (Block.blocksList[i] instanceof BlockLog) {
+				} else if (i instanceof BlockLog) {
 					logID.add(i);
-				} else if (Block.blocksList[i] instanceof BlockNetherStalk) {//In the Nether, we don't use biome dependent parameter
+				} else if (i instanceof BlockNetherWart) {//In the Nether, we don't use biome dependent parameter
 					addMapping(i, growSets[3], growthRates[3], dieSets[3], deathRates[3], 0.0F, 0.0F, NOType.NETHERSTALK);
-				} else if (Block.blocksList[i] instanceof BlockGrass || Block.blocksList[i] instanceof BlockMycelium) {
+				} else if (i instanceof BlockGrass || i instanceof BlockMycelium) {
 					addMapping(i, growSets[4], growthRates[4], dieSets[4], deathRates[4], 0.7F, 0.5F, NOType.GRASS);
-				} else if (Block.blocksList[i] instanceof BlockReed) {
+				} else if (i instanceof BlockReed) {
 					addMapping(i, growSets[5], growthRates[5], dieSets[5], deathRates[5], 0.8F, 0.8F, NOType.REED);
-				} else if (Block.blocksList[i] instanceof BlockCactus) {
+				} else if (i instanceof BlockCactus) {
 					addMapping(i, growSets[6], growthRates[6], dieSets[6], deathRates[6], 1.5F, 0.2F, NOType.CACTUS);
-				} else if (Block.blocksList[i] instanceof BlockMushroom) {
+				} else if (i instanceof BlockMushroom) {
 					addMapping(i, growSets[7], growthRates[7], dieSets[7], deathRates[7], 0.9F, 1.0F, NOType.MUSHROOM);
-				} else if (Block.blocksList[i] instanceof BlockMushroomCap) {
+				} else if (i instanceof BlockHugeMushroom) {
 					addMapping(i, growSets[8], growthRates[8], dieSets[8], deathRates[8], 0.9F, 1.0F, NOType.MUSHROOMCAP);
-				} else if (Block.blocksList[i] instanceof BlockLeaves) {
+				} else if (i instanceof BlockLeaves) {
 					leafID.add(i);
-				} else if (Block.blocksList[i] instanceof BlockCrops || Block.blocksList[i] instanceof BlockStem) {
+				} else if (i instanceof BlockCrops || i instanceof BlockStem) {
 					addMapping(i, growSets[10], growthRates[10], dieSets[10], deathRates[10], 1.0F, 1.0F, NOType.FERTILIZED);
-				} else if (Block.blocksList[i] instanceof BlockFlower) {//Flower ,deadbush, lilypad, tallgrass
+				} else if (i instanceof BlockFlower) {//Flower ,deadbush, lilypad, tallgrass
 					addMapping(i, growSets[2], growthRates[2], dieSets[2], deathRates[2], 0.6F, 0.7F, NOType.PLANT, 100, 60);
-				} else if (i == Block.cobblestoneMossy.blockID) {
+				} else if (i == Blocks.mossy_cobblestone) {
 					addMapping(i, growSets[11], growthRates[11], dieSets[11], deathRates[11], 0.7F, 1.0F, NOType.MOSS);
-				} else if (Block.blocksList[i] instanceof BlockCocoa) {
+				} else if (i instanceof BlockCocoa) {
 					addMapping(i, growSets[12], growthRates[12], dieSets[12], deathRates[12], 1.0F, 1.0F, NOType.COCOA);
-				} else if (Block.blocksList[i] instanceof BlockFire) {
+				} else if (i instanceof BlockFire) {
 					addMapping(i, growSets[13], 0, dieSets[13], 0, 0.0F, 0.0F, NOType.CUSTOM);
 					BehaviorManager.setBehavior(i, new BehaviorFire().setData(growthRates[13], deathRates[13]));
 				}
-				if (Block.blocksList[i].isCollidable() && Block.blocksList[i].renderAsNormalBlock()) {
+				if (i.func_149688_o().isOpaque() && i.func_149686_d() && !i.func_149744_f()) {
 					IDToFirePropagateMapping.put(
 							i,
-							config.get("Fire Options", Block.blocksList[i].getUnlocalizedName().substring(5) + " chance to encourage fire",
+							config.get("Fire Options", i.func_149739_a().substring(5) + " chance to encourage fire",
 									IDToFirePropagateMapping.containsKey(i) ? IDToFirePropagateMapping.get(i) : 0).getInt());
 					IDToFireCatchMapping.put(
 							i,
-							config.get("Fire Options", Block.blocksList[i].getUnlocalizedName().substring(5) + " chance to catch fire",
+							config.get("Fire Options", i.func_149739_a().substring(5) + " chance to catch fire",
 									IDToFireCatchMapping.containsKey(i) ? IDToFireCatchMapping.get(i) : 0).getInt());
 				}
 			}
 		}
-		int[] idLog = Ints.toArray(logID), idLeaf = Ints.toArray(leafID), idSapling = Ints.toArray(saplingID);
+		Object[] idLog = logID.toArray(), idLeaf = leafID.toArray(), idSapling = saplingID.toArray();
 		String option = "", sData = "(", gData = "(", fData = "(";
 		Set<Integer> sapData = new HashSet<Integer>(), logData = new HashSet<Integer>(), leafData = new HashSet<Integer>();
 		for (int index = 0; index < Math.min(Math.min(idLog.length, idLeaf.length), idSapling.length); index++) {
 			for (int meta = 0; meta < 16; meta++) {
-				sapData.add(Block.blocksList[idSapling[index]].damageDropped(meta));
-				logData.add(Block.blocksList[idLog[index]].damageDropped(meta));
-				leafData.add(Block.blocksList[idLeaf[index]].damageDropped(meta));
+				sapData.add(((Block)idSapling[index]).func_149692_a(meta));
+				logData.add(((Block)idLog[index]).func_149692_a(meta));
+				leafData.add(((Block)idLeaf[index]).func_149692_a(meta));
 			}
 			for (int meta : sapData) {
 				sData = sData.concat(meta + ",");
@@ -243,22 +238,22 @@ public class NatureOverhaul implements ITickHandler {
 			}
 			option = option.concat(idSapling[index] + sData + ")-" + idLog[index] + gData + ")-" + idLeaf[index] + fData + ");");
 		}
-		String[] ids = config.get(optionsCategory[names.length], "Sapling-Log-Leaves ids", option, "Separate groups with ;").getString().split(";");
+		String[] ids = config.get(optionsCategory[names.length], "Sapling-Log-Leaves names", option, "Separate groups with ;").getString().split(";");
 		String[] temp;
 		for (String param : ids) {
 			if (param != null && !param.equals("")) {
 				temp = param.split("-");
 				if (temp.length == 3) {
-					int idSaplin, idLo, idLef;
+					Block idSaplin, idLo, idLef;
 					try {
-						idSaplin = Integer.parseInt(temp[0].split("\\(")[0]);
-						idLo = Integer.parseInt(temp[1].split("\\(")[0]);
-						idLef = Integer.parseInt(temp[2].split("\\(")[0]);
-					} catch (NumberFormatException e) {
+						idSaplin = GameData.blockRegistry.get(temp[0].split("\\(")[0]);
+						idLo = GameData.blockRegistry.get(temp[1].split("\\(")[0]);
+						idLef = GameData.blockRegistry.get(temp[2].split("\\(")[0]);
+					} catch (Exception e) {
 						continue;
 					}
 					//Make sure user input is valid
-					if (isValid(idSaplin) && isValid(idLo) && isValid(idLef)) {
+					if (idSaplin!=null && idLo!=null && idLef!=null) {
 						addMapping(idSaplin, growSets[0], 0, dieSets[0], deathRates[0], 0.8F, 0.8F, NOType.SAPLING);
 						TreeIdToMeta.put(idSaplin, temp[0].split("\\(")[1].replace("\\)", "").trim().split("\\,"));
 						addMapping(idLo, growSets[1], growthRates[1], dieSets[1], deathRates[1], 1.0F, 1.0F, NOType.LOG, 5, 5);
@@ -272,16 +267,17 @@ public class NatureOverhaul implements ITickHandler {
 			}
 		}
 		option = "";
-		for (Item it : Item.itemsList) {
+        Item it = null;
+		for (Iterator itr = GameData.itemRegistry.iterator();itr.hasNext(); it=(Item)itr.next()) {
 			if (it instanceof ItemAxe) {
-				option = option.concat(it.itemID + ",");
+				option = option.concat(it + ",");
 			}
 		}
-		ids = config.get(optionsCategory[1], "Lumberjack compatible item ids", option, "Separate item ids with comma").getString().split(",");
+		ids = config.get(optionsCategory[1], "Lumberjack compatible items", option, "Separate item names with comma").getString().split(",");
 		for (String param : ids) {
 			if (param != null && !param.equals("")) {
 				try {
-					PlayerEventHandler.ids.add(Integer.parseInt(param));
+					PlayerEventHandler.ids.add(GameData.itemRegistry.get(param));
 				} catch (NumberFormatException e) {
 					continue;
 				}
@@ -291,8 +287,8 @@ public class NatureOverhaul implements ITickHandler {
 		if (config.hasChanged()) {
 			config.save();
 		}
-		for (int i : IDToFirePropagateMapping.keySet()) {
-			Block.setBurnProperties(i, IDToFirePropagateMapping.get(i), IDToFireCatchMapping.get(i));
+		for (Block b : IDToFirePropagateMapping.keySet()) {
+			Blocks.fire.setFireInfo(i, IDToFirePropagateMapping.get(b), IDToFireCatchMapping.get(b));
 		}
 		//Registering event listeners.
 		bonemealEvent = new BonemealEventHandler(moddedBonemeal);
@@ -349,114 +345,108 @@ public class NatureOverhaul implements ITickHandler {
 		autoFarming = config.get(optionsCategory[names.length], "Plant seeds on player drop", true).getBoolean(true);
 	}
 
-	@Override
-	public void tickEnd(EnumSet<TickType> type, Object... tickData) {
-	}
-
-	@Override
-	public EnumSet<TickType> ticks() {
-		return EnumSet.of(TickType.WORLD);//The only TickType we want to get the world ticks.
-	}
-
-	@Override
-	/**
-	 * Core method. We make vanilla-like random ticks in loaded chunks.
-	 */
-	public void tickStart(EnumSet<TickType> type, Object... tickData) {
-		if (API) {
-			try {
-				Method getMod = api.getMethod("getModOptions", String.class);
-				//"getMod" is static, we don't need an instance
-				Object option = getMod.invoke(null, "Nature Overhaul");
-				Class<?> optionClass = getMod.getReturnType();
-				//To get a submenu
-				Method getSubOption = optionClass.getMethod("getOption", String.class);
-				Object subOption = getSubOption.invoke(option, "General");
-				//Get "LumberJack" submenu
-				Object lumberJackOption = getSubOption.invoke(option, "LumberJack");
-				//Get "Misc" submenu
-				Object miscOption = getSubOption.invoke(option, "Misc");
-				//Get "Animals" submenu
-				Object animalsOption = getSubOption.invoke(option, "Animals");
-				//Get "Fire submenu
-				Object fireOption = getSubOption.invoke(option, "Fire");
-				//We can start to get the values back
-				getMOAPIValues(optionClass, subOption, lumberJackOption, miscOption, animalsOption, fireOption);
-			} catch (SecurityException s) {
-				API = false;
-			} catch (ReflectiveOperationException i) {
-				API = false;
-			}
-			BehaviorFire fire = ((BehaviorFire) BehaviorManager.getBehavior(Block.fire.blockID));
-			if (fire.getRange() != fireRange) {
-				fire.setRange(fireRange);
-			}
-			bonemealEvent.set(moddedBonemeal);
-			animalEvent.set(wildAnimalsBreed, wildAnimalBreedRate, wildAnimalDeathRate);
-			lumberEvent.set(lumberjack, killLeaves);
-			autoEvent.set(autoSapling);
-			farmingEvent.set(autoFarming);
-			int index = -1;
-			for (int i : IDToTypeMapping.keySet()) {
-				index = IDToTypeMapping.get(Integer.valueOf(i)).getIndex();
-				if (index > -1) {
-					if (growSets[index] != IDToGrowingMapping.get(Integer.valueOf(i)))
-						IDToGrowingMapping.put(Integer.valueOf(i), growSets[index]);
-					if (dieSets[index] != IDToDyingMapping.get(Integer.valueOf(i)))
-						IDToDyingMapping.put(Integer.valueOf(i), dieSets[index]);
-					IBehave behav = BehaviorManager.getBehavior(i);
-					if (growthRates[index] != behav.getGrowthRate()) {
-						behav.setGrowthRate(growthRates[index]);
-					}
-					if (deathRates[index] != behav.getDeathRate()) {
-						behav.setDeathRate(deathRates[index]);
-					}
-				}
-			}
-		}
-		if (tickData.length > 0 && tickData[0] instanceof WorldServer) {
-			WorldServer world = (WorldServer) tickData[0];
-			if ((world.provider.dimensionId == 0 || (customDimension && world.provider.dimensionId != 1)) && !world.activeChunkSet.isEmpty()) {
-				Iterator<?> it = world.activeChunkSet.iterator();
-				while (it.hasNext()) {
-					ChunkCoordIntPair chunkIntPair = (ChunkCoordIntPair) it.next();
-					int k = chunkIntPair.chunkXPos * 16;
-					int l = chunkIntPair.chunkZPos * 16;
-					Chunk chunk = null;
-					if (world.getChunkProvider().chunkExists(chunkIntPair.chunkXPos, chunkIntPair.chunkZPos)) {
-						chunk = world.getChunkFromChunkCoords(chunkIntPair.chunkXPos, chunkIntPair.chunkZPos);
-					}
-					if (chunk != null && chunk.isChunkLoaded && chunk.isTerrainPopulated) {
-						int i2, k2, l2, i3, j3;//Vanilla like random ticks for blocks
-						for (ExtendedBlockStorage blockStorage : chunk.getBlockStorageArray()) {
-							if (blockStorage != null && !blockStorage.isEmpty() && blockStorage.getNeedsRandomTick()) {
-								for (int j2 = 0; j2 < 3; ++j2) {
-									this.updateLCG = this.updateLCG * 3 + 1013904223;
-									i2 = this.updateLCG >> 2;
-									k2 = i2 & 15;
-									l2 = i2 >> 8 & 15;
-									i3 = i2 >> 16 & 15;
-									j3 = blockStorage.getExtBlockID(k2, i3, l2);
-									if (isRegistered(j3)) {
-										onUpdateTick(world, k2 + k, i3 + blockStorage.getYLocation(), l2 + l, j3);
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
+    /**
+     * Core method. We make vanilla-like random ticks in loaded chunks.
+     */
+	@SubscribeEvent
+	public void tickStart(TickEvent.WorldTickEvent event) {
+        if(event.side.isServer()){
+            if (event.phase == TickEvent.Phase.START && API) {
+                try {
+                    Method getMod = api.getMethod("getModOptions", String.class);
+                    //"getMod" is static, we don't need an instance
+                    Object option = getMod.invoke(null, "Nature Overhaul");
+                    Class<?> optionClass = getMod.getReturnType();
+                    //To get a submenu
+                    Method getSubOption = optionClass.getMethod("getOption", String.class);
+                    Object subOption = getSubOption.invoke(option, "General");
+                    //Get "LumberJack" submenu
+                    Object lumberJackOption = getSubOption.invoke(option, "LumberJack");
+                    //Get "Misc" submenu
+                    Object miscOption = getSubOption.invoke(option, "Misc");
+                    //Get "Animals" submenu
+                    Object animalsOption = getSubOption.invoke(option, "Animals");
+                    //Get "Fire submenu
+                    Object fireOption = getSubOption.invoke(option, "Fire");
+                    //We can start to get the values back
+                    getMOAPIValues(optionClass, subOption, lumberJackOption, miscOption, animalsOption, fireOption);
+                } catch (SecurityException s) {
+                    API = false;
+                } catch (ReflectiveOperationException i) {
+                    API = false;
+                }
+                BehaviorFire fire = ((BehaviorFire) BehaviorManager.getBehavior(Blocks.fire));
+                if (fire.getRange() != fireRange) {
+                    fire.setRange(fireRange);
+                }
+                bonemealEvent.set(moddedBonemeal);
+                animalEvent.set(wildAnimalsBreed, wildAnimalBreedRate, wildAnimalDeathRate);
+                lumberEvent.set(lumberjack, killLeaves);
+                autoEvent.set(autoSapling);
+                farmingEvent.set(autoFarming);
+                int index = -1;
+                for (Block i : IDToTypeMapping.keySet()) {
+                    index = IDToTypeMapping.get(i).getIndex();
+                    if (index > -1) {
+                        if (growSets[index] != IDToGrowingMapping.get(i))
+                            IDToGrowingMapping.put(i, growSets[index]);
+                        if (dieSets[index] != IDToDyingMapping.get(i))
+                            IDToDyingMapping.put(i, dieSets[index]);
+                        IBehave behav = BehaviorManager.getBehavior(i);
+                        if (growthRates[index] != behav.getGrowthRate()) {
+                            behav.setGrowthRate(growthRates[index]);
+                        }
+                        if (deathRates[index] != behav.getDeathRate()) {
+                            behav.setDeathRate(deathRates[index]);
+                        }
+                    }
+                }
+            }
+            if (event.phase == TickEvent.Phase.END) {
+                WorldServer world = (WorldServer) event.world;
+                if ((world.provider.dimensionId == 0 || (customDimension && world.provider.dimensionId != 1)) && !world.activeChunkSet.isEmpty()) {
+                    Iterator<?> it = world.activeChunkSet.iterator();
+                    while (it.hasNext()) {
+                        ChunkCoordIntPair chunkIntPair = (ChunkCoordIntPair) it.next();
+                        int k = chunkIntPair.chunkXPos * 16;
+                        int l = chunkIntPair.chunkZPos * 16;
+                        Chunk chunk = null;
+                        if (world.getChunkProvider().chunkExists(chunkIntPair.chunkXPos, chunkIntPair.chunkZPos)) {
+                            chunk = world.getChunkFromChunkCoords(chunkIntPair.chunkXPos, chunkIntPair.chunkZPos);
+                        }
+                        if (chunk != null && chunk.isChunkLoaded && chunk.isTerrainPopulated) {
+                            int i2, k2, l2, i3;
+                            Block j3;//Vanilla like random ticks for blocks
+                            for (ExtendedBlockStorage blockStorage : chunk.getBlockStorageArray()) {
+                                if (blockStorage != null && !blockStorage.isEmpty() && blockStorage.getNeedsRandomTick()) {
+                                    for (int j2 = 0; j2 < 3; ++j2) {
+                                        this.updateLCG = this.updateLCG * 3 + 1013904223;
+                                        i2 = this.updateLCG >> 2;
+                                        k2 = i2 & 15;
+                                        l2 = i2 >> 8 & 15;
+                                        i3 = i2 >> 16 & 15;
+                                        j3 = blockStorage.func_150819_a(k2, i3, l2);
+                                        if (j3!=Blocks.air && isRegistered(j3)) {
+                                            onUpdateTick(world, k2 + k, i3 + blockStorage.getYLocation(), l2 + l, j3);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 	}
 
 	/**
 	 * The death general method. Called by
-	 * {@link #onUpdateTick(World, int, int, int, int)} when conditions are
+	 * {@link #onUpdateTick(World, int, int, int, Block)} when conditions are
 	 * fulfilled.
 	 **/
-	public static void death(World world, int i, int j, int k, int id) {
-		if (Block.blocksList[id] instanceof IBlockDeath) {
-			((IBlockDeath) Block.blocksList[id]).death(world, i, j, k, id);
+	public static void death(World world, int i, int j, int k, Block id) {
+		if (id instanceof IBlockDeath) {
+			((IBlockDeath) id).death(world, i, j, k, id);
 		} else {
 			BehaviorManager.getBehavior(id).death(world, i, j, k, id);
 		}
@@ -486,12 +476,12 @@ public class NatureOverhaul implements ITickHandler {
 
 	/**
 	 * Get the growth probability. Called by
-	 * {@link #onUpdateTick(World, int, int, int, int)}.
+	 * {@link #onUpdateTick(World, int, int, int, Block)}.
 	 * 
 	 * @return growth probability for given blockid and NOType at given
 	 *         coordinates
 	 */
-	public static float getGrowthProb(World world, int i, int j, int k, int id, NOType type) {
+	public static float getGrowthProb(World world, int i, int j, int k, Block id, NOType type) {
 		float freq = getGrowthRate(id);
 		if (biomeModifiedRate && freq > 0 && type != NOType.NETHERSTALK) {
 			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
@@ -508,32 +498,32 @@ public class NatureOverhaul implements ITickHandler {
 			return -1F;
 	}
 
-	public static Map<Integer, NOType> getIDToTypeMapping() {
+	public static Map<Block, NOType> getIDToTypeMapping() {
 		return ImmutableMap.copyOf(IDToTypeMapping);
 	}
 
-	public static Map<Integer, Integer> getLeafToSaplingMapping() {
+	public static Map<Block, Block> getLeafToSaplingMapping() {
 		return ImmutableMap.copyOf(LeafToSaplingMapping);
 	}
 
-	public static Map<Integer, Integer> getLogToLeafMapping() {
+	public static Map<Block, Block> getLogToLeafMapping() {
 		return ImmutableMap.copyOf(LogToLeafMapping);
 	}
 
-	public static Map<Integer, String[]> getTreeIDMeta() {
+	public static Map<Block, String[]> getTreeIDMeta() {
 		return ImmutableMap.copyOf(TreeIdToMeta);
 	}
 
 	/**
 	 * The general growing method. Called by
-	 * {@link #onUpdateTick(World, int, int, int, int)}. when conditions are
+	 * {@link #onUpdateTick(World, int, int, int, Block)}. when conditions are
 	 * fulfilled.
 	 **/
-	public static void grow(World world, int i, int j, int k, int id) {
-		if (Block.blocksList[id] instanceof IGrowable) {
-			((IGrowable) Block.blocksList[id]).grow(world, i, j, k, id);
+	public static void grow(World world, int i, int j, int k, Block id) {
+		if (id instanceof IGrowable) {
+			((IGrowable) id).grow(world, i, j, k, id);
 		} else {
-			BehaviorManager.getBehavior(Integer.valueOf(id)).grow(world, i, j, k, id);
+			BehaviorManager.getBehavior(id).grow(world, i, j, k, id);
 		}
 	}
 
@@ -544,8 +534,8 @@ public class NatureOverhaul implements ITickHandler {
 	 *            the block id to check
 	 * @return true if block can grow
 	 */
-	public static boolean isGrowing(int id) {
-		return IDToGrowingMapping.get(Integer.valueOf(id));
+	public static boolean isGrowing(Block id) {
+		return IDToGrowingMapping.get(id);
 	}
 
 	/**
@@ -555,16 +545,12 @@ public class NatureOverhaul implements ITickHandler {
 	 *            the block id to check
 	 * @return true if block is a log
 	 */
-	public static boolean isLog(int id) {
+	public static boolean isLog(Block id) {
 		return LogToLeafMapping.containsKey(id) || IDToTypeMapping.get(id) == NOType.MUSHROOMCAP;
 	}
 
-	public static boolean isRegistered(int id) {
-		return isValid(id) && BehaviorManager.isRegistered(id);
-	}
-
-	public static boolean isValid(int id) {
-		return id > 0 && id < 4096 && Block.blocksList[id] != null;
+	public static boolean isRegistered(Block id) {
+		return BehaviorManager.isRegistered(id);
 	}
 
 	/**
@@ -574,17 +560,17 @@ public class NatureOverhaul implements ITickHandler {
 	 *            The id the block is registered with.
 	 * @param isGrowing
 	 *            Whether the block can call
-	 *            {@link #grow(World, int, int, int, int, NOType)} on tick.
+	 *            {@link #grow(World, int, int, int, Block)} on tick.
 	 * @param growthRate
-	 *            How often the {@link #grow(World, int, int, int, int, NOType)}
+	 *            How often the {@link #grow(World, int, int, int, Block)}
 	 *            method will be called.
 	 * @param isMortal
 	 *            Whether the block can call
-	 *            {@link #death(World, int, int, int, int, NOType)} method on
+	 *            {@link #death(World, int, int, int, Block)} method on
 	 *            tick.
 	 * @param deathRate
 	 *            How often the
-	 *            {@link #death(World, int, int, int, int, NOType)} method will
+	 *            {@link #death(World, int, int, int, Block)} method will
 	 *            be called.
 	 * @param optTemp
 	 *            The optimal temperature parameter for the growth.
@@ -594,28 +580,27 @@ public class NatureOverhaul implements ITickHandler {
 	 *            {@link NOType} Decides which growth and/or death to use, and
 	 *            tolerance to temperature and humidity.
 	 */
-	private static void addMapping(int id, boolean isGrowing, float growthRate, boolean isMortal, float deathRate, float optTemp, float optRain, NOType type) {
-		IDToGrowingMapping.put(Integer.valueOf(id), isGrowing);
-		IDToDyingMapping.put(Integer.valueOf(id), isMortal);
-		IDToTypeMapping.put(Integer.valueOf(id), type);
-		BehaviorManager.setBehavior(Integer.valueOf(id), BehaviorManager.getBehavior(type).setData(growthRate, deathRate, optRain, optTemp));
+	private static void addMapping(Block id, boolean isGrowing, float growthRate, boolean isMortal, float deathRate, float optTemp, float optRain, NOType type) {
+		IDToGrowingMapping.put(id, isGrowing);
+		IDToDyingMapping.put(id, isMortal);
+		IDToTypeMapping.put(id, type);
+		BehaviorManager.setBehavior(id, BehaviorManager.getBehavior(type).setData(growthRate, deathRate, optRain, optTemp));
 	}
 
 	/**
-	 * Registers all mappings simultaneously. Overloaded method with fire
-	 * parameters.
+	 * Registers all mappings simultaneously. Overloaded method with fire parameters.
 	 * 
 	 * @param fireCatch
 	 *            Related to 3rd parameter in {@link
-	 *            Block.setBurnProperties(int,int,int)}.
+	 *            BlockFire#setFireInfo(Block,int,int)}.
 	 * @param firePropagate
 	 *            Related to 2nd parameter in {@link
-	 *            Block.setBurnProperties(int,int,int)}.
+	 *            BlockFire#setFireInfo(Block,int,int)}.
 	 */
-	private static void addMapping(int id, boolean isGrowing, float growthRate, boolean isMortal, float deathRate, float optTemp, float optRain, NOType type, int fireCatch, int firePropagate) {
+	private static void addMapping(Block id, boolean isGrowing, float growthRate, boolean isMortal, float deathRate, float optTemp, float optRain, NOType type, int fireCatch, int firePropagate) {
 		addMapping(id, isGrowing, growthRate, isMortal, deathRate, optTemp, optRain, type);
-		IDToFireCatchMapping.put(Integer.valueOf(id), fireCatch);
-		IDToFirePropagateMapping.put(Integer.valueOf(id), firePropagate);
+		IDToFireCatchMapping.put(id, fireCatch);
+		IDToFirePropagateMapping.put(id, firePropagate);
 	}
 
 	/**
@@ -627,12 +612,12 @@ public class NatureOverhaul implements ITickHandler {
 
 	/**
 	 * Get the death probability. Called by
-	 * {@link #onUpdateTick(World, int, int, int, int)}.
+	 * {@link #onUpdateTick(World, int, int, int, Block)}.
 	 * 
 	 * @return Death probability for given blockid and NOType at given
 	 *         coordinates
 	 */
-	private static float getDeathProb(World world, int i, int j, int k, int id, NOType type) {
+	private static float getDeathProb(World world, int i, int j, int k, Block id, NOType type) {
 		float freq = getDeathRate(id);
 		if (biomeModifiedRate && freq > 0 && type != NOType.NETHERSTALK) {
 			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
@@ -649,19 +634,19 @@ public class NatureOverhaul implements ITickHandler {
 			return -1F;
 	}
 
-	private static float getDeathRate(int id) {
-		if (Block.blocksList[id] instanceof IBlockDeath) {
-			return ((IBlockDeath) Block.blocksList[id]).getDeathRate();
+	private static float getDeathRate(Block id) {
+		if (id instanceof IBlockDeath) {
+			return ((IBlockDeath) id).getDeathRate();
 		} else {
-			return BehaviorManager.getBehavior(Integer.valueOf(id)).getDeathRate();
+			return BehaviorManager.getBehavior(id).getDeathRate();
 		}
 	}
 
-	private static float getGrowthRate(int id) {
-		if (Block.blocksList[id] instanceof IGrowable) {
-			return ((IGrowable) Block.blocksList[id]).getGrowthRate();
+	private static float getGrowthRate(Block id) {
+		if (id instanceof IGrowable) {
+			return ((IGrowable) id).getGrowthRate();
 		} else {
-			return BehaviorManager.getBehavior(Integer.valueOf(id)).getGrowthRate();
+			return BehaviorManager.getBehavior(id).getGrowthRate();
 		}
 	}
 
@@ -699,42 +684,42 @@ public class NatureOverhaul implements ITickHandler {
 		fireRange = getIntFrom(getSlider, fireOption, "Propagation range");
 	}
 
-	private static float getOptRain(int id) {
-		return BehaviorManager.getBehavior(Integer.valueOf(id)).getOptRain();
+	private static float getOptRain(Block id) {
+		return BehaviorManager.getBehavior(id).getOptRain();
 	}
 
-	private static float getOptTemp(int id) {
-		return BehaviorManager.getBehavior(Integer.valueOf(id)).getOptTemp();
+	private static float getOptTemp(Block id) {
+		return BehaviorManager.getBehavior(id).getOptTemp();
 	}
 
 	/**
-	 * Called by {@link #onUpdateTick(World, int, int, int, int)}. Checks
+	 * Called by {@link #onUpdateTick(World, int, int, int, Block)}. Checks
 	 * whether this block has died on this tick for any reason
 	 * 
 	 * @return True if plant has died
 	 */
-	private static boolean hasDied(World world, int i, int j, int k, int id) {
-		if (Block.blocksList[id] instanceof IBlockDeath) {
-			return ((IBlockDeath) Block.blocksList[id]).hasDied(world, i, j, k, id);
+	private static boolean hasDied(World world, int i, int j, int k, Block id) {
+		if (id instanceof IBlockDeath) {
+			return ((IBlockDeath) id).hasDied(world, i, j, k, id);
 		} else {
-			return BehaviorManager.getBehavior(Integer.valueOf(id)).hasDied(world, i, j, k, id);
+			return BehaviorManager.getBehavior(id).hasDied(world, i, j, k, id);
 		}
 	}
 
-	private static boolean isMortal(int id) {
-		return IDToDyingMapping.get(Integer.valueOf(id));
+	private static boolean isMortal(Block id) {
+		return IDToDyingMapping.get(id);
 	}
 
 	/**
-	 * Called from the world tick {@link #tickStart(EnumSet, Object...)} with a
-	 * {@link #isValid(int)} id. Checks with {@link #isGrowing(int)} or
-	 * {@link #isMortal(int)} booleans, and probabilities with
-	 * {@link #getGrowthProb(World, int, int, int, int, NOType)} or
-	 * {@link #getDeathProb(World, int, int, int, int, NOType)} then call
-	 * {@link #grow(World, int, int, int, int)} or
-	 * {@link #death(World, int, int, int, int)}.
+	 * Called from the world tick {@link #tickStart(TickEvent.WorldTickEvent)} with a
+	 * {@link #isRegistered(Block)} block. Checks with {@link #isGrowing(Block)} or
+	 * {@link #isMortal(Block)} booleans, and probabilities with
+	 * {@link #getGrowthProb(World, int, int, int, Block, NOType)} or
+	 * {@link #getDeathProb(World, int, int, int, Block, NOType)} then call
+	 * {@link #grow(World, int, int, int, Block)} or
+	 * {@link #death(World, int, int, int, Block)}.
 	 */
-	private static void onUpdateTick(World world, int i, int j, int k, int id) {
+	private static void onUpdateTick(World world, int i, int j, int k, Block id) {
 		NOType type = Utils.getType(id);
 		if (isGrowing(id) && world.rand.nextFloat() < getGrowthProb(world, i, j, k, id, type)) {
 			grow(world, i, j, k, id);

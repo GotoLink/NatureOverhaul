@@ -1,5 +1,6 @@
 package natureoverhaul;
 
+import net.minecraft.block.Block;
 import net.minecraft.world.World;
 
 /**
@@ -16,7 +17,7 @@ public interface IBlockDeath {
 	 * @param j
 	 * @param k
 	 */
-	public void death(World world, int i, int j, int k, int id);
+	public void death(World world, int i, int j, int k, Block id);
 
 	/**
 	 * @return The rate used for randomizing death, set to negative value to
@@ -33,7 +34,7 @@ public interface IBlockDeath {
 	 * @param k
 	 * @return True if plant has died
 	 */
-	public boolean hasDied(World world, int i, int j, int k, int id);
+	public boolean hasDied(World world, int i, int j, int k, Block id);
 
 	/**
 	 * Called when corresponding config value has changed

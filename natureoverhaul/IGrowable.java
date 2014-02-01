@@ -1,5 +1,6 @@
 package natureoverhaul;
 
+import net.minecraft.block.Block;
 import net.minecraft.world.World;
 
 /**
@@ -19,7 +20,7 @@ public interface IGrowable {
 	/**
 	 * Grows a block at given location
 	 */
-	public void grow(World world, int i, int j, int k, int id);
+	public void grow(World world, int i, int j, int k, Block id);
 
 	/**
 	 * Called when corresponding config value has changed

@@ -1,9 +1,9 @@
 package natureoverhaul.events;
 
+import cpw.mods.fml.common.eventhandler.Cancelable;
 import net.minecraft.entity.EntityAgeable;
 import net.minecraft.entity.passive.EntityAnimal;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.Cancelable;
 import net.minecraftforge.event.entity.living.LivingEvent;
 
 public class WildBreedingEvent extends LivingEvent {

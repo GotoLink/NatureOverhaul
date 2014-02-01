@@ -1,8 +1,8 @@
 package natureoverhaul.events;
 
+import cpw.mods.fml.common.eventhandler.Cancelable;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraftforge.common.IPlantable;
-import net.minecraftforge.event.Cancelable;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 
 @Cancelable

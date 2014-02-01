@@ -4,11 +4,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
+import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import natureoverhaul.events.WildBreedingEvent;
 import net.minecraft.entity.EntityAgeable;
 import net.minecraft.entity.passive.EntityAnimal;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.ForgeSubscribe;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 
 /**
@@ -27,7 +27,7 @@ public class AnimalEventHandler {
 		this.deathRate = deathRate;
 	}
 
-	@ForgeSubscribe
+	@SubscribeEvent
 	public void onLivingUpdateEvent(LivingUpdateEvent event) {
 		if (breed && event.entityLiving instanceof EntityAnimal) {
 			EntityAnimal ent = (EntityAnimal) event.entityLiving;

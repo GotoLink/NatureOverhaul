@@ -36,8 +36,8 @@ public class BehaviorSapling extends BehaviorDeathDisappear{
 	}
 
 	@Override
-	public void grow(World world, int i, int j, int k, int id) {
-		((BlockSapling) Block.blocksList[id]).growTree(world, i, j, k, world.rand);
+	public void grow(World world, int i, int j, int k, Block id) {
+		((BlockSapling) id).func_149878_d(world, i, j, k, world.rand);
 	}
 
 }

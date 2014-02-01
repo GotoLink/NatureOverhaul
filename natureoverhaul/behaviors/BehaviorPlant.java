@@ -11,23 +11,23 @@ public class BehaviorPlant extends BehaviorDeathDisappear {
 	}
 
 	@Override
-	public void grow(World world, int i, int j, int k, int id) {
+	public void grow(World world, int i, int j, int k, Block id) {
 		int scanSize = 2;
 		int coord[];
 		for (int attempt = 0; attempt < 18; attempt++) {
 			coord = Utils.findRandomNeighbour(i, j, k, scanSize);
-			if (Block.blocksList[id].canPlaceBlockAt(world, coord[0], coord[1], coord[2]) && !world.getBlockMaterial(coord[0], coord[1], coord[2]).isLiquid()) {
+			if (id.func_149742_c(world, coord[0], coord[1], coord[2]) && !world.func_147439_a(coord[0], coord[1], coord[2]).func_149688_o().isLiquid()) {
 				if (!isMetadataSensitive(id)) {
-					world.setBlock(coord[0], coord[1], coord[2], id);
+					world.func_147449_b(coord[0], coord[1], coord[2], id);
 				} else {
-					world.setBlock(coord[0], coord[1], coord[2], id, world.getBlockMetadata(i, j, k), 3);
+					world.func_147465_d(coord[0], coord[1], coord[2], id, world.getBlockMetadata(i, j, k), 3);
 				}
 				return;
 			}
 		}
 	}
 
-	public boolean isMetadataSensitive(int id) {
+	public boolean isMetadataSensitive(Block id) {
 		return true;
 	}
 }
