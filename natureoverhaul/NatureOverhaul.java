@@ -1,12 +1,7 @@
 package natureoverhaul;
 
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -165,7 +160,7 @@ public class NatureOverhaul {
 			}//Even if it fails, we can still rely on settings stored in Forge recommended config file.
 		}
 		//Now we can register every available blocks at this point.
-		Set<Block> logID = new HashSet<Block>(), leafID = new HashSet<Block>(), saplingID = new HashSet<Block>();
+		ArrayList<Block> logID = new ArrayList<Block>(), leafID = new ArrayList<Block>(), saplingID = new ArrayList<Block>();
 		//If a block is registered after, it won't be accounted for.
         Block i = null;
 		for (Iterator itr=GameData.blockRegistry.iterator();itr.hasNext(); i = (Block)itr.next()) {
@@ -218,14 +213,13 @@ public class NatureOverhaul {
 				}
 			}
 		}
-		Object[] idLog = logID.toArray(), idLeaf = leafID.toArray(), idSapling = saplingID.toArray();
 		String option = "", sData = "(", gData = "(", fData = "(";
 		Set<Integer> sapData = new HashSet<Integer>(), logData = new HashSet<Integer>(), leafData = new HashSet<Integer>();
-		for (int index = 0; index < Math.min(Math.min(idLog.length, idLeaf.length), idSapling.length); index++) {
+		for (int index = 0; index < Math.min(Math.min(logID.size(), leafID.size()), saplingID.size()); index++) {
 			for (int meta = 0; meta < 16; meta++) {
-				sapData.add(((Block)idSapling[index]).func_149692_a(meta));
-				logData.add(((Block)idLog[index]).func_149692_a(meta));
-				leafData.add(((Block)idLeaf[index]).func_149692_a(meta));
+				sapData.add(saplingID.get(index).func_149692_a(meta));
+				logData.add(logID.get(index).func_149692_a(meta));
+				leafData.add(leafID.get(index).func_149692_a(meta));
 			}
 			for (int meta : sapData) {
 				sData = sData.concat(meta + ",");
@@ -236,7 +230,7 @@ public class NatureOverhaul {
 			for (int meta : leafData) {
 				fData = fData.concat(meta + ",");
 			}
-			option = option.concat(idSapling[index] + sData + ")-" + idLog[index] + gData + ")-" + idLeaf[index] + fData + ");");
+			option = option.concat(GameData.blockRegistry.func_148750_c(saplingID.get(index)) + sData + ")-" + GameData.blockRegistry.func_148750_c(logID.get(index)) + gData + ")-" + GameData.blockRegistry.func_148750_c(leafID.get(index)) + fData + ");");
 		}
 		String[] ids = config.get(optionsCategory[names.length], "Sapling-Log-Leaves names", option, "Separate groups with ;").getString().split(";");
 		String[] temp;
