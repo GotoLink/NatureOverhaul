@@ -201,14 +201,14 @@ public class NatureOverhaul {
 					addMapping(i, growSets[13], 0, dieSets[13], 0, 0.0F, 0.0F, NOType.CUSTOM);
 					BehaviorManager.setBehavior(i, new BehaviorFire().setData(growthRates[13], deathRates[13]));
 				}
-				if (i.func_149688_o().isOpaque() && i.func_149686_d() && !i.func_149744_f()) {
+				if (i.getMaterial().isOpaque() && i.renderAsNormalBlock() && i.isCollidable()) {
 					IDToFirePropagateMapping.put(
 							i,
-							config.get("Fire Options", i.func_149739_a().substring(5) + " chance to encourage fire",
+							config.get("Fire Options", i.getUnlocalizedName().substring(5) + " chance to encourage fire",
 									IDToFirePropagateMapping.containsKey(i) ? IDToFirePropagateMapping.get(i) : 0).getInt());
 					IDToFireCatchMapping.put(
 							i,
-							config.get("Fire Options", i.func_149739_a().substring(5) + " chance to catch fire",
+							config.get("Fire Options", i.getUnlocalizedName().substring(5) + " chance to catch fire",
 									IDToFireCatchMapping.containsKey(i) ? IDToFireCatchMapping.get(i) : 0).getInt());
 				}
 			}
@@ -217,9 +217,9 @@ public class NatureOverhaul {
 		Set<Integer> sapData = new HashSet<Integer>(), logData = new HashSet<Integer>(), leafData = new HashSet<Integer>();
 		for (int index = 0; index < Math.min(Math.min(logID.size(), leafID.size()), saplingID.size()); index++) {
 			for (int meta = 0; meta < 16; meta++) {
-				sapData.add(saplingID.get(index).func_149692_a(meta));
-				logData.add(logID.get(index).func_149692_a(meta));
-				leafData.add(leafID.get(index).func_149692_a(meta));
+				sapData.add(saplingID.get(index).damageDropped(meta));
+				logData.add(logID.get(index).damageDropped(meta));
+				leafData.add(leafID.get(index).damageDropped(meta));
 			}
 			for (int meta : sapData) {
 				sData = sData.concat(meta + ",");
@@ -230,7 +230,7 @@ public class NatureOverhaul {
 			for (int meta : leafData) {
 				fData = fData.concat(meta + ",");
 			}
-			option = option.concat(GameData.blockRegistry.func_148750_c(saplingID.get(index)) + sData + ")-" + GameData.blockRegistry.func_148750_c(logID.get(index)) + gData + ")-" + GameData.blockRegistry.func_148750_c(leafID.get(index)) + fData + ");");
+			option = option.concat(GameData.blockRegistry.getNameForObject(saplingID.get(index)) + sData + ")-" + GameData.blockRegistry.getNameForObject(logID.get(index)) + gData + ")-" + GameData.blockRegistry.getNameForObject(leafID.get(index)) + fData + ");");
 		}
 		String[] ids = config.get(optionsCategory[names.length], "Sapling-Log-Leaves names", option, "Separate groups with ;").getString().split(";");
 		String[] temp;
@@ -264,7 +264,7 @@ public class NatureOverhaul {
         Item it = null;
 		for (Iterator itr = GameData.itemRegistry.iterator();itr.hasNext(); it=(Item)itr.next()) {
 			if (it instanceof ItemAxe) {
-				option = option.concat(GameData.itemRegistry.func_148750_c(it)+ ",");
+				option = option.concat(GameData.itemRegistry.getNameForObject(it)+ ",");
 			}
 		}
 		ids = config.get(optionsCategory[1], "Lumberjack compatible items", option, "Separate item names with comma").getString().split(",");
@@ -419,7 +419,7 @@ public class NatureOverhaul {
                                         k2 = i2 & 15;
                                         l2 = i2 >> 8 & 15;
                                         i3 = i2 >> 16 & 15;
-                                        j3 = blockStorage.func_150819_a(k2, i3, l2);
+                                        j3 = blockStorage.getBlockByExtId(k2, i3, l2);
                                         if (j3!=Blocks.air && isRegistered(j3)) {
                                             onUpdateTick(world, k2 + k, i3 + blockStorage.getYLocation(), l2 + l, j3);
                                         }

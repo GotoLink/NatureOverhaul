@@ -13,12 +13,12 @@ public class BehaviorCactus extends BehaviorStarving{
 		//Disappear completely from top to bottom
 		int y = j;
 		// Get to the top so to avoid any being dropped since this is death
-		while (world.func_147439_a(i, y + 1, k) == id) {
+		while (world.getBlock(i, y + 1, k) == id) {
 			y = y + 1;
 		}
 		// Scan back down and delete
-		while (world.func_147439_a(i, y, k) == id) {
-			world.func_147468_f(i, y, k);
+		while (world.getBlock(i, y, k) == id) {
+			world.setBlockToAir(i, y, k);
 			y--;
 		}
 	}
@@ -41,19 +41,19 @@ public class BehaviorCactus extends BehaviorStarving{
 			int[] coord;
 			for (int attempt = 0; attempt < 18; attempt++) {
 				coord = Utils.findRandomNeighbour(i, j, k, scanSize);
-				if (id.func_149742_c(world, coord[0], coord[1], coord[2])) {
-					world.func_147449_b(coord[0], coord[1], coord[2], id);
+				if (id.canPlaceBlockAt(world, coord[0], coord[1], coord[2])) {
+					world.setBlock(coord[0], coord[1], coord[2], id);
 					return;
 				}
 			}
 		} else {
 			int height = j;
 			// Get to the top
-			while (world.func_147439_a(i, height + 1, k) == id) {
+			while (world.getBlock(i, height + 1, k) == id) {
 				height = height + 1;
 			}
-			if (world.func_147439_a(i, height + 1, k) == Blocks.air)
-				world.func_147449_b(i, height + 1, k, id);//Grow on top
+			if (world.getBlock(i, height + 1, k) == Blocks.air)
+				world.setBlock(i, height + 1, k, id);//Grow on top
 		}
 	}
 }

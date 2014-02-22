@@ -14,8 +14,8 @@ public class BehaviorFire extends BehaviorDeathDisappear {
 	@Override
 	public void death(World world, int i, int j, int k, Block id) {
 		super.death(world, i, j, k, id);
-		if (isBurnableGround(world.func_147439_a(i, j - 1, k))) {
-			world.func_147449_b(i, j - 1, k, getBurnedGround());
+		if (isBurnableGround(world.getBlock(i, j - 1, k))) {
+			world.setBlock(i, j - 1, k, getBurnedGround());
 		}
 	}
 
@@ -39,8 +39,8 @@ public class BehaviorFire extends BehaviorDeathDisappear {
 			if (l > 0) {
 				world.setBlockMetadataWithNotify(i, j, k, l - 1, 4);
 			}
-			if (isBurnableGround(world.func_147439_a(i, j - 1, k))) {
-				world.func_147449_b(i, j - 1, k, getBurnedGround());
+			if (isBurnableGround(world.getBlock(i, j - 1, k))) {
+				world.setBlock(i, j - 1, k, getBurnedGround());
 			}
 		}
 		int[] neighbour = null;
@@ -48,9 +48,9 @@ public class BehaviorFire extends BehaviorDeathDisappear {
         int tries = 0;
 		while (tries < limit) {
 			neighbour = Utils.findRandomNeighbour(i, j, k, fireRange);
-			nId = world.func_147439_a(neighbour[0], neighbour[1], neighbour[2]);
+			nId = world.getBlock(neighbour[0], neighbour[1], neighbour[2]);
 			if (canNeighborBurn(world, neighbour[0], neighbour[1], neighbour[2], nId)) {
-				world.func_147465_d(neighbour[0], neighbour[1], neighbour[2], block, 0, 3);
+				world.setBlock(neighbour[0], neighbour[1], neighbour[2], block, 0, 3);
 			}
 			tries++;
 		}

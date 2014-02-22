@@ -77,7 +77,7 @@ public class Utils {
 	 */
 	public static int getLowestTypeJ(World world, int i, int j, int k, NOType type) {
 		int low = j;
-		while (getType(world.func_147439_a(i, low - 1, k)) == type) {
+		while (getType(world.getBlock(i, low - 1, k)) == type) {
 			low--;
 		}
 		return low;
@@ -130,7 +130,7 @@ public class Utils {
 					if (ignoreSelf && x == 0 && y == 0 && z == 0) {
 						z++;
 					}
-					if (world.func_147439_a(i + x, j + y, k + z) == id) {
+					if (world.getBlock(i + x, j + y, k + z) == id) {
 						return true;
 					}
 				}

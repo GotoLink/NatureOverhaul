@@ -7,9 +7,7 @@ import natureoverhaul.NOType;
 import natureoverhaul.NatureOverhaul;
 import natureoverhaul.Utils;
 import net.minecraft.block.Block;
-import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
@@ -24,14 +22,14 @@ public class BehaviorLeaf extends BehaviorRandomDeath {
 				Utils.emitItem(world, i, j, k, new ItemStack(sap, 1, world.getBlockMetadata(i, j, k) % 4));
 			}
 		}
-		world.func_147468_f(i, j, k);//Then disappear
+		world.setBlockToAir(i, j, k);//Then disappear
 	}
 
 	@Override
 	public void grow(World world, int i, int j, int k, Block id) {
-		if (world.func_147439_a(i, j - 1, k) == Blocks.air && appleCanGrow(world, i, k) && world.rand.nextFloat() < NatureOverhaul.getAppleGrowthProb(world, i, j, k))
+		if (world.isAirBlock(i, j - 1, k) && appleCanGrow(world, i, k) && world.rand.nextFloat() < NatureOverhaul.getAppleGrowthProb(world, i, j, k))
 			Utils.emitItem(world, i, j - 1, k, new ItemStack(Items.apple));
-		if (NatureOverhaul.growthType % 2 == 1 && world.func_147439_a(i, j + 1, k) == Blocks.air) {
+		if (NatureOverhaul.growthType % 2 == 1 && world.isAirBlock(i, j + 1, k)) {
 			Block sap = NatureOverhaul.getLeafToSaplingMapping().get(id);
 			if (foundSapling(world, i, j, k, sap)) {
 				Utils.emitItem(world, i, j + 1, k, new ItemStack(sap, 1, world.getBlockMetadata(i, j, k) % 4));

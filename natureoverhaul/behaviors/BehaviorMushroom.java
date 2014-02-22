@@ -26,8 +26,8 @@ public class BehaviorMushroom extends BehaviorDeathDisappear{
 			int coord[];
 			for (int attempt = 0; attempt < 15; attempt++) {
 				coord = Utils.findRandomNeighbour(i, j, k, scanSize);
-				if (id.func_149742_c(world, coord[0], coord[1], coord[2])) {
-					world.func_147449_b(coord[0], coord[1], coord[2], id);
+				if (id.canPlaceBlockAt(world, coord[0], coord[1], coord[2])) {
+					world.setBlock(coord[0], coord[1], coord[2], id);
 					return;
 				}
 			}

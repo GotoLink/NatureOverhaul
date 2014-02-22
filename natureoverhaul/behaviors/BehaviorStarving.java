@@ -38,7 +38,7 @@ public abstract class BehaviorStarving extends Behavior {
 				for (int y = j - radius; y < j + radius; y++) {
 					for (int z = k - radius; z < k + radius; z++) {
 						if (i != x || j != y || k != z) {
-							Block blockID = world.func_147439_a(x, y, z);
+							Block blockID = world.getBlock(x, y, z);
 							if (foundNeighbours <= max && (id == blockID || (NatureOverhaul.isRegistered(blockID) && Utils.getType(blockID) == Utils.getType(id)))) {
 								foundNeighbours++;
 							}

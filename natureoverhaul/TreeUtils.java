@@ -31,8 +31,8 @@ public class TreeUtils {
 	 * @return True if surrounded by given type, on a horizontal plane
 	 */
 	public static boolean allTypeAround(World world, int i, int j, int k, NOType type) {
-		return (Utils.getType(world.func_147439_a(i + 1, j, k)) == type && Utils.getType(world.func_147439_a(i - 1, j, k)) == type && Utils.getType(world.func_147439_a(i, j, k + 1)) == type && Utils
-				.getType(world.func_147439_a(i, j, k - 1)) == type);
+		return (Utils.getType(world.getBlock(i + 1, j, k)) == type && Utils.getType(world.getBlock(i - 1, j, k)) == type && Utils.getType(world.getBlock(i, j, k + 1)) == type && Utils
+				.getType(world.getBlock(i, j, k - 1)) == type);
 	}
 
 	/**
@@ -48,7 +48,7 @@ public class TreeUtils {
 		for (int x = 0; x < 5; x++) {
 			if (avoidVerticals && x == 2)
 				x = x + 2;
-			if (world.func_147439_a(n[x][0], n[x][1], n[x][2]) == id)
+			if (world.getBlock(n[x][0], n[x][1], n[x][2]) == id)
 				return n[x];
 		}
 		return null;
@@ -63,12 +63,12 @@ public class TreeUtils {
 		int height = 1;
 		int curJ = j - 1;
 		// Down first
-		while (world.func_147439_a(i, curJ, k) == id) {
+		while (world.getBlock(i, curJ, k) == id) {
 			curJ--;
 			height++;
 		}
 		curJ = j + 1;
-		while (world.func_147439_a(i, curJ, k) == id) {
+		while (world.getBlock(i, curJ, k) == id) {
 			curJ++;
 			height++;
 		}
@@ -84,12 +84,12 @@ public class TreeUtils {
 		if (list.contains(Integer.toString(meta))) {
 			isValidMeta = true;
 		}
-		if (world.func_147439_a(i, lowJ - 1, k) == Blocks.dirt || Utils.getType(world.func_147439_a(i, lowJ - 1, k)) == NOType.GRASS) {
+		if (world.getBlock(i, lowJ - 1, k) == Blocks.dirt || Utils.getType(world.getBlock(i, lowJ - 1, k)) == NOType.GRASS) {
 			boolean branchFound = false;
 			int[] node = new int[] { i, lowJ, k };
 			List<int[]> branchs = new ArrayList<int[]>();
 			int[] current = null;
-			while ((node[1] - lowJ) <= MAX_TREE_HEIGHT && world.func_147439_a(node[0], node[1], node[2]) == id) {//Try to find a "branch" by looking for neighbor log block
+			while ((node[1] - lowJ) <= MAX_TREE_HEIGHT && world.getBlock(node[0], node[1], node[2]) == id) {//Try to find a "branch" by looking for neighbor log block
 				current = findValidNeighbor(world, node[0], node[1], node[2], id, true);
 				if (current != null) {
 					branchs.add(current);
@@ -100,9 +100,9 @@ public class TreeUtils {
 			}
 			if (!branchFound)//We went to the top
 			{
-				world.func_147465_d(node[0], node[1], node[2], id, meta, 3);
+				world.setBlock(node[0], node[1], node[2], id, meta, 3);
 				if (leaf != Blocks.air && isValidMeta) {
-					world.func_147465_d(node[0], node[1] + 1, node[2], leaf, meta, 3);
+					world.setBlock(node[0], node[1] + 1, node[2], leaf, meta, 3);
 					putBlocksAround(world, node[0], node[1], node[2], leaf, meta);
 				}
 			} else//We found at least a branch
@@ -136,7 +136,7 @@ public class TreeUtils {
 		int curK = k;
 		// Look down first
 		while ((checked <= MAX_TREE_HEIGHT) && (!groundFound) && (!isNotTree)) {
-			Block blockBelowID = world.func_147439_a(curI, curJ, curK);
+			Block blockBelowID = world.getBlock(curI, curJ, curK);
 			if (Utils.getType(blockBelowID) == type) {
 				curJ = curJ - 1;
 			} else if ((blockBelowID == Blocks.dirt) || Utils.getType(blockBelowID) == NOType.GRASS) {
@@ -153,7 +153,7 @@ public class TreeUtils {
 		// Scan back up for leaves
 		if ((!isNotTree) && (groundFound)) {
 			while ((checked <= MAX_TREE_HEIGHT) && (!topFound) && (!isNotTree)) {
-				Block blockAboveID = world.func_147439_a(curI, curJ, curK);
+				Block blockAboveID = world.getBlock(curI, curJ, curK);
 				// Continue scanning for leaves
 				// After || is ignoring self block
 				if (Utils.getType(blockAboveID) == type || (curJ == j && ignoreSelf)) {
@@ -196,7 +196,7 @@ public class TreeUtils {
 			//System.out.println("iMod: " + iMod + ". jMod: " + jMod + ". kMod: " + kMod);
 			//System.out.println("Kill Leaf: (" + lI + ", " + lJ + ", " + lK + "");
 			if (!Utils.hasNearbyBlock(world, lI, lJ, lK, id, leafDeathRadius, false)) {
-				world.func_147468_f(lI, lJ, lK);
+				world.setBlockToAir(lI, lJ, lK);
 			}
 		}
 	}
@@ -211,12 +211,12 @@ public class TreeUtils {
 	public static int killTree(World world, int i, int j, int k, Block id, boolean killLeaves) {
 		int treeHeight = getTreeHeight(world, i, j, k, id);
 		// If ignore self (ie; self could be air, then skip over it)
-		if (world.func_147439_a(i, j, k) == Blocks.air) {
+		if (world.getBlock(i, j, k) == Blocks.air) {
 			j++;
 		}
 		//System.out.println("Killing tree from ("+i+","+j+","+k+") with height " + treeHeight);
 		// Kill first log to avoid down scanning
-		world.func_147468_f(i, j, k);
+		world.setBlockToAir(i, j, k);
 		HashSet<Integer> flags = new HashSet<Integer>();
 		int[] base = { i, j, k };
 		int[] block = { i, j + 1, k };
@@ -251,7 +251,7 @@ public class TreeUtils {
 	public static void putBlocksAround(World world, int i, int j, int k, Block id, int meta) {
 		int[] leaf = findValidNeighbor(world, i, j, k, Blocks.air, false);
 		while (leaf != null) {
-			world.func_147465_d(leaf[0], leaf[1], leaf[2], id, meta, 3);
+			world.setBlock(leaf[0], leaf[1], leaf[2], id, meta, 3);
 			leaf = findValidNeighbor(world, i, j, k, Blocks.air, false);
 		}
 	}
@@ -300,7 +300,7 @@ public class TreeUtils {
 		}
 		newBranch = findValidNeighbor(world, current[0], current[1], current[2], Blocks.air, false);
 		if (newBranch != null) {
-			world.func_147465_d(newBranch[0], newBranch[1], newBranch[2], id, meta, 3);
+			world.setBlock(newBranch[0], newBranch[1], newBranch[2], id, meta, 3);
 			if (leaf != Blocks.air && valid)
 				putBlocksAround(world, newBranch[0], newBranch[1], newBranch[2], leaf, meta);
 		} else if (leaf != Blocks.air && valid)
@@ -357,7 +357,7 @@ public class TreeUtils {
 		int removed = 0;
 		//System.out.println("Scan and flag (" + i + ","+j+","+k+")");
 		for (int[] nBlock : neighbours(block)) {
-			Block id = world.func_147439_a(nBlock[0], nBlock[1], nBlock[2]);
+			Block id = world.getBlock(nBlock[0], nBlock[1], nBlock[2]);
 			if ((inRange(nBlock, base, treeHeight)) && (!flags.contains(makeFlag(nBlock, base)))
 					&& ((Utils.getType(id) == NOType.LOG || Utils.getType(id) == NOType.MUSHROOMCAP) || Utils.getType(id) == NOType.LEAVES)) {
 				flags.add(makeFlag(nBlock, base));
@@ -365,10 +365,10 @@ public class TreeUtils {
 			}
 		}
 		// Remove the current block if it's a non-tree log
-		NOType type = Utils.getType(world.func_147439_a(i, j, k));
+		NOType type = Utils.getType(world.getBlock(i, j, k));
 		if (type == NOType.LOG || type == NOType.MUSHROOMCAP) {
 			if ((!isTree(world, i, j, k, type, false)) || ((i == base[0]) && (k == base[2]))) {
-				world.func_147468_f(block[0], block[1], block[2]);
+				world.setBlockToAir(block[0], block[1], block[2]);
 				removed++;
 			}
 		}

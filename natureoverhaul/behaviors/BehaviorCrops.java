@@ -14,8 +14,8 @@ public class BehaviorCrops extends BehaviorStarving {
 		if (meta >= 1)
 			world.setBlockMetadataWithNotify(i, j, k, meta - 1, 2);
 		else {
-			world.func_147468_f(i, j, k);
-			world.func_147449_b(i, j - 1, k, Blocks.dirt);
+			world.setBlockToAir(i, j, k);
+			world.setBlock(i, j - 1, k, Blocks.dirt);
 		}
 	}
 

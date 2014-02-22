@@ -17,7 +17,7 @@ public class BehaviorCocoa extends BehaviorDeathDisappear {
 	public boolean canDropItem(World world, int i, int j, int k) {
 		BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
 		// Cocoa can grow in the named biomes
-		return world.func_147439_a(i, j, k) == Blocks.air && biome.temperature >= 0.7F && biome.temperature <= 1.5F && biome.rainfall >= 0.8F;
+		return world.getBlock(i, j, k) == Blocks.air && biome.temperature >= 0.7F && biome.temperature <= 1.5F && biome.rainfall >= 0.8F;
 	}
 
 	/**

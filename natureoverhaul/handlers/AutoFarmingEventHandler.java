@@ -35,12 +35,12 @@ public class AutoFarmingEventHandler {
                 int meta;
 				for (int tries = 0; tries < 40; tries++) {
 					info = Utils.findRandomNeighbour((int) event.player.posX, (int) event.player.posY - 1, (int) event.player.posZ, 3);
-					if (world.func_147439_a(info[0], info[1], info[2]) == (item == Items.nether_wart ? Blocks.soul_sand : Blocks.farmland)
-							&& world.func_147437_c(info[0], info[1] + 1, info[2])) {
+					if (world.getBlock(info[0], info[1], info[2]) == (item == Items.nether_wart ? Blocks.soul_sand : Blocks.farmland)
+							&& world.isAirBlock(info[0], info[1] + 1, info[2])) {
 						if (!MinecraftForge.EVENT_BUS.post(new FarmingEvent(event.player, (IPlantable) item, info[0], info[1], info[2]))) {
                             id = ((IPlantable) item).getPlant(world, info[0], info[1], info[2]);
                             meta = ((IPlantable) item).getPlantMetadata(world, info[0], info[1], info[2]);
-                            world.func_147465_d(info[0], info[1] + 1, info[2], id, meta, 3);
+                            world.setBlock(info[0], info[1] + 1, info[2], id, meta, 3);
                             event.setCanceled(true);
                             break;
 						}

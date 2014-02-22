@@ -22,8 +22,8 @@ public class BehaviorGrass extends BehaviorDeathSwitch {
 		for (int x = i - scanSize; x <= i + scanSize; x++) {
 			for (int y = j - scanSize; y <= j + scanSize; y++) {
 				for (int z = k - scanSize; z <= k + scanSize; z++) {
-					if (isExtendBlockId(world.func_147439_a(x, y, z))) {
-						world.func_147449_b(x, y, z, id);
+					if (isExtendBlockId(world.getBlock(x, y, z))) {
+						world.setBlock(x, y, z, id);
 					}
 				}
 			}

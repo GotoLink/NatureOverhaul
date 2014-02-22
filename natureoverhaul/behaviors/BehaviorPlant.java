@@ -16,11 +16,11 @@ public class BehaviorPlant extends BehaviorDeathDisappear {
 		int coord[];
 		for (int attempt = 0; attempt < 18; attempt++) {
 			coord = Utils.findRandomNeighbour(i, j, k, scanSize);
-			if (id.func_149742_c(world, coord[0], coord[1], coord[2]) && !world.func_147439_a(coord[0], coord[1], coord[2]).func_149688_o().isLiquid()) {
+			if (id.canPlaceBlockAt(world, coord[0], coord[1], coord[2]) && !world.getBlock(coord[0], coord[1], coord[2]).getMaterial().isLiquid()) {
 				if (!isMetadataSensitive(id)) {
-					world.func_147449_b(coord[0], coord[1], coord[2], id);
+					world.setBlock(coord[0], coord[1], coord[2], id);
 				} else {
-					world.func_147465_d(coord[0], coord[1], coord[2], id, world.getBlockMetadata(i, j, k), 3);
+					world.setBlock(coord[0], coord[1], coord[2], id, world.getBlockMetadata(i, j, k), 3);
 				}
 				return;
 			}

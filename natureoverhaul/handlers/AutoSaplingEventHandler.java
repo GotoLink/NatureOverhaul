@@ -6,6 +6,7 @@ import natureoverhaul.NatureOverhaul;
 import natureoverhaul.Utils;
 import net.minecraft.block.Block;
 import net.minecraft.entity.item.EntityItem;
+import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.MathHelper;
 import net.minecraftforge.event.entity.item.ItemExpireEvent;
@@ -28,13 +29,13 @@ public class AutoSaplingEventHandler {
 			EntityItem ent = event.entityItem;
 			if (ent.motionX < 0.001 && ent.motionZ < 0.001) {
 				ItemStack item = ent.getEntityItem();
-                if(item!=null){
-                    Block id = Block.func_149634_a(item.getItem());
+                if(item!=null && item.getItem() instanceof ItemBlock){
+                    Block id = Block.getBlockFromItem(item.getItem());
                     int x = MathHelper.floor_double(ent.posX);
                     int y = MathHelper.floor_double(ent.posY);
                     int z = MathHelper.floor_double(ent.posZ);
-                    if (NatureOverhaul.isRegistered(id) && Utils.getType(id) == NOType.SAPLING && id.func_149742_c(ent.worldObj, x, y, z)) {
-                        ent.worldObj.func_147465_d(x, y, z, id, item.getItemDamage(), 3);
+                    if (NatureOverhaul.isRegistered(id) && Utils.getType(id) == NOType.SAPLING && id.canPlaceBlockAt(ent.worldObj, x, y, z)) {
+                        ent.worldObj.setBlock(x, y, z, id, item.getItemDamage(), 3);
                     }
                 }
 			}
