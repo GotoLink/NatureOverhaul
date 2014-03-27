@@ -66,7 +66,7 @@ public class BehaviorFire extends BehaviorDeathDisappear {
 	}
 
 	private boolean canNeighborBurn(World world, int x, int y, int z, Block block) {
-		return block == null || block.isFlammable(world, x, y, z, WEST) || block.isFlammable(world, x, y, z, EAST) || block.isFlammable(world, x, y, z, UP)
+		return block.isAir(world, x, y, z) || block.isFlammable(world, x, y, z, WEST) || block.isFlammable(world, x, y, z, EAST) || block.isFlammable(world, x, y, z, UP)
 				|| block.isFlammable(world, x, y, z, DOWN) || block.isFlammable(world, x, y, z, SOUTH) || block.isFlammable(world, x, y, z, NORTH);
 	}
 }
