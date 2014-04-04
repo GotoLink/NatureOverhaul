@@ -7,3 +7,7 @@
 !*.cfg
 !/natureoverhaul
 !natureoverhaul/*
+!/gradle/
+!gradle*
+!update.xml
+!changelog.md

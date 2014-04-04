@@ -4,6 +4,7 @@ import java.lang.reflect.Method;
 import java.util.*;
 
 import cpw.mods.fml.common.FMLCommonHandler;
+import cpw.mods.fml.common.ModContainer;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.common.registry.GameData;
@@ -37,7 +38,7 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
  * @author Olivier
  *
  */
-@Mod(modid = "natureoverhaul", name = "Nature Overhaul", version = "0.8", dependencies = "after:mod_MOAPI")
+@Mod(modid = "natureoverhaul", name = "Nature Overhaul", useMetadata = true, dependencies = "after:mod_MOAPI")
 public class NatureOverhaul {
 	private enum GrowthType {
 		NEITHER, LEAFGROWTH, LEAFDECAY, BOTH
@@ -337,6 +338,16 @@ public class NatureOverhaul {
 		wildAnimalBreedRate = config.get(optionsCategory[names.length], "Wild animals breed rate", 16000).getInt(16000);
 		wildAnimalDeathRate = config.get(optionsCategory[names.length], "Wild animals death rate", 16000).getInt(16000);
 		autoFarming = config.get(optionsCategory[names.length], "Plant seeds on player drop", true).getBoolean(true);
+        if(event.getSourceFile().getName().endsWith(".jar") && event.getSide().isClient()){
+            try {
+                Class.forName("mods.mud.ModUpdateDetector").getDeclaredMethod("registerMod", ModContainer.class, String.class, String.class).invoke(null,
+                        FMLCommonHandler.instance().findContainerFor(this),
+                        "https://raw.github.com/GotoLink/NatureOverhaul/master/update.xml",
+                        "https://raw.github.com/GotoLink/NatureOverhaul/master/changelog.md"
+                );
+            } catch (Throwable e) {
+            }
+        }
 	}
 
     /**
