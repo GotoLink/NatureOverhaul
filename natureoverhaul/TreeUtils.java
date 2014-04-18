@@ -88,7 +88,7 @@ public class TreeUtils {
 			boolean branchFound = false;
 			int[] node = new int[] { i, lowJ, k };
 			List<int[]> branchs = new ArrayList<int[]>();
-			int[] current = null;
+			int[] current;
 			while ((node[1] - lowJ) <= MAX_TREE_HEIGHT && world.getBlock(node[0], node[1], node[2]) == id) {//Try to find a "branch" by looking for neighbor log block
 				current = findValidNeighbor(world, node[0], node[1], node[2], id, true);
 				if (current != null) {
@@ -131,12 +131,10 @@ public class TreeUtils {
 		boolean isNotTree = false;
 		// Surrounding Leaves found
 		int leafLayersFound = 0;
-		int curI = i;
 		int curJ = j - 1;
-		int curK = k;
 		// Look down first
 		while ((checked <= MAX_TREE_HEIGHT) && (!groundFound) && (!isNotTree)) {
-			Block blockBelowID = world.getBlock(curI, curJ, curK);
+			Block blockBelowID = world.getBlock(i, curJ, k);
 			if (Utils.getType(blockBelowID) == type) {
 				curJ = curJ - 1;
 			} else if ((blockBelowID == Blocks.dirt) || Utils.getType(blockBelowID) == NOType.GRASS) {
@@ -153,16 +151,16 @@ public class TreeUtils {
 		// Scan back up for leaves
 		if ((!isNotTree) && (groundFound)) {
 			while ((checked <= MAX_TREE_HEIGHT) && (!topFound) && (!isNotTree)) {
-				Block blockAboveID = world.getBlock(curI, curJ, curK);
+				Block blockAboveID = world.getBlock(i, curJ, k);
 				// Continue scanning for leaves
 				// After || is ignoring self block
 				if (Utils.getType(blockAboveID) == type || (curJ == j && ignoreSelf)) {
-					if ((type == NOType.LOG && allTypeAround(world, curI, curJ, curK, NOType.LEAVES)) || (type == NOType.MUSHROOMCAP && allTypeAround(world, curI, curJ, curK, NOType.MUSHROOMCAP))) {
+					if ((type == NOType.LOG && allTypeAround(world, i, curJ, k, NOType.LEAVES)) || (type == NOType.MUSHROOMCAP && allTypeAround(world, i, curJ, k, NOType.MUSHROOMCAP))) {
 						leafLayersFound++;
 					}
 					curJ = curJ + 1;
 					// Top of tree found
-				} else if ((type == NOType.LOG && Utils.getType(blockAboveID) == NOType.LEAVES) || (type == NOType.MUSHROOMCAP && allTypeAround(world, curI, curJ, curK, NOType.MUSHROOMCAP))) {
+				} else if ((type == NOType.LOG && Utils.getType(blockAboveID) == NOType.LEAVES) || (type == NOType.MUSHROOMCAP && allTypeAround(world, i, curJ, k, NOType.MUSHROOMCAP))) {
 					topFound = true;
 				} else {
 					isNotTree = true;
@@ -235,8 +233,7 @@ public class TreeUtils {
 		int i = block[0];
 		int j = block[1];
 		int k = block[2];
-		int[][] n = { { i + 1, j, k }, { i - 1, j, k }, { i, j + 1, k }, { i, j - 1, k }, { i, j, k + 1 }, { i, j, k - 1 } };
-		return n;
+		return new int[][]{ { i + 1, j, k }, { i - 1, j, k }, { i, j + 1, k }, { i, j - 1, k }, { i, j, k + 1 }, { i, j, k - 1 } };
 	}
 
 	/**
@@ -333,10 +330,9 @@ public class TreeUtils {
 		// put k in the kth bits.
 		// This way we can store i,j,k  as a single int
 		// The size of i,j,kBits depends on the distance
-		// to search in the x/z of the inRange algoirthm
-		int flag = i << (jBits + kBits) ^ (j << kBits) ^ k;
+		// to search in the x/z of the inRange algorithm
 		//System.out.println("Flag pieces: " + i + ", " + j + ", " + k  +". Result: " + flag);
-		return flag;
+		return i << (jBits + kBits) ^ (j << kBits) ^ k;
 	}
 
 	/**

@@ -43,7 +43,7 @@ public class BehaviorFire extends BehaviorDeathDisappear {
 				world.setBlock(i, j - 1, k, getBurnedGround());
 			}
 		}
-		int[] neighbour = null;
+		int[] neighbour;
 		Block nId;
         int tries = 0;
 		while (tries < limit) {

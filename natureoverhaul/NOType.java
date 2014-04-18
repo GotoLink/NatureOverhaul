@@ -19,8 +19,8 @@ public enum NOType {
 	FERTILIZED(10, 1.5F, 1.5F, 2.5F, 2.5F), //Crops and stem
 	//For unknown or API using
 	CUSTOM(-1, -1F, -1F, -1F, -1F);
-	private float rainGrowth, tempGrowth, rainDeath, tempDeath;
-	private int index;
+	private final float rainGrowth, tempGrowth, rainDeath, tempDeath;
+	private final int index;
 
 	private NOType(int id, float rainGrowth, float tempGrowth, float rainDeath, float tempDeath) {
 		this.index = id;

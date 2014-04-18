@@ -7,10 +7,10 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 
 @Cancelable
 public class FarmingEvent extends PlayerEvent {
-	public IPlantable seed;
-	public int posX;
-	public int posY;
-	public int posZ;
+	public final IPlantable seed;
+	public final int posX;
+	public final int posY;
+	public final int posZ;
 
 	/**
 	 * Called when player dropped seed and farming is possible for this block

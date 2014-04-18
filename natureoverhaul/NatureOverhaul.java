@@ -274,7 +274,6 @@ public class NatureOverhaul {
 				try {
 					PlayerEventHandler.ids.add(GameData.itemRegistry.get(param));
 				} catch (Exception e) {
-					continue;
 				}
 			}
 		}
