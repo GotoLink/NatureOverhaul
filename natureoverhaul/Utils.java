@@ -38,16 +38,18 @@ public class Utils {
 	 * @return An array of randomized coordinates
 	 */
 	public static int[] findRandomNeighbour(int i, int j, int k, int range) {
-		Random rand = new Random();
 		int[] coord = new int[] { i, j, k };
-		int dist;
-		for (int index = 0; index < coord.length; index++) {
-			dist = rand.nextInt(range);
-			if (rand.nextBoolean())
-				coord[index] += dist;
-			else
-				coord[index] -= dist;
-		}
+        if(range>0) {
+            Random rand = new Random();
+            int dist;
+            for (int index = 0; index < coord.length; index++) {
+                dist = rand.nextInt(range + 1);
+                if (rand.nextBoolean())
+                    coord[index] += dist;
+                else
+                    coord[index] -= dist;
+            }
+        }
 		return coord;
 	}
 

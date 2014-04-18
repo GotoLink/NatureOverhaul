@@ -26,7 +26,7 @@ public class BehaviorMoss extends BehaviorDeathSwitch {
 		for (int attempt = 0; attempt < 15; attempt++) {
 			coord = Utils.findRandomNeighbour(i, j, k, scanSize);
 			iD = world.getBlock(coord[0], coord[1], coord[2]);
-			if ((NatureOverhaul.mossCorruptStone && iD == Blocks.stone) || iD == Blocks.cobblestone) {
+			if ((NatureOverhaul.mossCorruptStone && iD == Blocks.stone) || iD == getDeadBlock()) {
 				world.setBlock(coord[0], coord[1], coord[2], id);
 				return;
 			}
