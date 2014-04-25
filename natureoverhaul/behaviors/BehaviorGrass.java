@@ -6,7 +6,7 @@ import net.minecraft.world.World;
 
 public class BehaviorGrass extends BehaviorDeathSwitch {
 	@Override
-	public Block getDeadBlock() {
+	public Block getDeadBlock(Block living) {
 		return Blocks.dirt;
 	}
 
