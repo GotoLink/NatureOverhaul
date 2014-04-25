@@ -9,6 +9,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.common.registry.GameData;
 import natureoverhaul.behaviors.BehaviorFire;
+import natureoverhaul.behaviors.BehaviorMoss;
 import natureoverhaul.handlers.*;
 import net.minecraft.block.*;
 import net.minecraft.init.Blocks;
@@ -28,7 +29,6 @@ import com.google.common.collect.ImmutableMap;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
-import cpw.mods.fml.common.Mod.Instance;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
@@ -44,8 +44,6 @@ public class NatureOverhaul {
 		NEITHER, LEAFGROWTH, LEAFDECAY, BOTH
 	}
 
-	@Instance("natureoverhaul")
-	public static NatureOverhaul instance;
 	private static boolean autoSapling = true, autoFarming = true, lumberjack = true, moddedBonemeal = true, killLeaves = true, biomeModifiedRate = true;
 	public static boolean useStarvingSystem = true, decayLeaves = true, mossCorruptStone = true;
 	private static boolean customDimension = true, wildAnimalsBreed = true;
@@ -188,13 +186,13 @@ public class NatureOverhaul {
 					addMapping(i, growSets[7], growthRates[7], dieSets[7], deathRates[7], 0.9F, 1.0F, NOType.MUSHROOM);
 				} else if (i instanceof BlockHugeMushroom) {
 					addMapping(i, growSets[8], growthRates[8], dieSets[8], deathRates[8], 0.9F, 1.0F, NOType.MUSHROOMCAP);
-				} else if (i instanceof BlockLeaves) {
+				} else if (i instanceof BlockLeavesBase) {
 					leafID.add(i);
 				} else if (i instanceof BlockCrops || i instanceof BlockStem) {
 					addMapping(i, growSets[10], growthRates[10], dieSets[10], deathRates[10], 1.0F, 1.0F, NOType.FERTILIZED);
-				} else if (i instanceof BlockFlower) {//Flower ,deadbush, lilypad, tallgrass
+				} else if (i instanceof BlockBush) {//Flowers, deadbush, lilypad, tallgrass
 					addMapping(i, growSets[2], growthRates[2], dieSets[2], deathRates[2], 0.6F, 0.7F, NOType.PLANT, 100, 60);
-				} else if (i == Blocks.mossy_cobblestone) {
+				} else if (BehaviorMoss.isMossyBlock(i)) {
 					addMapping(i, growSets[11], growthRates[11], dieSets[11], deathRates[11], 0.7F, 1.0F, NOType.MOSS);
 				} else if (i instanceof BlockCocoa) {
 					addMapping(i, growSets[12], growthRates[12], dieSets[12], deathRates[12], 1.0F, 1.0F, NOType.COCOA);
