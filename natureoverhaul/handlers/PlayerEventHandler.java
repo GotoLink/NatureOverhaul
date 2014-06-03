@@ -14,7 +14,7 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.world.BlockEvent.HarvestDropsEvent;
 
 /**
- * Event for Lumberjack system, from Clinton Alexander idea.
+ * Event listener for Lumberjack system, from Clinton Alexander idea.
  * 
  * @author Olivier
  */
@@ -36,9 +36,9 @@ public class PlayerEventHandler {
 				if (ids.contains(itemstack.getItem())) {
 					Block id = event.block;
 					//Check for a registered log block
-					if (NatureOverhaul.isLog(id) && !MinecraftForge.EVENT_BUS.post(new LumberJackEvent(event, itemstack))) {
+					if (NatureOverhaul.isLog(id, event.blockMetadata) && !MinecraftForge.EVENT_BUS.post(new LumberJackEvent(event, itemstack))) {
 						if (TreeUtils.isTree(event.world, event.x, event.y, event.z, Utils.getType(id), true)) {
-							// Damage axe compared to the number of blocks found
+							//Damage axe compared to the number of blocks found
 							int damage = TreeUtils.killTree(event.world, event.x, event.y, event.z, id, leafKill);
 							itemstack.damageItem(damage - 1, event.harvester);
 							if (itemstack.stackSize <= 0)

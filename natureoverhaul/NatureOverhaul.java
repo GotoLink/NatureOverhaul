@@ -17,7 +17,6 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemAxe;
 import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
@@ -50,13 +49,10 @@ public class NatureOverhaul {
 	private static int wildAnimalBreedRate = 0, wildAnimalDeathRate = 0;
 	public static int growthType = 0, fireRange = 2;
 	private int updateLCG = (new Random()).nextInt();
-	private static Map<Block, NOType> IDToTypeMapping = new HashMap<Block, NOType>();
-	private static Map<Block, Boolean> IDToGrowingMapping = new HashMap<Block, Boolean>(), IDToDyingMapping = new HashMap<Block, Boolean>();
-	private static Map<Block, Block> LogToLeafMapping = new HashMap<Block, Block>();
-    private static Map<Block, Integer> IDToFireCatchMapping = new HashMap<Block, Integer>(), IDToFirePropagateMapping = new HashMap<Block, Integer>();
-    private static Map<Block, Block> LeafToSaplingMapping = new HashMap<Block, Block>();
-	private static Map<Block, String[]> TreeIdToMeta = new HashMap<Block, String[]>();
-	private static String[] names = new String[] { "Sapling", "Tree", "Plants", "Netherwort", "Grass", "Reed", "Cactus", "Mushroom", "Mushroom Tree", "Leaf", "Crops", "Moss", "Cocoa", "Fire" };
+	private static Map<Block, NOType> IDToTypeMapping = new IdentityHashMap<Block, NOType>();
+	private static Map<Block, Boolean> IDToGrowingMapping = new IdentityHashMap<Block, Boolean>(), IDToDyingMapping = new IdentityHashMap<Block, Boolean>();
+    private static Map<Block, Integer> IDToFireCatchMapping = new IdentityHashMap<Block, Integer>(), IDToFirePropagateMapping = new IdentityHashMap<Block, Integer>();
+	private static final String[] names = new String[] { "Sapling", "Tree", "Plants", "Netherwort", "Grass", "Reed", "Cactus", "Mushroom", "Mushroom Tree", "Leaf", "Crops", "Moss", "Cocoa", "Fire" };
 	private static boolean[] dieSets = new boolean[names.length], growSets = new boolean[names.length + 1];
 	private static float[] deathRates = new float[names.length], growthRates = new float[names.length + 1];
 	private static String[] optionsCategory = new String[names.length + 1];
@@ -74,7 +70,7 @@ public class NatureOverhaul {
 	private static PlayerEventHandler lumberEvent;
 	private static AutoSaplingEventHandler autoEvent;
 	private static AutoFarmingEventHandler farmingEvent;
-	private static org.apache.logging.log4j.Logger logger;
+	public static org.apache.logging.log4j.Logger logger;
 
 	@EventHandler
 	public void load(FMLInitializationEvent event) {
@@ -103,12 +99,12 @@ public class NatureOverhaul {
 				//Create "General" submenu and options
 				Object subOption = addSubOption.invoke(option, "General");
 				Object slidOption;
-				for (int i = 0; i < names.length; i++) {
-					addBoolean.invoke(subOption, names[i] + " grow", true);
-					addBoolean.invoke(subOption, names[i] + " die", true);
-					slidOption = addSlider.invoke(subOption, names[i] + " growth rate", 0, 10000);
+				for (String name: names) {
+					addBoolean.invoke(subOption, name + " grow", true);
+					addBoolean.invoke(subOption, name + " die", true);
+					slidOption = addSlider.invoke(subOption, name + " growth rate", 0, 10000);
 					setSliderValue.invoke(slidOption, 1200);
-					slidOption = addSlider.invoke(subOption, names[i] + " death rate", 0, 10000);
+					slidOption = addSlider.invoke(subOption, name + " death rate", 0, 10000);
 					setSliderValue.invoke(slidOption, 1200);
 				}
 				addBoolean.invoke(subOption, "Apple grows", true);
@@ -164,7 +160,7 @@ public class NatureOverhaul {
         Block i = null;
 		for (Iterator itr=GameData.blockRegistry.iterator();itr.hasNext(); i = (Block)itr.next()) {
 			if (i != null) {
-				if (i instanceof IGrowable && i instanceof IBlockDeath) {//Priority to Blocks using the API
+				if (i instanceof IGrowable && i instanceof IBlockDeath) {//Priority to Blocks using the api
 					addMapping(i, true, ((IGrowable) i).getGrowthRate(), true, ((IBlockDeath) i).getDeathRate(), -1.0F, -1.0F, NOType.CUSTOM);
 				} else if (i instanceof IGrowable) {
 					addMapping(i, true, ((IGrowable) i).getGrowthRate(), false, -1, -1.0F, -1.0F, NOType.CUSTOM);
@@ -204,34 +200,39 @@ public class NatureOverhaul {
 					IDToFirePropagateMapping.put(
 							i,
 							config.get("Fire Options", i.getUnlocalizedName().substring(5) + " chance to encourage fire",
-									IDToFirePropagateMapping.containsKey(i) ? IDToFirePropagateMapping.get(i) : 0).getInt());
+									Blocks.fire.getEncouragement(i)).getInt());
 					IDToFireCatchMapping.put(
 							i,
 							config.get("Fire Options", i.getUnlocalizedName().substring(5) + " chance to catch fire",
-									IDToFireCatchMapping.containsKey(i) ? IDToFireCatchMapping.get(i) : 0).getInt());
+									Blocks.fire.getFlammability(i)).getInt());
 				}
 			}
 		}
-		String option = "", sData = "(", gData = "(", fData = "(";
+		StringBuilder option = new StringBuilder();
 		Set<Integer> sapData = new HashSet<Integer>(), logData = new HashSet<Integer>(), leafData = new HashSet<Integer>();
-		for (int index = 0; index < Math.min(Math.min(logID.size(), leafID.size()), saplingID.size()); index++) {
+		for (int index = 0; index < logID.size() || index < leafID.size() || index < saplingID.size(); index++) {
+            Block sapling = saplingID.get(index<saplingID.size()?index:0);
+            Block log = logID.get(index<logID.size()?index:0);
+            Block leaf = leafID.get(index<leafID.size()?index:0);
 			for (int meta = 0; meta < 16; meta++) {
-				sapData.add(saplingID.get(index).damageDropped(meta));
-				logData.add(logID.get(index).damageDropped(meta));
-				leafData.add(leafID.get(index).damageDropped(meta));
+				sapData.add(sapling.damageDropped(meta));
+				logData.add(log.damageDropped(meta));
+				leafData.add(leaf.damageDropped(meta));
 			}
-			for (int meta : sapData) {
-				sData = sData.concat(meta + ",");
-			}
+            StringBuilder gData = new StringBuilder().append(GameData.blockRegistry.getNameForObject(log)).append("("), fData = new StringBuilder().append(GameData.blockRegistry.getNameForObject(leaf)).append("(");
 			for (int meta : logData) {
-				gData = gData.concat(meta + ",");
+				gData.append(meta).append(",");
 			}
+            gData.deleteCharAt(gData.length()-1).append(")-");
 			for (int meta : leafData) {
-				fData = fData.concat(meta + ",");
+				fData.append(meta).append(",");
 			}
-			option = option.concat(GameData.blockRegistry.getNameForObject(saplingID.get(index)) + sData + ")-" + GameData.blockRegistry.getNameForObject(logID.get(index)) + gData + ")-" + GameData.blockRegistry.getNameForObject(leafID.get(index)) + fData + ");");
+            fData.deleteCharAt(fData.length()-1).append(");");
+            for (int meta : sapData) {
+			    option.append(GameData.blockRegistry.getNameForObject(sapling)).append("(").append(meta).append(")-").append(gData).append(fData);
+            }
 		}
-		String[] ids = config.get(optionsCategory[names.length], "Sapling-Log-Leaves names", option, "Separate groups with ;").getString().split(";");
+		String[] ids = config.get(optionsCategory[names.length], "Sapling-Log-Leaves names", option.toString(), "Separate groups with ;").getString().split(";");
 		String[] temp;
 		for (String param : ids) {
 			if (param != null && !param.equals("")) {
@@ -239,38 +240,60 @@ public class NatureOverhaul {
 				if (temp.length == 3) {
 					Block idSaplin, idLo, idLef;
 					try {
-						idSaplin = GameData.blockRegistry.get(temp[0].split("\\(")[0]);
-						idLo = GameData.blockRegistry.get(temp[1].split("\\(")[0]);
-						idLef = GameData.blockRegistry.get(temp[2].split("\\(")[0]);
+						idSaplin = GameData.blockRegistry.getObject(temp[0].split("\\(")[0]);
+						idLo = GameData.blockRegistry.getObject(temp[1].split("\\(")[0]);
+						idLef = GameData.blockRegistry.getObject(temp[2].split("\\(")[0]);
 					} catch (Exception e) {
 						continue;
 					}
 					//Make sure user input is valid
-					if (idSaplin!=null && idLo!=null && idLef!=null) {
-						addMapping(idSaplin, growSets[0], 0, dieSets[0], deathRates[0], 0.8F, 0.8F, NOType.SAPLING);
-						TreeIdToMeta.put(idSaplin, temp[0].split("\\(")[1].replace("\\)", "").trim().split("\\,"));
-						addMapping(idLo, growSets[1], growthRates[1], dieSets[1], deathRates[1], 1.0F, 1.0F, NOType.LOG, 5, 5);
-						TreeIdToMeta.put(idLo, temp[1].split("\\(")[1].replace("\\)", "").trim().split("\\,"));
-						addMapping(idLef, growSets[9], growthRates[9], dieSets[9], deathRates[9], 1.0F, 1.0F, NOType.LEAVES, 60, 10);
-						TreeIdToMeta.put(idLef, temp[2].split("\\(")[1].replace("\\)", "").trim().split("\\,"));
-						LogToLeafMapping.put(idLo, idLef);
-						LeafToSaplingMapping.put(idLef, idSaplin);
+					if (idSaplin!=Blocks.air && idLo!=Blocks.air && idLef!=Blocks.air) {
+                        String[] sapMeta = temp[0].split("\\(")[1].split("\\)")[0].split(",");
+                        String[] logMeta = temp[1].split("\\(")[1].split("\\)")[0].split(",");
+						String[] lefMeta = temp[2].split("\\(")[1].split("\\)")[0].split(",");
+                        for(String meta0:sapMeta){
+                            try {
+                                int a = Integer.parseInt(meta0.trim());
+                                for (String meta1 : logMeta) {
+                                    try {
+                                        int o = Integer.parseInt(meta1.trim());
+                                        for (String meta2 : lefMeta) {
+                                            try {
+                                                int e = Integer.parseInt(meta2.trim());
+                                                new TreeData(idSaplin, idLo, idLef, a, o, e).register();
+                                            }catch (NumberFormatException n){
+                                            }
+                                        }
+                                    }catch (NumberFormatException n){
+                                    }
+                                }
+                            }catch (NumberFormatException n){
+                            }
+                        }
+                        if(IDToTypeMapping.get(idSaplin)==null)
+                            addMapping(idSaplin, growSets[0], 0, dieSets[0], deathRates[0], 0.8F, 0.8F, NOType.SAPLING);
+                        if(IDToTypeMapping.get(idLo)==null)
+                            addMapping(idLo, growSets[1], growthRates[1], dieSets[1], deathRates[1], 1.0F, 1.0F, NOType.LOG, 5, 5);
+                        if(IDToTypeMapping.get(idLef)==null)
+                            addMapping(idLef, growSets[9], growthRates[9], dieSets[9], deathRates[9], 1.0F, 1.0F, NOType.LEAVES, 60, 10);
 					}
 				}
 			}
 		}
-		option = "";
+		option = new StringBuilder();
         Item it = null;
 		for (Iterator itr = GameData.itemRegistry.iterator();itr.hasNext(); it=(Item)itr.next()) {
 			if (it instanceof ItemAxe) {
-				option = option.concat(GameData.itemRegistry.getNameForObject(it)+ ",");
+				option.append(GameData.itemRegistry.getNameForObject(it)).append(",");
 			}
 		}
-		ids = config.get(optionsCategory[1], "Lumberjack compatible items", option, "Separate item names with comma").getString().split(",");
+		ids = config.get(optionsCategory[1], "Lumberjack compatible items", option.toString(), "Separate item names with comma").getString().split(",");
 		for (String param : ids) {
 			if (param != null && !param.equals("")) {
 				try {
-					PlayerEventHandler.ids.add(GameData.itemRegistry.get(param));
+                    it = GameData.itemRegistry.getObject(param);
+                    if(it!=null)
+					    PlayerEventHandler.ids.add(it);
 				} catch (Exception e) {
 				}
 			}
@@ -405,7 +428,7 @@ public class NatureOverhaul {
                 }
             }
             if (event.phase == TickEvent.Phase.END) {
-                WorldServer world = (WorldServer) event.world;
+                World world = event.world;
                 if ((world.provider.dimensionId == 0 || (customDimension && world.provider.dimensionId != 1)) && !world.activeChunkSet.isEmpty()) {
                     Iterator<?> it = world.activeChunkSet.iterator();
                     while (it.hasNext()) {
@@ -504,18 +527,6 @@ public class NatureOverhaul {
 		return ImmutableMap.copyOf(IDToTypeMapping);
 	}
 
-	public static Map<Block, Block> getLeafToSaplingMapping() {
-		return ImmutableMap.copyOf(LeafToSaplingMapping);
-	}
-
-	public static Map<Block, Block> getLogToLeafMapping() {
-		return ImmutableMap.copyOf(LogToLeafMapping);
-	}
-
-	public static Map<Block, String[]> getTreeIDMeta() {
-		return ImmutableMap.copyOf(TreeIdToMeta);
-	}
-
 	/**
 	 * The general growing method. Called by
 	 * {@link #onUpdateTick(World, int, int, int, Block)}. when conditions are
@@ -547,8 +558,8 @@ public class NatureOverhaul {
 	 *            the block id to check
 	 * @return true if block is a log
 	 */
-	public static boolean isLog(Block id) {
-		return LogToLeafMapping.containsKey(id) || IDToTypeMapping.get(id) == NOType.MUSHROOMCAP;
+	public static boolean isLog(Block id, int meta) {
+		return TreeData.getTree(id, meta, TreeData.Component.TRUNK)!=null || IDToTypeMapping.get(id) == NOType.MUSHROOMCAP;
 	}
 
 	public static boolean isRegistered(Block id) {
@@ -582,7 +593,7 @@ public class NatureOverhaul {
 	 *            {@link NOType} Decides which growth and/or death to use, and
 	 *            tolerance to temperature and humidity.
 	 */
-	private static void addMapping(Block id, boolean isGrowing, float growthRate, boolean isMortal, float deathRate, float optTemp, float optRain, NOType type) {
+	public static void addMapping(Block id, boolean isGrowing, float growthRate, boolean isMortal, float deathRate, float optTemp, float optRain, NOType type) {
 		IDToGrowingMapping.put(id, isGrowing);
 		IDToDyingMapping.put(id, isMortal);
 		IDToTypeMapping.put(id, type);
@@ -599,7 +610,7 @@ public class NatureOverhaul {
 	 *            Related to 2nd parameter in {@link
 	 *            BlockFire#setFireInfo(Block,int,int)}.
 	 */
-	private static void addMapping(Block id, boolean isGrowing, float growthRate, boolean isMortal, float deathRate, float optTemp, float optRain, NOType type, int fireCatch, int firePropagate) {
+	public static void addMapping(Block id, boolean isGrowing, float growthRate, boolean isMortal, float deathRate, float optTemp, float optRain, NOType type, int fireCatch, int firePropagate) {
 		addMapping(id, isGrowing, growthRate, isMortal, deathRate, optTemp, optRain, type);
 		IDToFireCatchMapping.put(id, fireCatch);
 		IDToFirePropagateMapping.put(id, firePropagate);
@@ -608,7 +619,7 @@ public class NatureOverhaul {
 	/**
 	 * Helper reflection method for booleans
 	 */
-	private static boolean getBooleanFrom(Method meth, Object option, String name) throws ReflectiveOperationException {
+	public static boolean getBooleanFrom(Method meth, Object option, String name) throws ReflectiveOperationException {
 		return Boolean.class.cast(meth.invoke(option, name)).booleanValue();
 	}
 
@@ -619,7 +630,7 @@ public class NatureOverhaul {
 	 * @return Death probability for given blockid and NOType at given
 	 *         coordinates
 	 */
-	private static float getDeathProb(World world, int i, int j, int k, Block id, NOType type) {
+	private float getDeathProb(World world, int i, int j, int k, Block id, NOType type) {
 		float freq = getDeathRate(id);
 		if (biomeModifiedRate && freq > 0 && type != NOType.NETHERSTALK) {
 			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
@@ -636,7 +647,7 @@ public class NatureOverhaul {
 			return -1F;
 	}
 
-	private static float getDeathRate(Block id) {
+	public static float getDeathRate(Block id) {
 		if (id instanceof IBlockDeath) {
 			return ((IBlockDeath) id).getDeathRate();
 		} else {
@@ -644,7 +655,7 @@ public class NatureOverhaul {
 		}
 	}
 
-	private static float getGrowthRate(Block id) {
+	public static float getGrowthRate(Block id) {
 		if (id instanceof IGrowable) {
 			return ((IGrowable) id).getGrowthRate();
 		} else {
@@ -652,11 +663,11 @@ public class NatureOverhaul {
 		}
 	}
 
-	private static int getIntFrom(Method meth, Object obj, String name) throws ReflectiveOperationException {
+	public static int getIntFrom(Method meth, Object obj, String name) throws ReflectiveOperationException {
 		return Integer.class.cast(meth.invoke(obj, name)).intValue();
 	}
 
-	private static void getMOAPIValues(Class<?> optionClass, Object subOption, Object lumberJackOption, Object miscOption, Object animalsOption, Object fireOption) throws SecurityException,
+	private void getMOAPIValues(Class<?> optionClass, Object subOption, Object lumberJackOption, Object miscOption, Object animalsOption, Object fireOption) throws SecurityException,
 			ReflectiveOperationException {
 		Method getBoolean = optionClass.getMethod("getBooleanValue", String.class);
 		Method getSlider = optionClass.getMethod("getSliderValue", String.class);
@@ -686,11 +697,11 @@ public class NatureOverhaul {
 		fireRange = getIntFrom(getSlider, fireOption, "Propagation range");
 	}
 
-	private static float getOptRain(Block id) {
+	public static float getOptRain(Block id) {
 		return BehaviorManager.getBehavior(id).getOptRain();
 	}
 
-	private static float getOptTemp(Block id) {
+	public static float getOptTemp(Block id) {
 		return BehaviorManager.getBehavior(id).getOptTemp();
 	}
 
@@ -700,7 +711,7 @@ public class NatureOverhaul {
 	 * 
 	 * @return True if plant has died
 	 */
-	private static boolean hasDied(World world, int i, int j, int k, Block id) {
+	private boolean hasDied(World world, int i, int j, int k, Block id) {
 		if (id instanceof IBlockDeath) {
 			return ((IBlockDeath) id).hasDied(world, i, j, k, id);
 		} else {
@@ -708,7 +719,7 @@ public class NatureOverhaul {
 		}
 	}
 
-	private static boolean isMortal(Block id) {
+	public static boolean isMortal(Block id) {
 		return IDToDyingMapping.get(id);
 	}
 
@@ -721,7 +732,7 @@ public class NatureOverhaul {
 	 * {@link #grow(World, int, int, int, Block)} or
 	 * {@link #death(World, int, int, int, Block)}.
 	 */
-	private static void onUpdateTick(World world, int i, int j, int k, Block id) {
+	private void onUpdateTick(World world, int i, int j, int k, Block id) {
 		NOType type = Utils.getType(id);
 		if (isGrowing(id) && world.rand.nextFloat() < getGrowthProb(world, i, j, k, id, type)) {
 			grow(world, i, j, k, id);

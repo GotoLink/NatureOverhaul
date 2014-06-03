@@ -69,7 +69,7 @@ public class BehaviorManager {
 		case SAPLING:
 			return new BehaviorSapling();
 		default:
-			return new BehaviorDummy();
+			return DUMMY;
 		}
 	}
 }

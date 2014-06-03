@@ -4,7 +4,6 @@ import java.util.Random;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.item.EntityItem;
-import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 
@@ -51,22 +50,6 @@ public class Utils {
             }
         }
 		return coord;
-	}
-
-	/**
-	 * Helper method to get leaf from a log.
-	 *
-	 * @param id
-	 *            The log block id.
-	 * @return The leaf block id corresponding to the given log block id.
-	 */
-	public static Block getLeafFromLog(Block id) {
-		try {
-			return NatureOverhaul.getLogToLeafMapping().get(id);
-		} catch (NullPointerException n) {
-			System.err.println("NatureOverhaul failed to find corresponding leaf to log block with id " + id + " in config file");
-			return Blocks.air;
-		}
 	}
 
 	/**

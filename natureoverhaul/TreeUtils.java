@@ -1,7 +1,6 @@
 package natureoverhaul;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
@@ -77,13 +76,14 @@ public class TreeUtils {
 
 	public static void growTree(World world, int i, int j, int k, Block id, NOType type) {
 		int lowJ = Utils.getLowestTypeJ(world, i, j, k, type);
-		Block leaf = Utils.getLeafFromLog(id);
-		int meta = world.getBlockMetadata(i, lowJ, k);
-		boolean isValidMeta = false;
-		List<String> list = Arrays.asList(NatureOverhaul.getTreeIDMeta().get(leaf));
-		if (list.contains(Integer.toString(meta))) {
-			isValidMeta = true;
-		}
+        int meta = world.getBlockMetadata(i, lowJ, k);
+        TreeData data = TreeData.getTree(id, meta, TreeData.Component.TRUNK);
+        if(data==null)
+            return;
+		Block leaf = data.getBlock(TreeData.Component.LEAF);
+        if(leaf==null||leaf==Blocks.air)
+            return;
+		int leafMeta = data.getMeta(TreeData.Component.LEAF);
 		if (world.getBlock(i, lowJ - 1, k) == Blocks.dirt || Utils.getType(world.getBlock(i, lowJ - 1, k)) == NOType.GRASS) {
 			boolean branchFound = false;
 			int[] node = new int[] { i, lowJ, k };
@@ -101,17 +101,15 @@ public class TreeUtils {
 			if (!branchFound)//We went to the top
 			{
 				world.setBlock(node[0], node[1], node[2], id, meta, 3);
-				if (leaf != Blocks.air && isValidMeta) {
-					world.setBlock(node[0], node[1] + 1, node[2], leaf, meta, 3);
-					putBlocksAround(world, node[0], node[1], node[2], leaf, meta);
-				}
+                world.setBlock(node[0], node[1] + 1, node[2], leaf, leafMeta, 3);
+                putBlocksAround(world, node[0], node[1], node[2], leaf, leafMeta);
 			} else//We found at least a branch
 			{
 				current = branchs.get(world.rand.nextInt(branchs.size()));
-				doBranching(world, leaf, id, meta, isValidMeta, current, node);
+				doBranching(world, leaf, id, meta, leafMeta, current, node);
 			}
 		} else {//We are on a branch, which might only be a weird floating log block
-			doBranching(world, leaf, id, meta, isValidMeta, new int[] { i, lowJ, k }, null);
+			doBranching(world, leaf, id, meta, leafMeta, new int[] { i, lowJ, k }, null);
 		}
 	}
 
@@ -278,14 +276,14 @@ public class TreeUtils {
 	 *            The log block id
 	 * @param meta
 	 *            The log block metadata
-	 * @param valid
-	 *            If given meta is also good for leaf blocks
+	 * @param leafMeta
+	 *            The leaf block metadata
 	 * @param current
 	 *            Coordinates of a block we know is on a branch
 	 * @param node
 	 *            Coordinates of a block we know is on the trunk, or null
 	 */
-	private static void doBranching(World world, Block leaf, Block id, int meta, boolean valid, int[] current, int[] node) {
+	private static void doBranching(World world, Block leaf, Block id, int meta, int leafMeta, int[] current, int[] node) {
 		byte branchLength = 0;
 		int[] newBranch = findValidNeighbor(world, current[0], current[1], current[2], id, false);
 		while (newBranch != null && newBranch != node && branchLength < 8)//We don't want to go in cycle or make too long branch
@@ -298,10 +296,9 @@ public class TreeUtils {
 		newBranch = findValidNeighbor(world, current[0], current[1], current[2], Blocks.air, false);
 		if (newBranch != null) {
 			world.setBlock(newBranch[0], newBranch[1], newBranch[2], id, meta, 3);
-			if (leaf != Blocks.air && valid)
-				putBlocksAround(world, newBranch[0], newBranch[1], newBranch[2], leaf, meta);
-		} else if (leaf != Blocks.air && valid)
-			putBlocksAround(world, current[0], current[1], current[2], leaf, meta);
+            putBlocksAround(world, newBranch[0], newBranch[1], newBranch[2], leaf, leafMeta);
+		} else
+			putBlocksAround(world, current[0], current[1], current[2], leaf, leafMeta);
 	}
 
 	/**
