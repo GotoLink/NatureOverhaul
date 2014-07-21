@@ -11,3 +11,4 @@
 !gradle*
 !update.xml
 !changelog.md
+!/META-INF/
