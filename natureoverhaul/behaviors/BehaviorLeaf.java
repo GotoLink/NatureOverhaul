@@ -1,8 +1,5 @@
 package natureoverhaul.behaviors;
 
-import java.util.Arrays;
-import java.util.List;
-
 import natureoverhaul.NOType;
 import natureoverhaul.NatureOverhaul;
 import natureoverhaul.TreeData;
@@ -20,7 +17,7 @@ public class BehaviorLeaf extends BehaviorRandomDeath {
         TreeData tree = TreeData.getTree(id, world.getBlockMetadata(i, j, k), TreeData.Component.LEAF);
         if(tree!=null) {
             Block sap = tree.getBlock(TreeData.Component.SAPLING);
-            if (NatureOverhaul.growthType > 1 && world.rand.nextFloat() < NatureOverhaul.getGrowthProb(world, i, j, k, sap, NOType.SAPLING)) {
+            if (NatureOverhaul.INSTANCE.growthType > 1 && world.rand.nextFloat() < NatureOverhaul.getGrowthProb(world, i, j, k, sap, NOType.SAPLING)) {
                 Utils.emitItem(world, i, j, k, new ItemStack(sap, 1, tree.getMeta(TreeData.Component.SAPLING)));
             }
         }
@@ -31,7 +28,7 @@ public class BehaviorLeaf extends BehaviorRandomDeath {
 	public void grow(World world, int i, int j, int k, Block id) {
 		if (world.isAirBlock(i, j - 1, k) && appleCanGrow(world, i, k) && world.rand.nextFloat() < NatureOverhaul.getAppleGrowthProb(world, i, j, k))
 			Utils.emitItem(world, i, j - 1, k, new ItemStack(Items.apple));
-		if (NatureOverhaul.growthType % 2 == 1 && world.isAirBlock(i, j + 1, k)) {
+		if (NatureOverhaul.INSTANCE.growthType % 2 == 1 && world.isAirBlock(i, j + 1, k)) {
             TreeData tree = TreeData.getTree(id, world.getBlockMetadata(i, j, k), TreeData.Component.LEAF);
             if(tree!=null) {
                 Block sap = tree.getBlock(TreeData.Component.SAPLING);

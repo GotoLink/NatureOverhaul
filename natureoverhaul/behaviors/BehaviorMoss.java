@@ -59,7 +59,7 @@ public class BehaviorMoss extends BehaviorDeathSwitch {
 	}
 
     public boolean canGrowOn(Block living, Block area){
-        return (NatureOverhaul.mossCorruptStone && area == Blocks.stone && living == mossy[0]) || area == getDeadBlock(living);
+        return (NatureOverhaul.INSTANCE.mossCorruptStone && area == Blocks.stone && living == mossy[0]) || area == getDeadBlock(living);
     }
 
     public int getGrowthMeta(Block living){

@@ -12,7 +12,7 @@ public class BehaviorTree extends BehaviorRandomDeath {
 	public void death(World world, int i, int j, int k, Block id) {
 		NOType type = Utils.getType(id);
 		if (TreeUtils.isTree(world, i, j, k, type, false)) {
-			TreeUtils.killTree(world, i, Utils.getLowestTypeJ(world, i, j, k, type), k, id, type == NOType.LOG && NatureOverhaul.decayLeaves);
+			TreeUtils.killTree(world, i, Utils.getLowestTypeJ(world, i, j, k, type), k, id, type == NOType.LOG && NatureOverhaul.INSTANCE.decayLeaves);
 		}
 	}
 

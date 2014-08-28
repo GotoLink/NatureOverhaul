@@ -1,7 +1,14 @@
+== Nature Overhaul 0.9 ==
+* Updated for 1.7.10 (switch to server-only)
+* Added in-game configuration
+* Added more comments in options
+* Added biome options
+* Improved tree support
+
 == Nature Overhaul 0.8 ==
 * Updated for 1.7.2
 * Added Fire behavior
-* Fixed non* burnable logs and leaves
+* Fixed non-burnable logs and leaves
 * Improved the API with Events
 
 == Nature Overhaul 0.7 ==

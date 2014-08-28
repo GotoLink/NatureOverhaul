@@ -1,6 +1,8 @@
 package natureoverhaul.behaviors;
 
 import static net.minecraftforge.common.util.ForgeDirection.*;
+
+import natureoverhaul.NatureOverhaul;
 import natureoverhaul.Utils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockFire;
@@ -8,7 +10,6 @@ import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
 
 public class BehaviorFire extends BehaviorDeathDisappear {
-	protected int fireRange = 2;
 	protected int limit = 15;
 
 	@Override
@@ -29,7 +30,7 @@ public class BehaviorFire extends BehaviorDeathDisappear {
 	}
 
 	public int getRange() {
-		return this.fireRange;
+		return NatureOverhaul.INSTANCE.fireRange;
 	}
 
 	@Override
@@ -47,7 +48,7 @@ public class BehaviorFire extends BehaviorDeathDisappear {
 		Block nId;
         int tries = 0;
 		while (tries < limit) {
-			neighbour = Utils.findRandomNeighbour(i, j, k, fireRange);
+			neighbour = Utils.findRandomNeighbour(i, j, k, getRange());
 			nId = world.getBlock(neighbour[0], neighbour[1], neighbour[2]);
 			if (canNeighborBurn(world, neighbour[0], neighbour[1], neighbour[2], nId)) {
 				world.setBlock(neighbour[0], neighbour[1], neighbour[2], block, 0, 3);
@@ -58,11 +59,6 @@ public class BehaviorFire extends BehaviorDeathDisappear {
 
 	public boolean isBurnableGround(Block id) {
 		return id == Blocks.grass;
-	}
-
-	public Behavior setRange(int range) {
-		this.fireRange = range;
-		return this;
 	}
 
 	private boolean canNeighborBurn(World world, int x, int y, int z, Block block) {

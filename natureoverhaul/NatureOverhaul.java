@@ -3,14 +3,16 @@ package natureoverhaul;
 import java.lang.reflect.Method;
 import java.util.*;
 
-import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.ModContainer;
+import cpw.mods.fml.client.config.IConfigElement;
+import cpw.mods.fml.client.event.ConfigChangedEvent;
+import cpw.mods.fml.common.*;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.common.registry.GameData;
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 import natureoverhaul.behaviors.BehaviorFire;
 import natureoverhaul.behaviors.BehaviorMoss;
-import natureoverhaul.handlers.*;
 import net.minecraft.block.*;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
@@ -20,41 +22,39 @@ import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
-import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.common.MinecraftForge;
 
 import com.google.common.collect.ImmutableMap;
 
-import cpw.mods.fml.common.Loader;
-import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
+import org.apache.logging.log4j.Logger;
 
 /**
  * From Clinton Alexander idea.
  * @author Olivier
  *
  */
-@Mod(modid = "natureoverhaul", name = "Nature Overhaul", useMetadata = true, dependencies = "after:mod_MOAPI")
+@Mod(modid = "natureoverhaul", name = "Nature Overhaul", useMetadata = true, dependencies = "after:mod_MOAPI", acceptableRemoteVersions = "*", guiFactory = "natureoverhaul.ConfigGuiHandler")
 public class NatureOverhaul {
-	private enum GrowthType {
+    private enum GrowthType {
 		NEITHER, LEAFGROWTH, LEAFDECAY, BOTH
 	}
+    @Mod.Instance("natureoverhaul")
+    public static NatureOverhaul INSTANCE;
 
-	private static boolean autoSapling = true, autoFarming = true, lumberjack = true, moddedBonemeal = true, killLeaves = true, biomeModifiedRate = true;
-	public static boolean useStarvingSystem = true, decayLeaves = true, mossCorruptStone = true;
-	private static boolean customDimension = true, wildAnimalsBreed = true;
-	private static int wildAnimalBreedRate = 0, wildAnimalDeathRate = 0;
-	public static int growthType = 0, fireRange = 2;
-	private int updateLCG = (new Random()).nextInt();
+    public boolean autoSapling = true, autoFarming = true, lumberjack = true, moddedBonemeal = true, killLeaves = true, biomeModifiedRate = true;
+    public boolean useStarvingSystem = true, decayLeaves = true, mossCorruptStone = true, customDimension = true, wildAnimalsBreed = true;
+	public int wildAnimalBreedRate = 0, wildAnimalDeathRate = 0, growthType = 0, fireRange = 2;
+    private ArrayList<Item> axes = new ArrayList<Item>();
 	private static Map<Block, NOType> IDToTypeMapping = new IdentityHashMap<Block, NOType>();
 	private static Map<Block, Boolean> IDToGrowingMapping = new IdentityHashMap<Block, Boolean>(), IDToDyingMapping = new IdentityHashMap<Block, Boolean>();
     private static Map<Block, Integer> IDToFireCatchMapping = new IdentityHashMap<Block, Integer>(), IDToFirePropagateMapping = new IdentityHashMap<Block, Integer>();
 	private static final String[] names = new String[] { "Sapling", "Tree", "Plants", "Netherwort", "Grass", "Reed", "Cactus", "Mushroom", "Mushroom Tree", "Leaf", "Crops", "Moss", "Cocoa", "Fire" };
-	private static boolean[] dieSets = new boolean[names.length], growSets = new boolean[names.length + 1];
-	private static float[] deathRates = new float[names.length], growthRates = new float[names.length + 1];
+	private boolean[] dieSets = new boolean[names.length], growSets = new boolean[names.length + 1];
+	private float[] deathRates = new float[names.length], growthRates = new float[names.length + 1];
 	private static String[] optionsCategory = new String[names.length + 1];
 	static {
 		for (int i = 0; i < names.length; i++) {
@@ -62,103 +62,27 @@ public class NatureOverhaul {
 		}
 		optionsCategory[names.length] = "Misc Options";
 	}
-	private static Configuration config;
-	private static Class<?> api;
-	private static boolean API;
-	private static BonemealEventHandler bonemealEvent;
-	private static AnimalEventHandler animalEvent;
-	private static PlayerEventHandler lumberEvent;
-	private static AutoSaplingEventHandler autoEvent;
-	private static AutoFarmingEventHandler farmingEvent;
-	public static org.apache.logging.log4j.Logger logger;
+	private NOConfiguration config;
+	private Class<?> api;
+    private int updateLCG = (new Random()).nextInt();
+	private Logger logger;
 
 	@EventHandler
 	public void load(FMLInitializationEvent event) {
-		FMLCommonHandler.instance().bus().register(this);
+        FMLCommonHandler.instance().bus().register(this);
 	}
 
     //Register blocks with config values and NOType, and log/leaf couples
 	@EventHandler
 	public void modsLoaded(FMLPostInitializationEvent event) {
 		if (Loader.isModLoaded("mod_MOAPI")) {//We can use reflection to load options in MOAPI
-			try {
-				api = Class.forName("moapi.ModOptionsAPI");
-				Method addMod = api.getMethod("addMod", String.class);
-				//"addMod" is static, we don't need an instance
-				Object option = addMod.invoke(null, "Nature Overhaul");
-				Class<?> optionClass = addMod.getReturnType();
-				//Set options as able to be used on a server,get the instance back
-				option = optionClass.getMethod("setServerMode").invoke(option);
-				//"addBooleanOption" and "addSliderOption" aren't static, we need options class and an instance
-				Method addBoolean = optionClass.getMethod("addBooleanOption", new Class[] { String.class, boolean.class });
-				Method addSlider = optionClass.getMethod("addSliderOption", new Class[] { String.class, int.class, int.class });
-				Method addMap = optionClass.getMethod("addMappedOption", new Class[] { String.class, String[].class, int[].class });
-				Method setSliderValue = Class.forName("moapi.ModOptionSlider").getMethod("setValue", int.class);
-				//To create a submenu
-				Method addSubOption = optionClass.getMethod("addSubOption", String.class);
-				//Create "General" submenu and options
-				Object subOption = addSubOption.invoke(option, "General");
-				Object slidOption;
-				for (String name: names) {
-					addBoolean.invoke(subOption, name + " grow", true);
-					addBoolean.invoke(subOption, name + " die", true);
-					slidOption = addSlider.invoke(subOption, name + " growth rate", 0, 10000);
-					setSliderValue.invoke(slidOption, 1200);
-					slidOption = addSlider.invoke(subOption, name + " death rate", 0, 10000);
-					setSliderValue.invoke(slidOption, 1200);
-				}
-				addBoolean.invoke(subOption, "Apple grows", true);
-				slidOption = addSlider.invoke(subOption, "Apple growth rate", 0, 10000);
-				setSliderValue.invoke(slidOption, 3000);
-				//Create "LumberJack" submenu and options
-				Object lumberJackOption = addSubOption.invoke(option, "LumberJack");
-				addBoolean.invoke(lumberJackOption, "Enable", true);
-				addBoolean.invoke(lumberJackOption, "Kill leaves", true);
-				//Create "Misc" submenu and options
-				Object miscOption = addSubOption.invoke(option, "Misc");
-				addMap.invoke(miscOption, "Sapling drops on", new String[] { "Both", "LeafDecay", "LeafGrowth", "Neither" }, new int[] { 3, 2, 1, 0 });
-				addBoolean.invoke(miscOption, "AutoSapling", true);
-				addBoolean.invoke(miscOption, "Plant seeds on player drop", true);
-				addBoolean.invoke(miscOption, "Leaves decay on tree death", true);
-				addBoolean.invoke(miscOption, "Moss growing on stone", true);
-				addBoolean.invoke(miscOption, "Starving system", true);
-				addBoolean.invoke(miscOption, "Biome specific rates", true);
-				addBoolean.invoke(miscOption, "Modded Bonemeal", true);
-				addBoolean.invoke(miscOption, "Custom dimensions", true);
-				//Create "Animals" submenu and options
-				Object animalsOption = addSubOption.invoke(option, "Animals");
-				addBoolean.invoke(animalsOption, "Wild breed", true);
-				slidOption = addSlider.invoke(animalsOption, "Breeding rate", 1, 10000);
-				setSliderValue.invoke(slidOption, 10000);
-				slidOption = addSlider.invoke(animalsOption, "Death rate", 1, 10000);
-				setSliderValue.invoke(slidOption, 10000);
-				//Create "Fire" submenu and options
-				Object fireOption = addSubOption.invoke(option, "Fire");
-				slidOption = addSlider.invoke(fireOption, "Propagation range", 0, 20);
-				setSliderValue.invoke(slidOption, 2);
-				//Loads and saves values
-				option = optionClass.getMethod("loadValues").invoke(option);
-				option = optionClass.getMethod("saveValues").invoke(option);
-				//We have saved the values, we can start to get them back
-				getMOAPIValues(optionClass, subOption, lumberJackOption, miscOption, animalsOption, fireOption);
-				//We successfully get all options !
-				API = true;
-				logger.info("NatureOverhaul found MOAPI and loaded all options correctly.");
-			} catch (SecurityException s) {
-				API = false;
-			} catch (ClassNotFoundException c) {
-				API = false;
-				logger.info("NatureOverhaul couldn't use MOAPI, continuing with values in config file.");
-			} catch (ReflectiveOperationException n) {
-				API = false;
-				logger.warn("NatureOverhaul failed to use MOAPI, please report to NO author:", n);
-			}//Even if it fails, we can still rely on settings stored in Forge recommended config file.
+            tryUseMOAPI();
 		}
 		//Now we can register every available blocks at this point.
 		ArrayList<Block> logID = new ArrayList<Block>(), leafID = new ArrayList<Block>(), saplingID = new ArrayList<Block>();
 		//If a block is registered after, it won't be accounted for.
         Block i = null;
-		for (Iterator itr=GameData.blockRegistry.iterator();itr.hasNext(); i = (Block)itr.next()) {
+		for (Iterator itr=GameData.getBlockRegistry().iterator();itr.hasNext(); i = (Block)itr.next()) {
 			if (i != null) {
 				if (i instanceof IGrowable && i instanceof IBlockDeath) {//Priority to Blocks using the api
 					addMapping(i, true, ((IGrowable) i).getGrowthRate(), true, ((IBlockDeath) i).getDeathRate(), -1.0F, -1.0F, NOType.CUSTOM);
@@ -199,12 +123,12 @@ public class NatureOverhaul {
 				if (i.getMaterial().isOpaque() && i.renderAsNormalBlock() && i.isCollidable()) {
 					IDToFirePropagateMapping.put(
 							i,
-							config.get("Fire Options", i.getUnlocalizedName().substring(5) + " chance to encourage fire",
-									Blocks.fire.getEncouragement(i)).getInt());
+							config.getInt(optionsCategory[13] + ".Spreading", i.getUnlocalizedName().substring(5),
+                                    Blocks.fire.getEncouragement(i)));
 					IDToFireCatchMapping.put(
 							i,
-							config.get("Fire Options", i.getUnlocalizedName().substring(5) + " chance to catch fire",
-									Blocks.fire.getFlammability(i)).getInt());
+							config.getInt(optionsCategory[13]+".Flammability", i.getUnlocalizedName().substring(5),
+									Blocks.fire.getFlammability(i)));
 				}
 			}
 		}
@@ -219,7 +143,7 @@ public class NatureOverhaul {
 				logData.add(log.damageDropped(meta));
 				leafData.add(leaf.damageDropped(meta));
 			}
-            StringBuilder gData = new StringBuilder().append(GameData.blockRegistry.getNameForObject(log)).append("("), fData = new StringBuilder().append(GameData.blockRegistry.getNameForObject(leaf)).append("(");
+            StringBuilder gData = new StringBuilder().append(GameData.getBlockRegistry().getNameForObject(log)).append("("), fData = new StringBuilder().append(GameData.getBlockRegistry().getNameForObject(leaf)).append("(");
 			for (int meta : logData) {
 				gData.append(meta).append(",");
 			}
@@ -229,7 +153,7 @@ public class NatureOverhaul {
 			}
             fData.deleteCharAt(fData.length()-1).append(");");
             for (int meta : sapData) {
-			    option.append(GameData.blockRegistry.getNameForObject(sapling)).append("(").append(meta).append(")-").append(gData).append(fData);
+			    option.append(GameData.getBlockRegistry().getNameForObject(sapling)).append("(").append(meta).append(")-").append(gData).append(fData);
             }
 		}
 		String[] ids = config.get(optionsCategory[names.length], "Sapling-Log-Leaves names", option.toString(), "Separate groups with ;").getString().split(";");
@@ -240,9 +164,9 @@ public class NatureOverhaul {
 				if (temp.length == 3) {
 					Block idSaplin, idLo, idLef;
 					try {
-						idSaplin = GameData.blockRegistry.getObject(temp[0].split("\\(")[0]);
-						idLo = GameData.blockRegistry.getObject(temp[1].split("\\(")[0]);
-						idLef = GameData.blockRegistry.getObject(temp[2].split("\\(")[0]);
+						idSaplin = GameData.getBlockRegistry().getObject(temp[0].split("\\(")[0]);
+						idLo = GameData.getBlockRegistry().getObject(temp[1].split("\\(")[0]);
+						idLef = GameData.getBlockRegistry().getObject(temp[2].split("\\(")[0]);
 					} catch (Exception e) {
 						continue;
 					}
@@ -261,13 +185,13 @@ public class NatureOverhaul {
                                             try {
                                                 int e = Integer.parseInt(meta2.trim());
                                                 new TreeData(idSaplin, idLo, idLef, a, o, e).register();
-                                            }catch (NumberFormatException n){
+                                            }catch (NumberFormatException ignored){
                                             }
                                         }
-                                    }catch (NumberFormatException n){
+                                    }catch (NumberFormatException ignored){
                                     }
                                 }
-                            }catch (NumberFormatException n){
+                            }catch (NumberFormatException ignored){
                             }
                         }
                         if(IDToTypeMapping.get(idSaplin)==null)
@@ -282,82 +206,148 @@ public class NatureOverhaul {
 		}
 		option = new StringBuilder();
         Item it = null;
-		for (Iterator itr = GameData.itemRegistry.iterator();itr.hasNext(); it=(Item)itr.next()) {
+		for (Iterator itr = GameData.getItemRegistry().iterator();itr.hasNext(); it=(Item)itr.next()) {
 			if (it instanceof ItemAxe) {
-				option.append(GameData.itemRegistry.getNameForObject(it)).append(",");
+				option.append(GameData.getItemRegistry().getNameForObject(it)).append(",");
 			}
 		}
 		ids = config.get(optionsCategory[1], "Lumberjack compatible items", option.toString(), "Separate item names with comma").getString().split(",");
 		for (String param : ids) {
 			if (param != null && !param.equals("")) {
 				try {
-                    it = GameData.itemRegistry.getObject(param);
+                    it = GameData.getItemRegistry().getObject(param);
                     if(it!=null)
-					    PlayerEventHandler.ids.add(it);
-				} catch (Exception e) {
+					    axes.add(it);
+				} catch (Exception ignored) {
 				}
 			}
 		}
+        setBiomes();
 		//Saving Forge recommended config file.
 		if (config.hasChanged()) {
 			config.save();
 		}
 		for (Block b : IDToFirePropagateMapping.keySet()) {
-			Blocks.fire.setFireInfo(i, IDToFirePropagateMapping.get(b), IDToFireCatchMapping.get(b));
+			Blocks.fire.setFireInfo(b, IDToFirePropagateMapping.get(b), IDToFireCatchMapping.get(b));
 		}
 		//Registering event listeners.
-		bonemealEvent = new BonemealEventHandler(moddedBonemeal);
-		MinecraftForge.EVENT_BUS.register(bonemealEvent);
-		animalEvent = new AnimalEventHandler(wildAnimalsBreed, wildAnimalBreedRate, wildAnimalDeathRate);
-		MinecraftForge.EVENT_BUS.register(animalEvent);
-		lumberEvent = new PlayerEventHandler(lumberjack, killLeaves);
-		MinecraftForge.EVENT_BUS.register(lumberEvent);
-		farmingEvent = new AutoFarmingEventHandler(autoFarming);
-		MinecraftForge.EVENT_BUS.register(farmingEvent);
-		autoEvent = new AutoSaplingEventHandler(autoSapling);
-		MinecraftForge.EVENT_BUS.register(autoEvent);
-		if (growthType % 2 == 0)
-			MinecraftForge.EVENT_BUS.register(new SaplingGrowEventHandler());
+		MinecraftForge.EVENT_BUS.register(new ForgeEvents());
 	}
 
-	@EventHandler
+    private void setBiomes() {
+        for(BiomeGenBase biomeGenBase:BiomeGenBase.getBiomeGenArray()){
+            if(biomeGenBase!=null){
+                float tempt = config.getFloat(biomeGenBase.biomeName, "Biomes.Temperature", biomeGenBase.temperature, -1.0F, 2.0F, "");
+                float rainf = config.getFloat(biomeGenBase.biomeName, "Biomes.Rainfall", biomeGenBase.rainfall, 0.0F, 1.0F, "");
+                if(tempt>0.15F) {
+                    if (tempt < 0.2F)
+                        tempt = 0.2F;
+                }else if(tempt>0.1F)
+                        tempt = 0.1F;
+                biomeGenBase.setTemperatureRainfall(tempt, rainf);
+                boolean snow = config.getBoolean(biomeGenBase.biomeName, "Biomes.Snowing", biomeGenBase.func_150559_j(), "");
+                boolean rain = ObfuscationReflectionHelper.getPrivateValue(BiomeGenBase.class, biomeGenBase, "enableRain", "field_76765_S");
+                rain = config.getBoolean(biomeGenBase.biomeName, "Biomes.Raining", rain, "");
+                ObfuscationReflectionHelper.setPrivateValue(BiomeGenBase.class, biomeGenBase, snow, "enableSnow", "field_76766_R");
+                ObfuscationReflectionHelper.setPrivateValue(BiomeGenBase.class, biomeGenBase, rain, "enableRain", "field_76765_S");
+            }
+        }
+    }
+
+    /**
+     * Sets all the menus and sub-options in ModOptionsAPI, if possible
+     */
+    private void tryUseMOAPI() {
+        try {
+            api = Class.forName("moapi.ModOptionsAPI");
+            Method addMod = api.getMethod("addMod", String.class);
+            //"addMod" is static, we don't need an instance
+            Object option = addMod.invoke(null, "Nature Overhaul");
+            Class<?> optionClass = addMod.getReturnType();
+            //Set options as able to be used on a server,get the instance back
+            option = optionClass.getMethod("setServerMode").invoke(option);
+            //"addBooleanOption" and "addSliderOption" aren't static, we need options class and an instance
+            Method addBoolean = optionClass.getMethod("addBooleanOption", new Class[] { String.class, boolean.class });
+            Method addSlider = optionClass.getMethod("addSliderOption", new Class[] { String.class, int.class, int.class });
+            Method addMap = optionClass.getMethod("addMappedOption", new Class[] { String.class, String[].class, int[].class });
+            Method setSliderValue = Class.forName("moapi.ModOptionSlider").getMethod("setValue", int.class);
+            //To create a submenu
+            Method addSubOption = optionClass.getMethod("addSubOption", String.class);
+            //Create "General" submenu and options
+            Object subOption = addSubOption.invoke(option, "General");
+            Object slidOption;
+            for (String name: names) {
+                addBoolean.invoke(subOption, name + " grow", true);
+                addBoolean.invoke(subOption, name + " die", true);
+                slidOption = addSlider.invoke(subOption, name + " growth rate", 0, 10000);
+                setSliderValue.invoke(slidOption, 1200);
+                slidOption = addSlider.invoke(subOption, name + " death rate", 0, 10000);
+                setSliderValue.invoke(slidOption, 1200);
+            }
+            addBoolean.invoke(subOption, "Apple grows", true);
+            slidOption = addSlider.invoke(subOption, "Apple growth rate", 0, 10000);
+            setSliderValue.invoke(slidOption, 3000);
+            //Create "LumberJack" submenu and options
+            Object lumberJackOption = addSubOption.invoke(option, "LumberJack");
+            addBoolean.invoke(lumberJackOption, "Enable", true);
+            addBoolean.invoke(lumberJackOption, "Kill leaves", true);
+            //Create "Misc" submenu and options
+            Object miscOption = addSubOption.invoke(option, "Misc");
+            addMap.invoke(miscOption, "Sapling drops on", new String[] { "Both", "LeafDecay", "LeafGrowth", "Neither" }, new int[] { 3, 2, 1, 0 });
+            addBoolean.invoke(miscOption, "AutoSapling", true);
+            addBoolean.invoke(miscOption, "Plant seeds on player drop", true);
+            addBoolean.invoke(miscOption, "Leaves decay on tree death", true);
+            addBoolean.invoke(miscOption, "Moss growing on stone", true);
+            addBoolean.invoke(miscOption, "Starving system", true);
+            addBoolean.invoke(miscOption, "Biome specific rates", true);
+            addBoolean.invoke(miscOption, "Modded Bonemeal", true);
+            addBoolean.invoke(miscOption, "Custom dimensions", true);
+            //Create "Animals" submenu and options
+            Object animalsOption = addSubOption.invoke(option, "Animals");
+            addBoolean.invoke(animalsOption, "Wild breed", true);
+            slidOption = addSlider.invoke(animalsOption, "Breeding rate", 1, 10000);
+            setSliderValue.invoke(slidOption, 10000);
+            slidOption = addSlider.invoke(animalsOption, "Death rate", 1, 10000);
+            setSliderValue.invoke(slidOption, 10000);
+            //Create "Fire" submenu and options
+            Object fireOption = addSubOption.invoke(option, "Fire");
+            slidOption = addSlider.invoke(fireOption, "Propagation range", 0, 20);
+            setSliderValue.invoke(slidOption, 2);
+            //Loads and saves values
+            option = optionClass.getMethod("loadValues").invoke(option);
+            option = optionClass.getMethod("saveValues").invoke(option);
+            //We have saved the values, we can start to get them back
+            getMOAPIValues(optionClass, subOption, lumberJackOption, miscOption, animalsOption, fireOption);
+            //We successfully get all options !
+            logger.info("NatureOverhaul found MOAPI and loaded all options correctly.");
+        } catch (SecurityException s) {
+            api = null;
+        } catch (ClassNotFoundException c) {
+            api = null;
+            logger.info("NatureOverhaul couldn't use MOAPI, continuing with values in config file.");
+        } catch (ReflectiveOperationException n) {
+            api = null;
+            logger.warn("NatureOverhaul failed to use MOAPI, please report to NO author:", n);
+        }//Even if it fails, we can still rely on settings stored in Forge recommended config file.
+    }
+
+    @EventHandler
 	public void preInit(FMLPreInitializationEvent event) {
 		logger = event.getModLog();
-		config = new Configuration(event.getSuggestedConfigurationFile(), true);
-		config.load();
+		config = new NOConfiguration(event);
 		for (String name : optionsCategory) {
 			config.addCustomCategoryComment(name, "The lower the rate, the faster the changes happen.");
 		}
 		config.addCustomCategoryComment(optionsCategory[2], "Plants are flower, deadbush, lilypad and tallgrass");
-		config.addCustomCategoryComment(optionsCategory[13], "");
-		autoSapling = config.get(optionsCategory[0], "AutoSapling", true).getBoolean(true);
-		for (int i = 0; i < names.length; i++) {
-			dieSets[i] = config.get(optionsCategory[i], names[i] + " Die", true).getBoolean(true);
-			growSets[i] = config.get(optionsCategory[i], names[i] + " Grow", true).getBoolean(true);
-			deathRates[i] = config.get(optionsCategory[i], names[i] + " Death Rate", 1200).getInt(1200);
-			growthRates[i] = config.get(optionsCategory[i], names[i] + " Growth Rate", 1200).getInt(1200);
-		}
-		//Toggle between alternative time of growth for sapling
-		growthType = GrowthType.valueOf(config.get(optionsCategory[0], "Sapling drops on", "Both", "Possible values are Neither,LeafGrowth,LeafDecay,Both").getString().toUpperCase()).ordinal();
-		//Toggle for lumberjack system on trees
-		lumberjack = config.get(optionsCategory[1], "Enable lumberjack", true).getBoolean(true);
-		killLeaves = config.get(optionsCategory[1], "Lumberjack kill leaves", true).getBoolean(true);
-		//Apples don't have a dying system, because it is only an item
-		growSets[names.length] = config.get(optionsCategory[9], "Apple Grows", true).getBoolean(true);
-		growthRates[names.length] = config.get(optionsCategory[9], "Apple Growth Rate", 3000).getInt(3000);
-		//Force remove leaves after killing a tree, instead of letting Minecraft doing it
-		decayLeaves = config.get(optionsCategory[9], "Enable leaves decay on tree death", true).getBoolean(true);
-		//Toggle so Stone can turn into Mossy Cobblestone
-		mossCorruptStone = config.get(optionsCategory[11], "Enable moss growing on stone", true).getBoolean(true);
-		//Misc options
-		useStarvingSystem = config.get(optionsCategory[names.length], "Enable starving system", true).getBoolean(true);
-		biomeModifiedRate = config.get(optionsCategory[names.length], "Enable biome specific rates", true).getBoolean(true);
-		moddedBonemeal = config.get(optionsCategory[names.length], "Enable modded Bonemeal", true).getBoolean(true);
-		customDimension = config.get(optionsCategory[names.length], "Enable custom dimensions", true).getBoolean(true);
-		wildAnimalsBreed = config.get(optionsCategory[names.length], "Enable wild animals Breed", true).getBoolean(true);
-		wildAnimalBreedRate = config.get(optionsCategory[names.length], "Wild animals breed rate", 16000).getInt(16000);
-		wildAnimalDeathRate = config.get(optionsCategory[names.length], "Wild animals death rate", 16000).getInt(16000);
-		autoFarming = config.get(optionsCategory[names.length], "Plant seeds on player drop", true).getBoolean(true);
+		config.getCategory(optionsCategory[13]).setRequiresMcRestart(true).setComment("");
+        config.getCategory(optionsCategory[13]+".Spreading").setRequiresMcRestart(true).setComment("Chance of encouraging fire spread");
+        config.getCategory(optionsCategory[13]+".Flammability").setRequiresMcRestart(true).setComment("Chance of catching fire");
+        config.getCategory("Biomes").setRequiresWorldRestart(true);
+        config.addCustomCategoryComment("Biomes.Temperature", "Modifying those values will affect growth and death rates if biome specific rates are enabled\nWarning, they can also change the biome color\nAvoid range 0.1 to 0.2 because of snow");
+        config.addCustomCategoryComment("Biomes.Rainfall", "Modifying those values will affect growth and death rates if biome specific rates are enabled\nHigher for more humidity");
+        config.addCustomCategoryComment("Biomes.Snowing", "Modifying those values will NOT affect growth and death rates\nWhen snowing is enabled, will replace rain and cancel lightning in most cases");
+        config.addCustomCategoryComment("Biomes.Raining", "Modifying those values will NOT affect growth and death rates\nRemoving raining will cancel lightning in most cases");
+        getBasicOptions();
         if(event.getSourceFile().getName().endsWith(".jar") && event.getSide().isClient()){
             try {
                 Class.forName("mods.mud.ModUpdateDetector").getDeclaredMethod("registerMod", ModContainer.class, String.class, String.class).invoke(null,
@@ -365,10 +355,56 @@ public class NatureOverhaul {
                         "https://raw.github.com/GotoLink/NatureOverhaul/master/update.xml",
                         "https://raw.github.com/GotoLink/NatureOverhaul/master/changelog.md"
                 );
-            } catch (Throwable e) {
+            } catch (Throwable ignored) {
             }
         }
 	}
+
+    /**
+     * Receive the change event from the configuration gui
+     * Save the changes if needed
+     * @param event the change
+     */
+    @SubscribeEvent
+    public void onChange(ConfigChangedEvent.OnConfigChangedEvent event){
+        if(event.modID.equals("natureoverhaul") && config.hasChanged()) {
+            getBasicOptions();
+            setBiomes();
+            config.save();
+            refreshBehaviors();
+        }
+    }
+
+    private void getBasicOptions() {
+        autoSapling = config.getBoolean(optionsCategory[0], "AutoSapling", true);
+        for (int i = 0; i < names.length; i++) {
+            dieSets[i] = config.getBoolean(optionsCategory[i], names[i] + " Die", true);
+            growSets[i] = config.getBoolean(optionsCategory[i], names[i] + " Grow", true);
+            deathRates[i] = config.getInt(optionsCategory[i], names[i] + " Death Rate", 1200);
+            growthRates[i] = config.getInt(optionsCategory[i], names[i] + " Growth Rate", 1200);
+        }
+        //Toggle between alternative time of growth for sapling
+        growthType = GrowthType.valueOf(config.get(optionsCategory[0], "Sapling drops on", "Both", "Possible values are Neither,LeafGrowth,LeafDecay,Both").getString().toUpperCase()).ordinal();
+        //Toggle for lumberjack system on trees
+        lumberjack = config.getBoolean(optionsCategory[1], "Enable lumberjack", true);
+        killLeaves = config.getBoolean(optionsCategory[1], "Lumberjack kill leaves", true);
+        //Apples don't have a dying system, because it is only an item
+        growSets[names.length] = config.getBoolean(optionsCategory[9], "Apple Grows", true);
+        growthRates[names.length] = config.getInt(optionsCategory[9], "Apple Growth Rate", 3000);
+        //Force remove leaves after killing a tree, instead of letting Minecraft doing it
+        decayLeaves = config.getBoolean(optionsCategory[9], "Enable leaves decay on tree death", true);
+        //Toggle so Stone can turn into Mossy Cobblestone
+        mossCorruptStone = config.getBoolean(optionsCategory[11], "Enable moss growing on stone", true);
+        //Misc options
+        useStarvingSystem = config.getBoolean(optionsCategory[names.length], "Enable starving system", true);
+        biomeModifiedRate = config.getBoolean("Enable biome specific rates", "Biomes", true, "Should Biome Temperature and Rainfall values affect local growth and death rates");
+        moddedBonemeal = config.getBoolean(optionsCategory[names.length], "Enable modded Bonemeal", true);
+        customDimension = config.getBoolean(optionsCategory[names.length], "Enable custom dimensions", true);
+        wildAnimalsBreed = config.getBoolean(optionsCategory[names.length], "Enable wild animals Breed", true);
+        wildAnimalBreedRate = config.getInt("Wild animals breed rate", optionsCategory[names.length], 16000, 1, Integer.MAX_VALUE, "The lower the value, the higher the chance of breeding");
+        wildAnimalDeathRate = config.getInt("Wild animals death rate", optionsCategory[names.length], 16000, 1, Integer.MAX_VALUE, "Mainly applies on animals that are unable to breed (old and alone)");
+        autoFarming = config.getBoolean(optionsCategory[names.length], "Plant seeds on player drop", true);
+    }
 
     /**
      * Core method. We make vanilla-like random ticks in loaded chunks.
@@ -376,56 +412,8 @@ public class NatureOverhaul {
 	@SubscribeEvent
 	public void tickStart(TickEvent.WorldTickEvent event) {
         if(event.side.isServer()){
-            if (event.phase == TickEvent.Phase.START && API) {
-                try {
-                    Method getMod = api.getMethod("getModOptions", String.class);
-                    //"getMod" is static, we don't need an instance
-                    Object option = getMod.invoke(null, "Nature Overhaul");
-                    Class<?> optionClass = getMod.getReturnType();
-                    //To get a submenu
-                    Method getSubOption = optionClass.getMethod("getOption", String.class);
-                    Object subOption = getSubOption.invoke(option, "General");
-                    //Get "LumberJack" submenu
-                    Object lumberJackOption = getSubOption.invoke(option, "LumberJack");
-                    //Get "Misc" submenu
-                    Object miscOption = getSubOption.invoke(option, "Misc");
-                    //Get "Animals" submenu
-                    Object animalsOption = getSubOption.invoke(option, "Animals");
-                    //Get "Fire submenu
-                    Object fireOption = getSubOption.invoke(option, "Fire");
-                    //We can start to get the values back
-                    getMOAPIValues(optionClass, subOption, lumberJackOption, miscOption, animalsOption, fireOption);
-                } catch (SecurityException s) {
-                    API = false;
-                } catch (ReflectiveOperationException i) {
-                    API = false;
-                }
-                BehaviorFire fire = ((BehaviorFire) BehaviorManager.getBehavior(Blocks.fire));
-                if (fire.getRange() != fireRange) {
-                    fire.setRange(fireRange);
-                }
-                bonemealEvent.set(moddedBonemeal);
-                animalEvent.set(wildAnimalsBreed, wildAnimalBreedRate, wildAnimalDeathRate);
-                lumberEvent.set(lumberjack, killLeaves);
-                autoEvent.set(autoSapling);
-                farmingEvent.set(autoFarming);
-                int index = -1;
-                for (Block i : IDToTypeMapping.keySet()) {
-                    index = IDToTypeMapping.get(i).getIndex();
-                    if (index > -1) {
-                        if (growSets[index] != IDToGrowingMapping.get(i))
-                            IDToGrowingMapping.put(i, growSets[index]);
-                        if (dieSets[index] != IDToDyingMapping.get(i))
-                            IDToDyingMapping.put(i, dieSets[index]);
-                        IBehave behav = BehaviorManager.getBehavior(i);
-                        if (growthRates[index] != behav.getGrowthRate()) {
-                            behav.setGrowthRate(growthRates[index]);
-                        }
-                        if (deathRates[index] != behav.getDeathRate()) {
-                            behav.setDeathRate(deathRates[index]);
-                        }
-                    }
-                }
+            if (event.phase == TickEvent.Phase.START && api != null) {
+                tryRefreshWithMOAPIValues();
             }
             if (event.phase == TickEvent.Phase.END) {
                 World world = event.world;
@@ -464,6 +452,68 @@ public class NatureOverhaul {
         }
 	}
 
+    private void tryRefreshWithMOAPIValues() {
+        try {
+            Method getMod = api.getMethod("getModOptions", String.class);
+            //"getMod" is static, we don't need an instance
+            Object option = getMod.invoke(null, "Nature Overhaul");
+            Class<?> optionClass = getMod.getReturnType();
+            //To get a submenu
+            Method getSubOption = optionClass.getMethod("getOption", String.class);
+            Object subOption = getSubOption.invoke(option, "General");
+            //Get "LumberJack" submenu
+            Object lumberJackOption = getSubOption.invoke(option, "LumberJack");
+            //Get "Misc" submenu
+            Object miscOption = getSubOption.invoke(option, "Misc");
+            //Get "Animals" submenu
+            Object animalsOption = getSubOption.invoke(option, "Animals");
+            //Get "Fire submenu
+            Object fireOption = getSubOption.invoke(option, "Fire");
+            //We can start to get the values back
+            getMOAPIValues(optionClass, subOption, lumberJackOption, miscOption, animalsOption, fireOption);
+        } catch (SecurityException s) {
+            api = null;
+        } catch (ReflectiveOperationException i) {
+            api = null;
+        }
+        refreshBehaviors();
+    }
+
+    private void refreshBehaviors() {
+        int index = -1;
+        for (Block i : IDToTypeMapping.keySet()) {
+            index = IDToTypeMapping.get(i).getIndex();
+            if (index > -1) {
+                if (growSets[index] != IDToGrowingMapping.get(i))
+                    IDToGrowingMapping.put(i, growSets[index]);
+                if (dieSets[index] != IDToDyingMapping.get(i))
+                    IDToDyingMapping.put(i, dieSets[index]);
+                IBehave behav = BehaviorManager.getBehavior(i);
+                if (growthRates[index] != behav.getGrowthRate()) {
+                    behav.setGrowthRate(growthRates[index]);
+                }
+                if (deathRates[index] != behav.getDeathRate()) {
+                    behav.setDeathRate(deathRates[index]);
+                }
+            }
+        }
+    }
+
+    /**
+     *@return the complete path for the configuration file, or an empty string if there is none
+     */
+    public static String getConfigPath(){
+        return INSTANCE.config!=null?INSTANCE.config.toString():"";
+    }
+
+    /**
+     * @return the {@link ConfigElement}s from the configuration file, or null if there is none
+     */
+    @SideOnly(Side.CLIENT)
+    public static List<IConfigElement> getConfigElements() {
+        return INSTANCE.config!=null?INSTANCE.config.getElements():null;
+    }
+
 	/**
 	 * The death general method. Called by
 	 * {@link #onUpdateTick(World, int, int, int, Block)} when conditions are
@@ -483,8 +533,8 @@ public class NatureOverhaul {
 	 * @return apple growth probability at given coordinates
 	 */
 	public static float getAppleGrowthProb(World world, int i, int j, int k) {
-		float freq = growSets[names.length] ? growthRates[names.length] * 1.5F : -1F;
-		if (biomeModifiedRate && freq > 0) {
+		float freq = INSTANCE.growSets[names.length] ? INSTANCE.growthRates[names.length] * 1.5F : -1F;
+		if (INSTANCE.biomeModifiedRate && freq > 0) {
 			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
 			if (biome.rainfall == 0 || biome.temperature > 1.5F) {
 				return 0.01F;
@@ -508,7 +558,7 @@ public class NatureOverhaul {
 	 */
 	public static float getGrowthProb(World world, int i, int j, int k, Block id, NOType type) {
 		float freq = getGrowthRate(id);
-		if (biomeModifiedRate && freq > 0 && type != NOType.NETHERSTALK) {
+		if (INSTANCE.biomeModifiedRate && freq > 0 && type != NOType.NETHERSTALK) {
 			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
 			if (type != NOType.CACTUS && ((biome.rainfall == 0) || (biome.temperature > 1.5F))) {
 				return 0.01F;
@@ -565,6 +615,8 @@ public class NatureOverhaul {
 	public static boolean isRegistered(Block id) {
 		return BehaviorManager.isRegistered(id);
 	}
+
+    public static boolean isAxe(Item id){return INSTANCE.axes.contains(id);}
 
 	/**
 	 * Registers all mappings simultaneously.
@@ -663,6 +715,9 @@ public class NatureOverhaul {
 		}
 	}
 
+    /**
+     * Helper reflection method for ints
+     */
 	public static int getIntFrom(Method meth, Object obj, String name) throws ReflectiveOperationException {
 		return Integer.class.cast(meth.invoke(obj, name)).intValue();
 	}
