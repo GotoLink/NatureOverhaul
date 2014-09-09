@@ -133,27 +133,23 @@ public class NatureOverhaul {
 			}
 		}
 		StringBuilder option = new StringBuilder();
-		Set<Integer> sapData = new HashSet<Integer>(), logData = new HashSet<Integer>(), leafData = new HashSet<Integer>();
 		for (int index = 0; index < logID.size() || index < leafID.size() || index < saplingID.size(); index++) {
             Block sapling = saplingID.get(index<saplingID.size()?index:0);
             Block log = logID.get(index<logID.size()?index:0);
             Block leaf = leafID.get(index<leafID.size()?index:0);
+            Set<Integer> sapData = new HashSet<Integer>();
 			for (int meta = 0; meta < 16; meta++) {
 				sapData.add(sapling.damageDropped(meta));
-				logData.add(log.damageDropped(meta));
-				leafData.add(leaf.damageDropped(meta));
 			}
-            StringBuilder gData = new StringBuilder().append(GameData.getBlockRegistry().getNameForObject(log)).append("("), fData = new StringBuilder().append(GameData.getBlockRegistry().getNameForObject(leaf)).append("(");
-			for (int meta : logData) {
-				gData.append(meta).append(",");
-			}
-            gData.deleteCharAt(gData.length()-1).append(")-");
-			for (int meta : leafData) {
-				fData.append(meta).append(",");
-			}
-            fData.deleteCharAt(fData.length()-1).append(");");
+            String gData = GameData.getBlockRegistry().getNameForObject(log);
+            String fData = GameData.getBlockRegistry().getNameForObject(leaf);
             for (int meta : sapData) {
-			    option.append(GameData.getBlockRegistry().getNameForObject(sapling)).append("(").append(meta).append(")-").append(gData).append(fData);
+                if(meta>3){
+                    gData = GameData.getBlockRegistry().getNameForObject(logID.get(index+1<logID.size()?index+1:1));
+                    fData = GameData.getBlockRegistry().getNameForObject(leafID.get(index+1<leafID.size()?index+1:1));
+                }
+                StringBuilder tempData = new StringBuilder("(").append(meta%4).append(",").append(meta%4+4).append(",").append(meta%4+8).append(",").append(meta%4+12);
+			    option.append(GameData.getBlockRegistry().getNameForObject(sapling)).append("(").append(meta).append(")-").append(gData).append(tempData).append(")-").append(fData).append(tempData).append(");");
             }
 		}
 		String[] ids = config.get(optionsCategory[names.length], "Sapling-Log-Leaves names", option.toString(), "Separate groups with ;").getString().split(";");
