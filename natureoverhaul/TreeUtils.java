@@ -266,8 +266,7 @@ public class TreeUtils {
 	}
 
 	/**
-	 * Try to enlarge the branch at given coordinates by going from neighbor to
-	 * neighbor
+	 * Try to enlarge the branch at given coordinates by going from neighbor to neighbor
 	 * 
 	 * @param world
 	 * @param leaf

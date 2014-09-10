@@ -1,6 +1,7 @@
 package natureoverhaul;
 
 import net.minecraft.block.Block;
+import net.minecraft.nbt.NBTTagCompound;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 import java.util.HashSet;
@@ -22,6 +23,22 @@ public class TreeData {
         this.sapMeta = sapMeta;
         this.logMeta = logMeta;
         this.leafMeta = leafMeta;
+    }
+
+    public TreeData(NBTTagCompound compound){
+        NBTTagCompound tag = compound.getCompoundTag("Sapling");
+        this.sapling = Block.getBlockFromName(tag.getString("Block"));
+        this.sapMeta = tag.getInteger("Metadata");
+        tag = compound.getCompoundTag("Trunk");
+        this.log = Block.getBlockFromName(tag.getString("Block"));
+        this.logMeta = tag.getInteger("Metadata");
+        tag = compound.getCompoundTag("Leaf");
+        this.leaves = Block.getBlockFromName(tag.getString("Block"));
+        this.leafMeta = tag.getInteger("Metadata");
+    }
+
+    public boolean isValid(){
+        return sapling!=null && log!=null && leaves!=null;
     }
 
     public void register(){

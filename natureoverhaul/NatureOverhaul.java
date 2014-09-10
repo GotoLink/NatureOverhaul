@@ -6,6 +6,7 @@ import java.util.*;
 import cpw.mods.fml.client.config.IConfigElement;
 import cpw.mods.fml.client.event.ConfigChangedEvent;
 import cpw.mods.fml.common.*;
+import cpw.mods.fml.common.event.FMLInterModComms;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.common.registry.GameData;
@@ -355,6 +356,27 @@ public class NatureOverhaul {
             }
         }
 	}
+
+    @EventHandler
+    public void onMessage(FMLInterModComms.IMCEvent event){
+        for(FMLInterModComms.IMCMessage message : event.getMessages()){
+            if("RegisterTree".equals(message.key) && message.isNBTMessage()){
+                TreeData data = new TreeData(message.getNBTValue());
+                if(data.isValid()){
+                    Block idSaplin = data.getBlock(TreeData.Component.SAPLING);
+                    if(IDToTypeMapping.get(idSaplin)==null)
+                        addMapping(idSaplin, growSets[0], 0, dieSets[0], deathRates[0], 0.8F, 0.8F, NOType.SAPLING);
+                    Block idLo = data.getBlock(TreeData.Component.TRUNK);
+                    if(IDToTypeMapping.get(idLo)==null)
+                        addMapping(idLo, growSets[1], growthRates[1], dieSets[1], deathRates[1], 1.0F, 1.0F, NOType.LOG);
+                    Block idLef = data.getBlock(TreeData.Component.LEAF);
+                    if(IDToTypeMapping.get(idLef)==null)
+                        addMapping(idLef, growSets[9], growthRates[9], dieSets[9], deathRates[9], 1.0F, 1.0F, NOType.LEAVES);
+                    data.register();
+                }
+            }
+        }
+    }
 
     /**
      * Receive the change event from the configuration gui
