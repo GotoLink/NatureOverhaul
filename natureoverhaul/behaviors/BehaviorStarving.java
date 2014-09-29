@@ -6,6 +6,7 @@ import net.minecraft.block.Block;
 import net.minecraft.world.World;
 
 public abstract class BehaviorStarving extends Behavior {
+    public final int maxRadius = 10;
 	/**
 	 * @return the maximum number of same block, a block can live with
 	 */
@@ -33,17 +34,19 @@ public abstract class BehaviorStarving extends Behavior {
 		int radius = getStarvingRadius(world, i, j, k);
 		int max = getMaxNeighbour(world, i, j, k);
 		int foundNeighbours = 0;
-		if (radius > 0 && radius < 10) {
+		if (radius > 0 && radius < maxRadius) {
 			for (int x = i - radius; x < i + radius; x++) {
-				for (int y = j - radius; y < j + radius; y++) {
-					for (int z = k - radius; z < k + radius; z++) {
-						if (i != x || j != y || k != z) {
-							Block blockID = world.getBlock(x, y, z);
-							if (foundNeighbours <= max && (id == blockID || (NatureOverhaul.isRegistered(blockID) && Utils.getType(blockID) == Utils.getType(id)))) {
-								foundNeighbours++;
-							}
-						}
-					}
+                for (int z = k - radius; z < k + radius; z++) {
+                    if(world.getChunkProvider().chunkExists(x>>4, z>>4)) {
+                        for (int y = j - radius; y < j + radius; y++) {
+                            if (i != x || j != y || k != z) {
+                                Block blockID = world.getBlock(x, y, z);
+                                if (foundNeighbours <= max && (id == blockID || (NatureOverhaul.isRegistered(blockID) && Utils.getType(blockID) == Utils.getType(id)))) {
+                                    foundNeighbours++;
+                                }
+                            }
+                        }
+                    }
 				}
 			}
 		}
