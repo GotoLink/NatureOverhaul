@@ -1,3 +1,6 @@
+== Nature Overhaul 0.9.1 ==
+* Added option for sapling item life-span
+
 == Nature Overhaul 0.9 ==
 * Updated for 1.7.10 (switch to server-only)
 * Added in-game configuration

@@ -1,11 +1,13 @@
 package natureoverhaul;
 
 import cpw.mods.fml.common.eventhandler.Event;
+import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import natureoverhaul.events.FarmingEvent;
 import natureoverhaul.events.LumberJackEvent;
 import natureoverhaul.events.WildBreedingEvent;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockSapling;
 import net.minecraft.entity.EntityAgeable;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.passive.EntityAnimal;
@@ -18,6 +20,7 @@ import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 import net.minecraftforge.common.IPlantable;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.item.ItemExpireEvent;
 import net.minecraftforge.event.entity.item.ItemTossEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
@@ -203,6 +206,22 @@ public class ForgeEvents {
     public void onGrowingSapling(SaplingGrowTreeEvent event) {
         if (NatureOverhaul.INSTANCE.growthType % 2 == 0) {
             event.setResult(Event.Result.DENY);
+        }
+    }
+
+    /**
+     * Custom life span for sapling items
+     */
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public void onSaplingSpawn(EntityJoinWorldEvent event){
+        if(event.entity instanceof EntityItem){
+            ItemStack stack = ((EntityItem) event.entity).getEntityItem();
+            if(stack!=null && stack.getItem()!=null){
+                int life = stack.getItem().getEntityLifespan(stack, event.world);
+                if(life!=NatureOverhaul.INSTANCE.despawnTimeSapling && Block.getBlockFromItem(stack.getItem()) instanceof BlockSapling) {
+                    ((EntityItem) event.entity).lifespan = NatureOverhaul.INSTANCE.despawnTimeSapling;
+                }
+            }
         }
     }
 }

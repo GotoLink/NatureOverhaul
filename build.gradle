@@ -16,10 +16,10 @@ buildscript {
 }
 apply plugin: 'forge'
 minecraft {
-    version = "1.7.10-10.13.0.1206"
-    runDir = "eclipse/assets"
+    version = "1.7.10-10.13.0.1208"
+    runDir = "eclipse"
 }
-version = "0.9"
+version = "0.9.1"
 archivesBaseName = project.projectDir.name
 sourceSets.main.java{srcDirs project.projectDir.getPath() include("natureoverhaul/**")}
 sourceSets.main.resources{srcDirs project.projectDir.getPath() include("*.info", "*.mcmeta" , "META-INF/**")}

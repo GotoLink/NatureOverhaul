@@ -1,5 +1,10 @@
 <mod modid="natureoverhaul">
     <mcVersion version="1.7.10">
+        <release type="release" version="0.9.1"
+                 url="http://www.minecraftforum.net/topic/1651891-/#Nature"
+                 download="http://www.mediafire.com/download/w2gb4tfj4nc0mc7/NatureOverhaul-0.9.1(1.7.10).jar"
+                 md5="4B996E46A1AA5B2628584FDABE6FAABC"
+                />
         <release type="release" version="0.9"
                  url="http://www.minecraftforum.net/topic/1651891-/#Nature"
                  download="http://www.mediafire.com/download/k57iah655r5555c/NatureOverhaul-0.9(1.7.10).jar"

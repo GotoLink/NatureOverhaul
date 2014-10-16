@@ -48,7 +48,7 @@ public class NatureOverhaul {
 
     public boolean autoSapling = true, autoFarming = true, lumberjack = true, moddedBonemeal = true, killLeaves = true, biomeModifiedRate = true;
     public boolean useStarvingSystem = true, decayLeaves = true, mossCorruptStone = true, customDimension = true, wildAnimalsBreed = true;
-	public int wildAnimalBreedRate = 0, wildAnimalDeathRate = 0, growthType = 0, fireRange = 2;
+	public int wildAnimalBreedRate = 0, wildAnimalDeathRate = 0, growthType = 0, fireRange = 2, despawnTimeSapling = 6000;
     private ArrayList<Item> axes = new ArrayList<Item>();
 	private static Map<Block, NOType> IDToTypeMapping = new IdentityHashMap<Block, NOType>();
 	private static Map<Block, Boolean> IDToGrowingMapping = new IdentityHashMap<Block, Boolean>(), IDToDyingMapping = new IdentityHashMap<Block, Boolean>();
@@ -394,7 +394,10 @@ public class NatureOverhaul {
     }
 
     private void getBasicOptions() {
+        //Sapling options
         autoSapling = config.getBoolean(optionsCategory[0], "AutoSapling", true);
+        despawnTimeSapling = config.getInt(optionsCategory[0], "Sapling item despawn rate", 6000);
+        //Most growth/death stuff
         for (int i = 0; i < names.length; i++) {
             dieSets[i] = config.getBoolean(optionsCategory[i], names[i] + " Die", true);
             growSets[i] = config.getBoolean(optionsCategory[i], names[i] + " Grow", true);
@@ -402,7 +405,7 @@ public class NatureOverhaul {
             growthRates[i] = config.getInt(optionsCategory[i], names[i] + " Growth Rate", 1200);
         }
         //Toggle between alternative time of growth for sapling
-        growthType = GrowthType.valueOf(config.get(optionsCategory[0], "Sapling drops on", "Both", "Possible values are Neither,LeafGrowth,LeafDecay,Both").getString().toUpperCase()).ordinal();
+        growthType = GrowthType.valueOf(config.get(optionsCategory[0], "Sapling drops on", "Both", "Possible values are Neither,LeafGrowth,LeafDecay,Both").getString().toUpperCase(Locale.ENGLISH)).ordinal();
         //Toggle for lumberjack system on trees
         lumberjack = config.getBoolean(optionsCategory[1], "Enable lumberjack", true);
         killLeaves = config.getBoolean(optionsCategory[1], "Lumberjack kill leaves", true);
