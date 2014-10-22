@@ -43,7 +43,7 @@ public class ForgeEvents {
     public void onLivingUpdateEvent(LivingEvent.LivingUpdateEvent event) {
         if (NatureOverhaul.INSTANCE.wildAnimalsBreed && event.entityLiving instanceof EntityAnimal) {
             EntityAnimal ent = (EntityAnimal) event.entityLiving;
-            if (!ent.worldObj.isRemote && ent.getGrowingAge() == 0 && !ent.isInLove()) {
+            if (!ent.worldObj.isRemote && !ent.isNoDespawnRequired() && ent.getGrowingAge() == 0 && !ent.isInLove() && !ent.hasCustomNameTag()) {
                 EntityAnimal mate = getNearbyMate(ent);
                 if (mate != null && ent.getRNG().nextFloat() < 1 / NatureOverhaul.INSTANCE.wildAnimalBreedRate) {
                     EntityAgeable entityageable = ent.createChild(mate);//create the baby
