@@ -9,7 +9,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
 
 public class BehaviorMushroom extends BehaviorDeathDisappear{
-
+    public int growthRadius = 3, growthAttempt = 15;
 	@Override
 	public int getMaxNeighbour(World world, int i, int j, int k) {
 		return 5;
@@ -22,9 +22,9 @@ public class BehaviorMushroom extends BehaviorDeathDisappear{
 			((BlockMushroom) id).func_149884_c(world, i, j, k, world.rand);
 		else//Grow a similar mushroom nearby
 		{
-			int scanSize = 3;
+			int scanSize = growthRadius;
 			int coord[];
-			for (int attempt = 0; attempt < 15; attempt++) {
+			for (int attempt = 0; attempt < growthAttempt; attempt++) {
 				coord = Utils.findRandomNeighbour(i, j, k, scanSize);
 				if (id.canPlaceBlockAt(world, coord[0], coord[1], coord[2])) {
 					world.setBlock(coord[0], coord[1], coord[2], id);

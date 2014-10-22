@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.material.Material;
 import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
 
@@ -12,7 +13,9 @@ import net.minecraft.world.World;
  * @author Clinton Alexander
  */
 public class TreeUtils {
+    private static final int MIN_LEAF_LAYER = 1;//Let's consider a leaf layer is enough
 	private static final int MAX_TREE_HEIGHT = 16;
+    private static final int MAX_RANGE = 6;
 	// Flag controls
 	private static final int iBits = 5, jBits = 7, kBits = 5;
 	/**
@@ -84,7 +87,7 @@ public class TreeUtils {
         if(leaf==null||leaf==Blocks.air)
             return;
 		int leafMeta = data.getMeta(TreeData.Component.LEAF);
-		if (world.getBlock(i, lowJ - 1, k) == Blocks.dirt || Utils.getType(world.getBlock(i, lowJ - 1, k)) == NOType.GRASS) {
+		if (world.getBlock(i, lowJ - 1, k).getMaterial() == Material.ground || Utils.getType(world.getBlock(i, lowJ - 1, k)) == NOType.GRASS) {
 			boolean branchFound = false;
 			int[] node = new int[] { i, lowJ, k };
 			List<int[]> branchs = new ArrayList<int[]>();
@@ -131,11 +134,11 @@ public class TreeUtils {
 		int leafLayersFound = 0;
 		int curJ = j - 1;
 		// Look down first
-		while ((checked <= MAX_TREE_HEIGHT) && (!groundFound) && (!isNotTree)) {
+		while (checked <= MAX_TREE_HEIGHT && !groundFound && !isNotTree) {
 			Block blockBelowID = world.getBlock(i, curJ, k);
 			if (Utils.getType(blockBelowID) == type) {
 				curJ = curJ - 1;
-			} else if ((blockBelowID == Blocks.dirt) || Utils.getType(blockBelowID) == NOType.GRASS) {
+			} else if (blockBelowID.getMaterial() == Material.ground || Utils.getType(blockBelowID) == NOType.GRASS) {
 				groundFound = true;// We have found a ground block below
 				// Put the J back onto a known log
 				curJ = curJ + 1;
@@ -147,8 +150,8 @@ public class TreeUtils {
 		// Set checked back to 0 as we are scanning the whole tree up now
 		checked = 0;
 		// Scan back up for leaves
-		if ((!isNotTree) && (groundFound)) {
-			while ((checked <= MAX_TREE_HEIGHT) && (!topFound) && (!isNotTree)) {
+		if (!isNotTree && groundFound) {
+			while (checked <= MAX_TREE_HEIGHT && !topFound && !isNotTree) {
 				Block blockAboveID = world.getBlock(i, curJ, k);
 				// Continue scanning for leaves
 				// After || is ignoring self block
@@ -165,7 +168,7 @@ public class TreeUtils {
 				}
 			}
 			// Ground found is also true at this point by definition
-			return (!isNotTree && (topFound || leafLayersFound > 0));//Let's consider a leaf layer is enough
+			return (!isNotTree && (topFound || leafLayersFound > MIN_LEAF_LAYER-1));
 		} else {
 			return false;
 		}
@@ -305,9 +308,9 @@ public class TreeUtils {
 	 */
 	private static boolean inRange(int[] block, int[] base, int treeHeight) {
 		// Check the x/z are within a 6 square
-		if ((Math.abs(block[0] - base[0]) <= 6) && (Math.abs(block[2] - base[2]) <= 6)) {
+		if ((Math.abs(block[0] - base[0]) <= MAX_RANGE) && (Math.abs(block[2] - base[2]) <= MAX_RANGE)) {
 			// Within the tree height plus a little for leaves
-			if ((block[1] >= base[1]) && (block[1] - base[1] <= treeHeight + 5)) {
+			if (block[1] >= base[1] && (block[1] - base[1] <= treeHeight + 5)) {
 				return true;
 			}
 		}
@@ -350,7 +353,7 @@ public class TreeUtils {
 		//System.out.println("Scan and flag (" + i + ","+j+","+k+")");
 		for (int[] nBlock : neighbours(block)) {
 			Block id = world.getBlock(nBlock[0], nBlock[1], nBlock[2]);
-			if ((inRange(nBlock, base, treeHeight)) && (!flags.contains(makeFlag(nBlock, base)))
+			if (inRange(nBlock, base, treeHeight) && !flags.contains(makeFlag(nBlock, base))
 					&& ((Utils.getType(id) == NOType.LOG || Utils.getType(id) == NOType.MUSHROOMCAP) || Utils.getType(id) == NOType.LEAVES)) {
 				flags.add(makeFlag(nBlock, base));
 				removed = removed + scanAndFlag(world, base, nBlock, flags, treeHeight);
@@ -359,7 +362,7 @@ public class TreeUtils {
 		// Remove the current block if it's a non-tree log
 		NOType type = Utils.getType(world.getBlock(i, j, k));
 		if (type == NOType.LOG || type == NOType.MUSHROOMCAP) {
-			if ((!isTree(world, i, j, k, type, false)) || ((i == base[0]) && (k == base[2]))) {
+			if (!isTree(world, i, j, k, type, false) || (i == base[0] && k == base[2])) {
 				world.setBlockToAir(block[0], block[1], block[2]);
 				removed++;
 			}

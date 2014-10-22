@@ -9,22 +9,23 @@ import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 
 public class BehaviorCocoa extends BehaviorDeathDisappear {
+    public float minTemp = 0.7F, maxTemp = 1.5F, minRainfall = 0.8F;
+    public int dropQuantity = 1;
 	/**
 	 * Checks if a cocoa can drop in this biome.
 	 * 
 	 * @return true if can drop in these coordinates
 	 */
 	public boolean canDropItem(World world, int i, int j, int k) {
-		BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
 		// Cocoa can grow in the named biomes
-		return world.getBlock(i, j, k) == Blocks.air && biome.temperature >= 0.7F && biome.temperature <= 1.5F && biome.rainfall >= 0.8F;
+		return world.getBlock(i, j, k) == Blocks.air && isValidBiome(world, i, k, minTemp, maxTemp, minRainfall);
 	}
 
 	/**
 	 * @return the {@link ItemStack} to emit on growth
 	 */
 	public ItemStack getDroppedItem() {
-		return new ItemStack(Items.dye, 1, 3);//Emit cocoa dye
+		return new ItemStack(Items.dye, dropQuantity, 3);//Emit cocoa dye
 	}
 
 	@Override

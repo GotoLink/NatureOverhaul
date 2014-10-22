@@ -11,6 +11,7 @@ public class BehaviorMoss extends BehaviorDeathSwitch {
     private static Block[] mossy = {Blocks.mossy_cobblestone, Blocks.stonebrick};
     private static Block[] smooth = {Blocks.cobblestone, Blocks.stonebrick};
     private static int[] mossMeta = {0, 1};
+    public int growthAttemp = 15;
 
     public static void addMossData(Block moss, Block norm, int meta){
         ArrayUtils.add(mossy, moss);
@@ -47,7 +48,7 @@ public class BehaviorMoss extends BehaviorDeathSwitch {
 		if(world.getBlockMetadata(i, j, k) == getGrowthMeta(id)) {
             Block iD;
             int coord[];
-            for (int attempt = 0; attempt < 15; attempt++) {
+            for (int attempt = 0; attempt < growthAttemp; attempt++) {
                 coord = Utils.findRandomNeighbour(i, j, k, 1);
                 iD = world.getBlock(coord[0], coord[1], coord[2]);
                 if (canGrowOn(id, iD)) {

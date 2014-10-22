@@ -5,6 +5,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
 
 public class BehaviorGrass extends BehaviorDeathSwitch {
+    public int growthRadius = 1;
 	@Override
 	public Block getDeadBlock(Block living) {
 		return Blocks.dirt;
@@ -18,7 +19,7 @@ public class BehaviorGrass extends BehaviorDeathSwitch {
 	@Override
 	public void grow(World world, int i, int j, int k, Block id) {
 		//Replace surrounding dirt with grass
-		int scanSize = 1;
+		int scanSize = growthRadius;
 		for (int x = i - scanSize; x <= i + scanSize; x++) {
 			for (int y = j - scanSize; y <= j + scanSize; y++) {
 				for (int z = k - scanSize; z <= k + scanSize; z++) {

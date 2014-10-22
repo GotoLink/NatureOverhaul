@@ -6,6 +6,6 @@ import net.minecraft.world.World;
 public abstract class BehaviorDeathDisappear extends BehaviorStarving{
 	@Override
 	public void death(World world, int i, int j, int k, Block id) {
-		world.setBlockToAir(i, j, k);//turn to air
+		id.removedByPlayer(world, null, i, j, k, false);//turn to air
 	}
 }

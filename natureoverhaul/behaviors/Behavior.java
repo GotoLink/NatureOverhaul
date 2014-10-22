@@ -1,6 +1,8 @@
 package natureoverhaul.behaviors;
 
 import natureoverhaul.IBehave;
+import net.minecraft.world.World;
+import net.minecraft.world.biome.BiomeGenBase;
 
 public abstract class Behavior implements IBehave {
 	private float[] data = new float[4];
@@ -43,4 +45,9 @@ public abstract class Behavior implements IBehave {
 	public void setGrowthRate(float rate) {
 		this.data[0] = rate;
 	}
+
+    public boolean isValidBiome(World world, int i, int k, float minTemp, float maxTemp, float minRainfall){
+        BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
+        return biome.temperature >= minTemp && biome.temperature <= maxTemp && biome.rainfall > minRainfall;
+    }
 }

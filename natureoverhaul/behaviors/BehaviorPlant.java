@@ -5,6 +5,7 @@ import net.minecraft.block.Block;
 import net.minecraft.world.World;
 
 public class BehaviorPlant extends BehaviorDeathDisappear {
+    public int growthRadius = 2, growthAttempt = 18;
 	@Override
 	public int getMaxNeighbour(World world, int i, int j, int k) {
 		return 5;
@@ -12,9 +13,9 @@ public class BehaviorPlant extends BehaviorDeathDisappear {
 
 	@Override
 	public void grow(World world, int i, int j, int k, Block id) {
-		int scanSize = 2;
+		int scanSize = growthRadius;
 		int coord[];
-		for (int attempt = 0; attempt < 18; attempt++) {
+		for (int attempt = 0; attempt < growthAttempt; attempt++) {
 			coord = Utils.findRandomNeighbour(i, j, k, scanSize);
 			if (id.canPlaceBlockAt(world, coord[0], coord[1], coord[2]) && !world.getBlock(coord[0], coord[1], coord[2]).getMaterial().isLiquid()) {
 				if (!isMetadataSensitive(id)) {
