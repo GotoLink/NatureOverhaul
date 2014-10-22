@@ -59,7 +59,7 @@ public class NOConfiguration extends Configuration{
     @SideOnly(Side.CLIENT)
     public List<IConfigElement> getElements(){
         Set<String> names = this.getCategoryNames();
-        List<IConfigElement> categories = new ArrayList(names.size());
+        List<IConfigElement> categories = new ArrayList<IConfigElement>(names.size());
         for(String name:names){
             ConfigCategory cat = this.getCategory(name);
             if(!cat.isChild())

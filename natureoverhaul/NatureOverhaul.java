@@ -68,12 +68,17 @@ public class NatureOverhaul {
     private int updateLCG = (new Random()).nextInt();
 	private Logger logger;
 
+    /**
+     * Register main tick and config change handler
+     */
 	@EventHandler
 	public void load(FMLInitializationEvent event) {
         FMLCommonHandler.instance().bus().register(this);
 	}
 
-    //Register blocks with config values and NOType, and log/leaf couples
+    /*
+     * Register blocks with config values and NOType, and log/leaf couples
+     */
 	@EventHandler
 	public void modsLoaded(FMLPostInitializationEvent event) {
 		if (Loader.isModLoaded("mod_MOAPI")) {//We can use reflection to load options in MOAPI
@@ -361,18 +366,22 @@ public class NatureOverhaul {
     public void onMessage(FMLInterModComms.IMCEvent event){
         for(FMLInterModComms.IMCMessage message : event.getMessages()){
             if("RegisterTree".equals(message.key) && message.isNBTMessage()){
-                TreeData data = new TreeData(message.getNBTValue());
-                if(data.isValid()){
-                    Block idSaplin = data.getBlock(TreeData.Component.SAPLING);
-                    if(IDToTypeMapping.get(idSaplin)==null)
-                        addMapping(idSaplin, growSets[0], 0, dieSets[0], deathRates[0], 0.8F, 0.8F, NOType.SAPLING);
-                    Block idLo = data.getBlock(TreeData.Component.TRUNK);
-                    if(IDToTypeMapping.get(idLo)==null)
-                        addMapping(idLo, growSets[1], growthRates[1], dieSets[1], deathRates[1], 1.0F, 1.0F, NOType.LOG);
-                    Block idLef = data.getBlock(TreeData.Component.LEAF);
-                    if(IDToTypeMapping.get(idLef)==null)
-                        addMapping(idLef, growSets[9], growthRates[9], dieSets[9], deathRates[9], 1.0F, 1.0F, NOType.LEAVES);
-                    data.register();
+                try {
+                    TreeData data = new TreeData(message.getNBTValue());
+                    if (data.isValid()) {
+                        Block idSaplin = data.getBlock(TreeData.Component.SAPLING);
+                        if (IDToTypeMapping.get(idSaplin) == null)
+                            addMapping(idSaplin, growSets[0], 0, dieSets[0], deathRates[0], 0.8F, 0.8F, NOType.SAPLING);
+                        Block idLo = data.getBlock(TreeData.Component.TRUNK);
+                        if (IDToTypeMapping.get(idLo) == null)
+                            addMapping(idLo, growSets[1], growthRates[1], dieSets[1], deathRates[1], 1.0F, 1.0F, NOType.LOG);
+                        Block idLef = data.getBlock(TreeData.Component.LEAF);
+                        if (IDToTypeMapping.get(idLef) == null)
+                            addMapping(idLef, growSets[9], growthRates[9], dieSets[9], deathRates[9], 1.0F, 1.0F, NOType.LEAVES);
+                        data.register();
+                    }
+                }catch (Throwable e){
+                    logger.warn("Invalid NBT format", e);
                 }
             }
         }
@@ -536,9 +545,8 @@ public class NatureOverhaul {
     }
 
 	/**
-	 * The death general method. Called by
-	 * {@link #onUpdateTick(World, int, int, int, Block)} when conditions are
-	 * fulfilled.
+	 * The death general method.
+     * Called by {@link #onUpdateTick(World, int, int, int, Block)} when conditions are fulfilled.
 	 **/
 	public static void death(World world, int i, int j, int k, Block id) {
 		if (id instanceof IBlockDeath) {
@@ -571,8 +579,8 @@ public class NatureOverhaul {
 	}
 
 	/**
-	 * Get the growth probability. Called by
-	 * {@link #onUpdateTick(World, int, int, int, Block)}.
+	 * Get the growth probability.
+     * Called by {@link #onUpdateTick(World, int, int, int, Block)}.
 	 * 
 	 * @return growth probability for given blockid and NOType at given
 	 *         coordinates
@@ -599,9 +607,8 @@ public class NatureOverhaul {
 	}
 
 	/**
-	 * The general growing method. Called by
-	 * {@link #onUpdateTick(World, int, int, int, Block)}. when conditions are
-	 * fulfilled.
+	 * The general growing method.
+     * Called by {@link #onUpdateTick(World, int, int, int, Block)} when conditions are fulfilled.
 	 **/
 	public static void grow(World world, int i, int j, int k, Block id) {
 		if (id instanceof IGrowable) {
@@ -697,8 +704,8 @@ public class NatureOverhaul {
 	}
 
 	/**
-	 * Get the death probability. Called by
-	 * {@link #onUpdateTick(World, int, int, int, Block)}.
+	 * Get the death probability.
+     * Called by {@link #onUpdateTick(World, int, int, int, Block)}.
 	 * 
 	 * @return Death probability for given blockid and NOType at given
 	 *         coordinates
@@ -740,7 +747,7 @@ public class NatureOverhaul {
      * Helper reflection method for ints
      */
 	public static int getIntFrom(Method meth, Object obj, String name) throws ReflectiveOperationException {
-		return Integer.class.cast(meth.invoke(obj, name)).intValue();
+		return Integer.class.cast(meth.invoke(obj, name));
 	}
 
 	private void getMOAPIValues(Class<?> optionClass, Object subOption, Object lumberJackOption, Object miscOption, Object animalsOption, Object fireOption) throws SecurityException,
@@ -782,8 +789,8 @@ public class NatureOverhaul {
 	}
 
 	/**
-	 * Called by {@link #onUpdateTick(World, int, int, int, Block)}. Checks
-	 * whether this block has died on this tick for any reason
+	 * Called by {@link #onUpdateTick(World, int, int, int, Block)}.
+     * Checks whether this block has died on this tick for any reason
 	 * 
 	 * @return True if plant has died
 	 */
