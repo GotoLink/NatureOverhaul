@@ -31,14 +31,14 @@ import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.logging.log4j.Logger;
 
 /**
  * From Clinton Alexander idea.
  * @author Olivier
- *
  */
-@Mod(modid = "natureoverhaul", name = "Nature Overhaul", useMetadata = true, dependencies = "after:mod_MOAPI", acceptableRemoteVersions = "*", guiFactory = "natureoverhaul.ConfigGuiHandler")
+@Mod(modid = "natureoverhaul", name = "Nature Overhaul", dependencies = "after:mod_MOAPI", acceptableRemoteVersions = "*", guiFactory = "natureoverhaul.ConfigGuiHandler")
 public class NatureOverhaul {
     private enum GrowthType {
 		NEITHER, LEAFGROWTH, LEAFDECAY, BOTH
@@ -116,7 +116,7 @@ public class NatureOverhaul {
 					leafID.add(i);
 				} else if (i instanceof BlockCrops || i instanceof BlockStem) {
 					addMapping(i, growSets[10], growthRates[10], dieSets[10], deathRates[10], 1.0F, 1.0F, NOType.FERTILIZED);
-				} else if (i instanceof BlockBush) {//Flowers, deadbush, lilypad, tallgrass
+				} else if (i instanceof BlockBush) {//Flowers, bushes, lilypad, tallgrass
 					addMapping(i, growSets[2], growthRates[2], dieSets[2], deathRates[2], 0.6F, 0.7F, NOType.PLANT, 100, 60);
 				} else if (BehaviorMoss.isMossyBlock(i)) {
 					addMapping(i, growSets[11], growthRates[11], dieSets[11], deathRates[11], 0.7F, 1.0F, NOType.MOSS);
@@ -138,8 +138,8 @@ public class NatureOverhaul {
 				}
 			}
 		}
-		StringBuilder option = new StringBuilder();
-		for (int index = 0; index < logID.size() || index < leafID.size() || index < saplingID.size(); index++) {
+        String[] temp = ArrayUtils.EMPTY_STRING_ARRAY;
+        for (int index = 0; index < logID.size() || index < leafID.size() || index < saplingID.size(); index++) {
             Block sapling = saplingID.get(index<saplingID.size()?index:0);
             Block log = logID.get(index<logID.size()?index:0);
             Block leaf = leafID.get(index<leafID.size()?index:0);
@@ -155,11 +155,11 @@ public class NatureOverhaul {
                     fData = GameData.getBlockRegistry().getNameForObject(leafID.get(index+1<leafID.size()?index+1:1));
                 }
                 StringBuilder tempData = new StringBuilder("(").append(meta%4).append(",").append(meta%4+4).append(",").append(meta%4+8).append(",").append(meta%4+12);
-			    option.append(GameData.getBlockRegistry().getNameForObject(sapling)).append("(").append(meta).append(")-").append(gData).append(tempData).append(")-").append(fData).append(tempData).append(");");
+			    StringBuilder option = new StringBuilder(GameData.getBlockRegistry().getNameForObject(sapling)).append("(").append(meta).append(")-").append(gData).append(tempData).append(")-").append(fData).append(tempData).append(")");
+                temp = ArrayUtils.add(temp, option.toString());
             }
 		}
-		String[] ids = config.get(optionsCategory[names.length], "Sapling-Log-Leaves names", option.toString(), "Separate groups with ;").getString().split(";");
-		String[] temp;
+		String[] ids = config.get(optionsCategory[names.length], "Sapling-Log-Leaves names", temp, "Add group on new line").getStringList();
 		for (String param : ids) {
 			if (param != null && !param.equals("")) {
 				temp = param.split("-");
@@ -206,14 +206,14 @@ public class NatureOverhaul {
 				}
 			}
 		}
-		option = new StringBuilder();
+        temp = ArrayUtils.EMPTY_STRING_ARRAY;
         Item it = null;
 		for (Iterator itr = GameData.getItemRegistry().iterator();itr.hasNext(); it=(Item)itr.next()) {
 			if (it instanceof ItemAxe) {
-				option.append(GameData.getItemRegistry().getNameForObject(it)).append(",");
+				temp = ArrayUtils.add(temp, GameData.getItemRegistry().getNameForObject(it));
 			}
 		}
-		ids = config.get(optionsCategory[1], "Lumberjack compatible items", option.toString(), "Separate item names with comma").getString().split(",");
+		ids = config.get(optionsCategory[1], "Lumberjack compatible items", temp, "Separate item names on new lines").getStringList();
 		for (String param : ids) {
 			if (param != null && !param.equals("")) {
 				try {
