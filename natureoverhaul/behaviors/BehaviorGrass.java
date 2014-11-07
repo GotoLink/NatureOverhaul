@@ -6,14 +6,13 @@ import net.minecraft.world.World;
 
 public class BehaviorGrass extends BehaviorDeathSwitch {
     public int growthRadius = 1;
+    public BehaviorGrass(){
+        super(null, new Starve(5));
+    }
+
 	@Override
 	public Block getDeadBlock(Block living) {
 		return Blocks.dirt;
-	}
-
-	@Override
-	public int getMaxNeighbour(World world, int i, int j, int k) {
-		return 5;
 	}
 
 	@Override

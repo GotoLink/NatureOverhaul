@@ -1,11 +1,14 @@
 package natureoverhaul.behaviors;
 
-import net.minecraft.block.Block;
-import net.minecraft.world.World;
+import natureoverhaul.IGrowable;
 
 public abstract class BehaviorDeathDisappear extends BehaviorStarving{
-	@Override
-	public void death(World world, int i, int j, int k, Block id) {
-		id.removedByPlayer(world, null, i, j, k, false);//turn to air
-	}
+
+    public BehaviorDeathDisappear(IGrowable growth, Starve starvation){
+        super(growth, DeathModule.DISAPPEAR, starvation);
+    }
+
+    public BehaviorDeathDisappear(IGrowable growth, int maxNeighbour){
+        super(growth, DeathModule.DISAPPEAR, new Starve(maxNeighbour));
+    }
 }

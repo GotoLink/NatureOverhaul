@@ -13,6 +13,10 @@ public class BehaviorMoss extends BehaviorDeathSwitch {
     private static int[] mossMeta = {0, 1};
     public int growthAttemp = 15;
 
+    public BehaviorMoss(){
+        super(null, new Starve(15));
+    }
+
     public static void addMossData(Block moss, Block norm, int meta){
         ArrayUtils.add(mossy, moss);
         ArrayUtils.add(smooth, norm);
@@ -27,6 +31,7 @@ public class BehaviorMoss extends BehaviorDeathSwitch {
         }
         return false;
     }
+
     @Override
 	public Block getDeadBlock(Block living) {
 		for(int i=0; i<mossy.length; i++){
@@ -35,11 +40,6 @@ public class BehaviorMoss extends BehaviorDeathSwitch {
             }
         }
         return null;
-	}
-
-	@Override
-	public int getMaxNeighbour(World world, int i, int j, int k) {
-		return 15;
 	}
 
 	@Override

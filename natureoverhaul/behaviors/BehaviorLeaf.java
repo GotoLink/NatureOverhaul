@@ -10,9 +10,14 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 
-public class BehaviorLeaf extends BehaviorRandomDeath {
+public class BehaviorLeaf extends Behavior {
     public float minTemp = 0.7F, maxTemp = 1.0F, minRainfall = 0.4F;
     public int dropQuantity = 1;
+    @Override
+    public boolean hasDied(World world, int i, int j, int k, Block id) {
+        return false;
+    }
+
 	@Override
 	public void death(World world, int i, int j, int k, Block id) {
 		//Has a chance to emit a sapling if sets accordingly

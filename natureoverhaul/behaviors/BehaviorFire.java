@@ -11,6 +11,9 @@ import net.minecraft.world.World;
 
 public class BehaviorFire extends BehaviorDeathDisappear {
 	protected int limit = 15;
+    public BehaviorFire(){
+        super(null, 30);
+    }
 
 	@Override
 	public void death(World world, int i, int j, int k, Block id) {
@@ -22,11 +25,6 @@ public class BehaviorFire extends BehaviorDeathDisappear {
 
 	public Block getBurnedGround() {
 		return Blocks.dirt;
-	}
-
-	@Override
-	public int getMaxNeighbour(World world, int i, int j, int k) {
-		return 30;
 	}
 
 	public int getRange() {

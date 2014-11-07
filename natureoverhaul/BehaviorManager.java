@@ -8,7 +8,10 @@ import net.minecraft.block.Block;
 
 public class BehaviorManager {
 	private static Map<Block, IBehave> blockBehaviors = new HashMap<Block, IBehave>();
-	private static final Behavior DUMMY = new BehaviorDummy();
+    /**
+     * Behavior doing nothing, for error handling
+     */
+	private static final Behavior DUMMY = new BehaviorModular(GrowthModule.NO_GROWTH, DeathModule.NO_DEATH);
 
 	/**
 	 * @param id
@@ -45,31 +48,31 @@ public class BehaviorManager {
 
 	static Behavior getBehavior(NOType type) {
 		switch (type) {
-		case CACTUS:
-		case REED:
-			return new BehaviorCactus();
-		case COCOA:
-			return new BehaviorCocoa();
-		case FERTILIZED:
-			return new BehaviorCrops();
-		case GRASS:
-			return new BehaviorGrass();
-		case LEAVES:
-			return new BehaviorLeaf();
-		case LOG:
-		case MUSHROOMCAP:
-			return new BehaviorTree();
-		case MOSS:
-			return new BehaviorMoss();
-		case MUSHROOM:
-			return new BehaviorMushroom();
-		case NETHERSTALK:
-		case PLANT:
-			return new BehaviorPlant();
-		case SAPLING:
-			return new BehaviorSapling();
-		default:
-			return DUMMY;
+            case CACTUS:
+            case REED:
+                return new BehaviorCactus();
+            case COCOA:
+                return new BehaviorCocoa();
+            case FERTILIZED:
+                return new BehaviorStarving(GrowthModule.FERTILIZE,DeathModule.CROPS,new Starve(6));
+            case GRASS:
+                return new BehaviorGrass();
+            case LEAVES:
+                return new BehaviorLeaf();
+            case LOG:
+            case MUSHROOMCAP:
+                return new BehaviorModular(GrowthModule.TREE, DeathModule.TREE);
+            case MOSS:
+                return new BehaviorMoss();
+            case MUSHROOM:
+                return new BehaviorMushroom();
+            case NETHERSTALK:
+            case PLANT:
+                return new BehaviorPlant(true);
+            case SAPLING:
+                return new BehaviorSapling();
+            default:
+                return DUMMY;
 		}
 	}
 }
