@@ -1,3 +1,7 @@
+== Nature Overhaul 0.9.2 ==
+* Changed lumberjack items and sapling-log-leaves options into multiple lines
+* Changed flower tall bushes behavior
+
 == Nature Overhaul 0.9.1 ==
 * Added option for sapling item life-span
 

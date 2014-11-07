@@ -1,9 +1,14 @@
 <mod modid="natureoverhaul">
     <mcVersion version="1.7.10">
+        <release type="release" version="0.9.2"
+                 url="http://www.minecraftforum.net/topic/1651891-/#Nature"
+                 download="http://www.mediafire.com/download/wf4owbp4grr7l01/NatureOverhaul-0.9.2(1.7.10).jar"
+                 md5="8C5821959A34806893F876C8E9D7486F"
+                />
         <release type="release" version="0.9.1"
                  url="http://www.minecraftforum.net/topic/1651891-/#Nature"
                  download="http://www.mediafire.com/download/w2gb4tfj4nc0mc7/NatureOverhaul-0.9.1(1.7.10).jar"
-                 md5="4B996E46A1AA5B2628584FDABE6FAABC"
+                 md5="7509BEDC9C5D97A27AAA485A6D8AAF95"
                 />
         <release type="release" version="0.9"
                  url="http://www.minecraftforum.net/topic/1651891-/#Nature"
