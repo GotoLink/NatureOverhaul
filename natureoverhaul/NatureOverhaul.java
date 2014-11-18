@@ -155,8 +155,8 @@ public class NatureOverhaul {
                     fData = GameData.getBlockRegistry().getNameForObject(leafID.get(index+1<leafID.size()?index+1:1));
                 }
                 StringBuilder tempData = new StringBuilder("(").append(meta%4).append(",").append(meta%4+4).append(",").append(meta%4+8).append(",").append(meta%4+12);
-			    StringBuilder option = new StringBuilder(GameData.getBlockRegistry().getNameForObject(sapling)).append("(").append(meta).append(")-").append(gData).append(tempData).append(")-").append(fData).append(tempData).append(")");
-                temp = ArrayUtils.add(temp, option.toString());
+			    String option = new StringBuilder(GameData.getBlockRegistry().getNameForObject(sapling)).append("(").append(meta).append(")-").append(gData).append(tempData).append(")-").append(fData).append(tempData).append(")").toString();
+                temp = ArrayUtils.add(temp, option);
             }
 		}
 		String[] ids = config.get(optionsCategory[names.length], "Sapling-Log-Leaves names", temp, "Add group on new line").getStringList();
@@ -317,7 +317,7 @@ public class NatureOverhaul {
             setSliderValue.invoke(slidOption, 2);
             //Loads and saves values
             option = optionClass.getMethod("loadValues").invoke(option);
-            option = optionClass.getMethod("saveValues").invoke(option);
+            optionClass.getMethod("saveValues").invoke(option);
             //We have saved the values, we can start to get them back
             getMOAPIValues(optionClass, subOption, lumberJackOption, miscOption, animalsOption, fireOption);
             //We successfully get all options !
@@ -537,7 +537,7 @@ public class NatureOverhaul {
     }
 
     /**
-     * @return the {@link ConfigElement}s from the configuration file, or null if there is none
+     * @return the {@link net.minecraftforge.common.config.ConfigElement}s from the configuration file, or null if there is none
      */
     @SideOnly(Side.CLIENT)
     public static List<IConfigElement> getConfigElements() {
@@ -700,7 +700,7 @@ public class NatureOverhaul {
 	 * Helper reflection method for booleans
 	 */
 	public static boolean getBooleanFrom(Method meth, Object option, String name) throws ReflectiveOperationException {
-		return Boolean.class.cast(meth.invoke(option, name)).booleanValue();
+		return Boolean.class.cast(meth.invoke(option, name));
 	}
 
 	/**

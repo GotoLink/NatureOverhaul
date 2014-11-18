@@ -34,6 +34,7 @@ import java.util.Random;
 
 /**
  * Created by Olivier on 28/08/2014.
+ * All the event listeners needed for various parts of the mod
  */
 public class ForgeEvents {
     /**
@@ -73,17 +74,16 @@ public class ForgeEvents {
 
     /**
      * Helper method to search for compatible mate
-     * @param ent
+     * @param ent to search a partner for
      * @return the mating partner or null if none is found
      */
+    @SuppressWarnings("unchecked")
     public static EntityAnimal getNearbyMate(EntityAnimal ent) {
         double d0 = 8.0D;//search entities around
-        List<?> list = ent.worldObj.getEntitiesWithinAABB(ent.getClass(), ent.boundingBox.expand(d0, d0, d0));
+        List<EntityAnimal> list = ent.worldObj.getEntitiesWithinAABB(ent.getClass(), ent.boundingBox.expand(d0, d0, d0));
         d0 = Double.MAX_VALUE;
         EntityAnimal entityanimal = null;
-        Iterator<?> iterator = list.iterator();
-        while (iterator.hasNext()) {
-            EntityAnimal entityanimal1 = (EntityAnimal) iterator.next();
+        for (EntityAnimal entityanimal1 : list) {
             if (ent.getClass() == entityanimal1.getClass() && ent != entityanimal1 && ent.getDistanceSqToEntity(entityanimal1) < d0) {
                 entityanimal = entityanimal1;//get closest entity , but don't crossbread
                 d0 = ent.getDistanceSqToEntity(entityanimal1);
