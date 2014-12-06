@@ -1,6 +1,5 @@
 package natureoverhaul.behaviors;
 
-import natureoverhaul.IBlockDeath;
 import natureoverhaul.NatureOverhaul;
 import natureoverhaul.Utils;
 import net.minecraft.block.Block;

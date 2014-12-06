@@ -7,7 +7,6 @@ import natureoverhaul.Utils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockMushroom;
 import net.minecraft.block.BlockSapling;
-import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
 
 /**

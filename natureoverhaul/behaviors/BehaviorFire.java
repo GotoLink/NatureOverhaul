@@ -1,13 +1,13 @@
 package natureoverhaul.behaviors;
 
-import static net.minecraftforge.common.util.ForgeDirection.*;
-
 import natureoverhaul.NatureOverhaul;
 import natureoverhaul.Utils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockFire;
 import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
+
+import static net.minecraftforge.common.util.ForgeDirection.*;
 
 public class BehaviorFire extends BehaviorDeathDisappear {
 	protected int limit = 15;

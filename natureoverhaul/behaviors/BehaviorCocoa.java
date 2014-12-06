@@ -5,7 +5,6 @@ import net.minecraft.block.Block;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
-import net.minecraft.world.biome.BiomeGenBase;
 
 public class BehaviorCocoa extends BehaviorDeathDisappear {
     public float minTemp = 0.7F, maxTemp = 1.5F, minRainfall = 0.8F;
