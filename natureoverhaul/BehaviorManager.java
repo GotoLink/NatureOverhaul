@@ -1,12 +1,12 @@
 package natureoverhaul;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import natureoverhaul.behaviors.*;
 import net.minecraft.block.Block;
 
-public class BehaviorManager {
+import java.util.HashMap;
+import java.util.Map;
+
+public final class BehaviorManager {
 	private static Map<Block, IBehave> blockBehaviors = new HashMap<Block, IBehave>();
     /**
      * Behavior doing nothing, for error handling

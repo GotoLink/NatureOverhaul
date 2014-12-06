@@ -9,7 +9,7 @@ import java.util.HashSet;
 /**
  * Created by Olivier on 22/05/2014.
  */
-public class TreeData {
+public final class TreeData {
     public enum Component{
         SAPLING,TRUNK,LEAF
     }

@@ -28,7 +28,6 @@ import net.minecraftforge.event.entity.player.BonemealEvent;
 import net.minecraftforge.event.terraingen.SaplingGrowTreeEvent;
 import net.minecraftforge.event.world.BlockEvent;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
@@ -36,7 +35,10 @@ import java.util.Random;
  * Created by Olivier on 28/08/2014.
  * All the event listeners needed for various parts of the mod
  */
-public class ForgeEvents {
+public final class ForgeEvents {
+    public static final ForgeEvents INSTANCE = new ForgeEvents();
+    private ForgeEvents(){}
+
     /**
      * Event for wild animals breeding, from Clinton Alexander idea.
      */

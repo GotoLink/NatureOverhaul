@@ -14,7 +14,7 @@ import java.util.Set;
  * A gui factory for dummies, only pass another GuiScreen class to display
  */
 @SideOnly(Side.CLIENT)
-public class ConfigGuiHandler implements IModGuiFactory {
+public final class ConfigGuiHandler implements IModGuiFactory {
     public ConfigGuiHandler(){}
 
     @Override

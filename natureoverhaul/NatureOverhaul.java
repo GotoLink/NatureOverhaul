@@ -1,12 +1,14 @@
 package natureoverhaul;
 
-import java.lang.reflect.Method;
-import java.util.*;
-
+import com.google.common.collect.ImmutableMap;
 import cpw.mods.fml.client.config.IConfigElement;
 import cpw.mods.fml.client.event.ConfigChangedEvent;
 import cpw.mods.fml.common.*;
+import cpw.mods.fml.common.Mod.EventHandler;
+import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLInterModComms;
+import cpw.mods.fml.common.event.FMLPostInitializationEvent;
+import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.common.registry.GameData;
@@ -24,22 +26,18 @@ import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import net.minecraftforge.common.MinecraftForge;
-
-import com.google.common.collect.ImmutableMap;
-
-import cpw.mods.fml.common.Mod.EventHandler;
-import cpw.mods.fml.common.event.FMLInitializationEvent;
-import cpw.mods.fml.common.event.FMLPostInitializationEvent;
-import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.logging.log4j.Logger;
+
+import java.lang.reflect.Method;
+import java.util.*;
 
 /**
  * From Clinton Alexander idea.
  * @author Olivier
  */
 @Mod(modid = "natureoverhaul", name = "Nature Overhaul", dependencies = "after:mod_MOAPI", acceptableRemoteVersions = "*", guiFactory = "natureoverhaul.ConfigGuiHandler")
-public class NatureOverhaul {
+public final class NatureOverhaul {
     private enum GrowthType {
 		NEITHER, LEAFGROWTH, LEAFDECAY, BOTH
 	}
@@ -233,7 +231,7 @@ public class NatureOverhaul {
 			Blocks.fire.setFireInfo(b, IDToFirePropagateMapping.get(b), IDToFireCatchMapping.get(b));
 		}
 		//Registering event listeners.
-		MinecraftForge.EVENT_BUS.register(new ForgeEvents());
+		MinecraftForge.EVENT_BUS.register(ForgeEvents.INSTANCE);
 	}
 
     private void setBiomes() {

@@ -1,16 +1,16 @@
 package natureoverhaul;
 
-import java.util.Random;
-
 import net.minecraft.block.Block;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 
+import java.util.Random;
+
 /**
  * @author Clinton Alexander
  */
-public class Utils {
+public final class Utils {
 	@Override
 	public String toString() {
 		return "Nature Overhaul Utility Class";
