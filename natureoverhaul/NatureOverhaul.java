@@ -45,7 +45,11 @@ public final class NatureOverhaul {
     public static NatureOverhaul INSTANCE;
 
     public boolean autoSapling = true, autoFarming = true, lumberjack = true, moddedBonemeal = true, killLeaves = true, biomeModifiedRate = true;
-    public boolean useStarvingSystem = true, decayLeaves = true, mossCorruptStone = true, customDimension = true, wildAnimalsBreed = true;
+    public boolean useStarvingSystem = true;
+    public boolean decayLeaves = true;
+    public boolean mossCorruptStone = true;
+    public final HashSet<Integer> globalDimensionBlacklist = new HashSet<Integer>();
+    public boolean wildAnimalsBreed = true;
 	public int wildAnimalBreedRate = 0, wildAnimalDeathRate = 0, growthType = 0, fireRange = 2, despawnTimeSapling = 6000;
     private ArrayList<Item> axes = new ArrayList<Item>();
 	private static Map<Block, NOType> IDToTypeMapping = new IdentityHashMap<Block, NOType>();
@@ -427,7 +431,37 @@ public final class NatureOverhaul {
         useStarvingSystem = config.getBoolean(optionsCategory[names.length], "Enable starving system", true);
         biomeModifiedRate = config.getBoolean("Enable biome specific rates", "Biomes", true, "Should Biome Temperature and Rainfall values affect local growth and death rates");
         moddedBonemeal = config.getBoolean(optionsCategory[names.length], "Enable modded Bonemeal", true);
-        customDimension = config.getBoolean(optionsCategory[names.length], "Enable custom dimensions", true);
+        String[] blackList = config.getString(optionsCategory[names.length], "BlackList custom dimensions", "1", "By dimension ids. Use [id1;id2] to add a range of id, prefix with - to exclude.").split(",");
+        for(String text:blackList){
+            if(text!=null && !text.isEmpty()){
+                boolean done = false;
+                if(text.contains("[") && text.contains("]")){
+                    String[] results = text.substring(text.indexOf("[")+1, text.indexOf("]")).split(";");
+                    if(results.length==2){
+                        try {
+                            int a = Integer.parseInt(results[0]);
+                            int b = Integer.parseInt(results[1]);
+                            boolean remove = text.startsWith("-");
+                            for(int x = a; x <=b; x++){
+                                if(remove)
+                                    globalDimensionBlacklist.remove(x);
+                                else
+                                    globalDimensionBlacklist.add(x);
+                            }
+                            done = true;
+                        }catch (Exception ignored){
+
+                        }
+                    }
+                }
+                if(!done) {
+                    try {
+                        globalDimensionBlacklist.add(Integer.parseInt(text.trim()));
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+        }
         wildAnimalsBreed = config.getBoolean(optionsCategory[names.length], "Enable wild animals Breed", true);
         wildAnimalBreedRate = config.getInt("Wild animals breed rate", optionsCategory[names.length], 16000, 1, Integer.MAX_VALUE, "The lower the value, the higher the chance of breeding");
         wildAnimalDeathRate = config.getInt("Wild animals death rate", optionsCategory[names.length], 16000, 1, Integer.MAX_VALUE, "Mainly applies on animals that are unable to breed (old and alone)");
@@ -445,7 +479,7 @@ public final class NatureOverhaul {
             }
             if (event.phase == TickEvent.Phase.END) {
                 World world = event.world;
-                if ((world.provider.dimensionId == 0 || (customDimension && world.provider.dimensionId != 1)) && !world.activeChunkSet.isEmpty()) {
+                if (!globalDimensionBlacklist.contains(world.provider.dimensionId) && !world.activeChunkSet.isEmpty()) {
                     Iterator<?> it = world.activeChunkSet.iterator();
                     while (it.hasNext()) {
                         ChunkCoordIntPair chunkIntPair = (ChunkCoordIntPair) it.next();
@@ -771,7 +805,6 @@ public final class NatureOverhaul {
 		useStarvingSystem = getBooleanFrom(getBoolean, miscOption, "Starving system");
 		biomeModifiedRate = getBooleanFrom(getBoolean, miscOption, "Biome specific rates");
 		moddedBonemeal = getBooleanFrom(getBoolean, miscOption, "Modded Bonemeal");
-		customDimension = getBooleanFrom(getBoolean, miscOption, "Custom dimensions");
 		wildAnimalsBreed = getBooleanFrom(getBoolean, animalsOption, "Wild breed");
 		wildAnimalBreedRate = getIntFrom(getSlider, animalsOption, "Breeding rate");
 		wildAnimalDeathRate = getIntFrom(getSlider, animalsOption, "Death rate");
