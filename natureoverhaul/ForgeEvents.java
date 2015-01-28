@@ -150,10 +150,8 @@ public final class ForgeEvents {
      */
     @SubscribeEvent
     public void onBoneMealUse(BonemealEvent event) {
-        if (NatureOverhaul.INSTANCE.moddedBonemeal) {
-            if (applyBonemeal(event.world, event.x, event.y, event.z, event.block)) {
-                event.setResult(Event.Result.ALLOW);//BoneMeal is consumed, but doesn't act vanilla
-            }
+        if (NatureOverhaul.INSTANCE.moddedBonemeal && applyBonemeal(event.world, event.x, event.y, event.z, event.block)) {
+            event.setResult(Event.Result.ALLOW);//BoneMeal is consumed, but doesn't act vanilla
         }
     }
 

@@ -1,5 +1,6 @@
 package natureoverhaul;
 
+import cpw.mods.fml.common.registry.GameData;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTTagCompound;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -105,8 +106,9 @@ public final class TreeData {
     public String toString(){
         StringBuilder value = new StringBuilder();
         for(Component c:Component.values()){
-            value.append(c).append(":").append(getBlock(c).getUnlocalizedName()).append("_").append(getMeta(c)).append(",");
+            value.append(GameData.getBlockRegistry().getNameForObject(getBlock(c))).append("(").append(getMeta(c)).append(")-");
         }
+        value.deleteCharAt(value.length()-1);
         return value.toString();
     }
 }

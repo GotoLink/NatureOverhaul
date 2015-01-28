@@ -22,11 +22,11 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemAxe;
 import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import net.minecraftforge.common.MinecraftForge;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.logging.log4j.Logger;
 
 import java.lang.reflect.Method;
@@ -51,6 +51,7 @@ public final class NatureOverhaul {
     public final HashSet<Integer> globalDimensionBlacklist = new HashSet<Integer>();
     public boolean wildAnimalsBreed = true;
 	public int wildAnimalBreedRate = 0, wildAnimalDeathRate = 0, growthType = 0, fireRange = 2, despawnTimeSapling = 6000;
+    private ArrayList<Block> logID = new ArrayList<Block>(), leafID = new ArrayList<Block>(), saplingID = new ArrayList<Block>();
     private ArrayList<Item> axes = new ArrayList<Item>();
 	private static Map<Block, NOType> IDToTypeMapping = new IdentityHashMap<Block, NOType>();
 	private static Map<Block, Boolean> IDToGrowingMapping = new IdentityHashMap<Block, Boolean>(), IDToDyingMapping = new IdentityHashMap<Block, Boolean>();
@@ -87,7 +88,6 @@ public final class NatureOverhaul {
             tryUseMOAPI();
 		}
 		//Now we can register every available blocks at this point.
-		ArrayList<Block> logID = new ArrayList<Block>(), leafID = new ArrayList<Block>(), saplingID = new ArrayList<Block>();
 		//If a block is registered after, it won't be accounted for.
         Block i = null;
 		for (Iterator itr=GameData.getBlockRegistry().iterator();itr.hasNext(); i = (Block)itr.next()) {
@@ -140,82 +140,14 @@ public final class NatureOverhaul {
 				}
 			}
 		}
-        String[] temp = ArrayUtils.EMPTY_STRING_ARRAY;
-        for (int index = 0; index < logID.size() || index < leafID.size() || index < saplingID.size(); index++) {
-            Block sapling = saplingID.get(index<saplingID.size()?index:0);
-            Block log = logID.get(index<logID.size()?index:0);
-            Block leaf = leafID.get(index<leafID.size()?index:0);
-            Set<Integer> sapData = new HashSet<Integer>();
-			for (int meta = 0; meta < 16; meta++) {
-				sapData.add(sapling.damageDropped(meta));
-			}
-            String gData = GameData.getBlockRegistry().getNameForObject(log);
-            String fData = GameData.getBlockRegistry().getNameForObject(leaf);
-            for (int meta : sapData) {
-                if(meta>3){
-                    gData = GameData.getBlockRegistry().getNameForObject(logID.get(index+1<logID.size()?index+1:1));
-                    fData = GameData.getBlockRegistry().getNameForObject(leafID.get(index+1<leafID.size()?index+1:1));
-                }
-                StringBuilder tempData = new StringBuilder("(").append(meta%4).append(",").append(meta%4+4).append(",").append(meta%4+8).append(",").append(meta%4+12);
-			    String option = new StringBuilder(GameData.getBlockRegistry().getNameForObject(sapling)).append("(").append(meta).append(")-").append(gData).append(tempData).append(")-").append(fData).append(tempData).append(")").toString();
-                temp = ArrayUtils.add(temp, option);
-            }
-		}
-		String[] ids = config.get(optionsCategory[names.length], "Sapling-Log-Leaves names", temp, "Add group on new line").getStringList();
-		for (String param : ids) {
-			if (param != null && !param.equals("")) {
-				temp = param.split("-");
-				if (temp.length == 3) {
-					Block idSaplin, idLo, idLef;
-					try {
-						idSaplin = GameData.getBlockRegistry().getObject(temp[0].split("\\(")[0]);
-						idLo = GameData.getBlockRegistry().getObject(temp[1].split("\\(")[0]);
-						idLef = GameData.getBlockRegistry().getObject(temp[2].split("\\(")[0]);
-					} catch (Exception e) {
-						continue;
-					}
-					//Make sure user input is valid
-					if (idSaplin!=Blocks.air && idLo!=Blocks.air && idLef!=Blocks.air) {
-                        String[] sapMeta = temp[0].split("\\(")[1].split("\\)")[0].split(",");
-                        String[] logMeta = temp[1].split("\\(")[1].split("\\)")[0].split(",");
-						String[] lefMeta = temp[2].split("\\(")[1].split("\\)")[0].split(",");
-                        for(String meta0:sapMeta){
-                            try {
-                                int a = Integer.parseInt(meta0.trim());
-                                for (String meta1 : logMeta) {
-                                    try {
-                                        int o = Integer.parseInt(meta1.trim());
-                                        for (String meta2 : lefMeta) {
-                                            try {
-                                                int e = Integer.parseInt(meta2.trim());
-                                                new TreeData(idSaplin, idLo, idLef, a, o, e).register();
-                                            }catch (NumberFormatException ignored){
-                                            }
-                                        }
-                                    }catch (NumberFormatException ignored){
-                                    }
-                                }
-                            }catch (NumberFormatException ignored){
-                            }
-                        }
-                        if(IDToTypeMapping.get(idSaplin)==null)
-                            addMapping(idSaplin, growSets[0], 0, dieSets[0], deathRates[0], 0.8F, 0.8F, NOType.SAPLING);
-                        if(IDToTypeMapping.get(idLo)==null)
-                            addMapping(idLo, growSets[1], growthRates[1], dieSets[1], deathRates[1], 1.0F, 1.0F, NOType.LOG, 5, 5);
-                        if(IDToTypeMapping.get(idLef)==null)
-                            addMapping(idLef, growSets[9], growthRates[9], dieSets[9], deathRates[9], 1.0F, 1.0F, NOType.LEAVES, 60, 10);
-					}
-				}
-			}
-		}
-        temp = ArrayUtils.EMPTY_STRING_ARRAY;
+        ArrayList<String> temp = new ArrayList<String>();
         Item it = null;
 		for (Iterator itr = GameData.getItemRegistry().iterator();itr.hasNext(); it=(Item)itr.next()) {
 			if (it instanceof ItemAxe) {
-				temp = ArrayUtils.add(temp, GameData.getItemRegistry().getNameForObject(it));
+				temp.add(GameData.getItemRegistry().getNameForObject(it));
 			}
 		}
-		ids = config.get(optionsCategory[1], "Lumberjack compatible items", temp, "Separate item names on new lines").getStringList();
+		String[] ids = config.get(optionsCategory[1], "Lumberjack compatible items", temp.toArray(new String[1]), "Separate item names on new lines").getStringList();
 		for (String param : ids) {
 			if (param != null && !param.equals("")) {
 				try {
@@ -237,6 +169,108 @@ public final class NatureOverhaul {
 		//Registering event listeners.
 		MinecraftForge.EVENT_BUS.register(ForgeEvents.INSTANCE);
 	}
+
+    /**
+     * Parse the given array of string for blocks and range of block subtypes.
+     * Clear the block lists that #getTreeConfig() rely on.
+     * Return the parsed tree collection.
+     *
+     * @param ids the data to parse
+     * @param doApply true to apply behavior to blocks, register tree system
+     * @return the collection that the array could be parsed to
+     */
+    private ArrayList<TreeData> parseTreeConfig(String[] ids, boolean doApply) {
+        ArrayList<TreeData> result = new ArrayList<TreeData>();
+        for (String param : ids) {
+            if (param != null && !param.isEmpty()) {
+                String[] temp = param.split("-");
+                if (temp.length == 3) {
+                    Block idSaplin, idLo, idLef;
+                    try {
+                        idSaplin = GameData.getBlockRegistry().getObject(temp[0].split("\\(")[0]);
+                        idLo = GameData.getBlockRegistry().getObject(temp[1].split("\\(")[0]);
+                        idLef = GameData.getBlockRegistry().getObject(temp[2].split("\\(")[0]);
+                    } catch (Exception e) {
+                        continue;
+                    }
+                    //Make sure user input is valid
+                    if (idSaplin!=Blocks.air && idLo!=Blocks.air && idLef!=Blocks.air) {
+                        String[] sapMeta = temp[0].split("\\(")[1].split("\\)")[0].split(",");
+                        String[] logMeta = temp[1].split("\\(")[1].split("\\)")[0].split(",");
+                        String[] lefMeta = temp[2].split("\\(")[1].split("\\)")[0].split(",");
+                        for(String meta0:sapMeta){
+                            try {
+                                int a = Integer.parseInt(meta0.trim());
+                                for (String meta1 : logMeta) {
+                                    try {
+                                        int o = Integer.parseInt(meta1.trim());
+                                        for (String meta2 : lefMeta) {
+                                            try {
+                                                int e = Integer.parseInt(meta2.trim());
+                                                TreeData data = new TreeData(idSaplin, idLo, idLef, a, o, e);
+                                                result.add(data);
+                                                if(doApply)
+                                                    data.register();
+                                            }catch (NumberFormatException ignored){
+                                            }
+                                        }
+                                    }catch (NumberFormatException ignored){
+                                    }
+                                }
+                            }catch (NumberFormatException ignored){
+                            }
+                        }
+                        if(doApply) {
+                            if (IDToTypeMapping.get(idSaplin) != NOType.SAPLING)
+                                addMapping(idSaplin, growSets[0], 0, dieSets[0], deathRates[0], 0.8F, 0.8F, NOType.SAPLING);
+                            if (IDToTypeMapping.get(idLo) != NOType.LOG)
+                                addMapping(idLo, growSets[1], growthRates[1], dieSets[1], deathRates[1], 1.0F, 1.0F, NOType.LOG, 5, 5);
+                            if (IDToTypeMapping.get(idLef) != NOType.LEAVES)
+                                addMapping(idLef, growSets[9], growthRates[9], dieSets[9], deathRates[9], 1.0F, 1.0F, NOType.LEAVES, 60, 10);
+                        }
+                    }
+                }
+            }
+        }
+        if(doApply){
+            saplingID = null;
+            logID = null;
+            leafID = null;
+        }
+        return result;
+    }
+
+    /**
+     * Get the tree configuration based on the blocks registered in PostInit.
+     * The result is parsable with #parseTreeConfig(String[], boolean).
+     * Only applicable till a world is loaded, as the blocks lists will be cleared.
+     *
+     * @return the default tree configuration, as array of string
+     */
+    private String[] getTreeConfig() {
+        ArrayList<String> temp = new ArrayList<String>();
+        for (int index = 0; index < logID.size() || index < leafID.size() || index < saplingID.size(); index++) {
+            Block sapling = saplingID.get(index<saplingID.size()?index:0);
+            Block log = logID.get(index<logID.size()?index:0);
+            Block leaf = leafID.get(index<leafID.size()?index:0);
+            Set<Integer> sapData = new HashSet<Integer>();
+            for (int meta = 0; meta < 16; meta++) {
+                sapData.add(sapling.damageDropped(meta));
+            }
+            String gData = GameData.getBlockRegistry().getNameForObject(log);
+            String fData = GameData.getBlockRegistry().getNameForObject(leaf);
+            for (int meta : sapData) {
+                if(meta>3){
+                    gData = GameData.getBlockRegistry().getNameForObject(logID.get(index+1<logID.size()?index+1:1));
+                    fData = GameData.getBlockRegistry().getNameForObject(leafID.get(index+1<leafID.size()?index+1:1));
+                }
+                StringBuilder tempData = new StringBuilder("(").append(meta%4).append(",").append(meta%4+4).append(",").append(meta%4+8).append(",").append(meta%4+12);
+                String option = new StringBuilder(GameData.getBlockRegistry().getNameForObject(sapling)).append("(").append(meta).append(")-").append(gData).append(tempData).append(")-").append(fData).append(tempData).append(")").toString();
+                temp.add(option);
+            }
+        }
+        return temp.toArray(new String[1]);
+    }
 
     private void setBiomes() {
         for(BiomeGenBase biomeGenBase:BiomeGenBase.getBiomeGenArray()){
@@ -364,6 +398,9 @@ public final class NatureOverhaul {
         }
 	}
 
+    /**
+     * Handle IMCMessage with "RegisterTree" as key, read the value as NBT
+     */
     @EventHandler
     public void onMessage(FMLInterModComms.IMCEvent event){
         for(FMLInterModComms.IMCMessage message : event.getMessages()){
@@ -372,13 +409,13 @@ public final class NatureOverhaul {
                     TreeData data = new TreeData(message.getNBTValue());
                     if (data.isValid()) {
                         Block idSaplin = data.getBlock(TreeData.Component.SAPLING);
-                        if (IDToTypeMapping.get(idSaplin) == null)
+                        if (IDToTypeMapping.get(idSaplin) != NOType.SAPLING)
                             addMapping(idSaplin, growSets[0], 0, dieSets[0], deathRates[0], 0.8F, 0.8F, NOType.SAPLING);
                         Block idLo = data.getBlock(TreeData.Component.TRUNK);
-                        if (IDToTypeMapping.get(idLo) == null)
+                        if (IDToTypeMapping.get(idLo) != NOType.LOG)
                             addMapping(idLo, growSets[1], growthRates[1], dieSets[1], deathRates[1], 1.0F, 1.0F, NOType.LOG);
                         Block idLef = data.getBlock(TreeData.Component.LEAF);
-                        if (IDToTypeMapping.get(idLef) == null)
+                        if (IDToTypeMapping.get(idLef) != NOType.LEAVES)
                             addMapping(idLef, growSets[9], growthRates[9], dieSets[9], deathRates[9], 1.0F, 1.0F, NOType.LEAVES);
                         data.register();
                     }
@@ -431,7 +468,7 @@ public final class NatureOverhaul {
         useStarvingSystem = config.getBoolean(optionsCategory[names.length], "Enable starving system", true);
         biomeModifiedRate = config.getBoolean("Enable biome specific rates", "Biomes", true, "Should Biome Temperature and Rainfall values affect local growth and death rates");
         moddedBonemeal = config.getBoolean(optionsCategory[names.length], "Enable modded Bonemeal", true);
-        String[] blackList = config.getString(optionsCategory[names.length], "BlackList custom dimensions", "1", "By dimension ids. Use [id1;id2] to add a range of id, prefix with - to exclude.").split(",");
+        String[] blackList = config.getString("BlackList custom dimensions", optionsCategory[names.length], "1", "By dimension ids. Use [id1;id2] to add a range of id, prefix with - to exclude.").split(",");
         for(String text:blackList){
             if(text!=null && !text.isEmpty()){
                 boolean done = false;
@@ -474,10 +511,36 @@ public final class NatureOverhaul {
 	@SubscribeEvent
 	public void tickStart(TickEvent.WorldTickEvent event) {
         if(event.side.isServer()){
-            if (event.phase == TickEvent.Phase.START && api != null) {
-                tryRefreshWithMOAPIValues();
+            if (event.phase == TickEvent.Phase.START){
+                if(api != null) {
+                    tryRefreshWithMOAPIValues();
+                }
+                if(saplingID != null && event.world instanceof WorldServer && event.world.provider.dimensionId == 0){
+                    ArrayList<String> temp = new ArrayList<String>();
+                    String name = event.world.getWorldInfo().getWorldName();
+                    if(!config.getCategory(optionsCategory[names.length]).containsKey("Sapling-Log-Leaves names in world: "+name)) {
+                        ArrayList<TreeData> list = parseTreeConfig(getTreeConfig(), false);//default config based on block types
+                        final boolean cache = moddedBonemeal;
+                        moddedBonemeal = false;//Avoid catching our own setup in ForgeEvents
+                        SaplingTestWorld testWorld = new SaplingTestWorld((WorldServer) event.world);
+                        for (TreeData entry : list) {
+                            TreeData data = testWorld.getTree(entry.getBlock(TreeData.Component.SAPLING), entry.getMeta(TreeData.Component.SAPLING));
+                            if (data != null) {
+                                String text = data.toString();
+                                if (!temp.contains(text))
+                                    temp.add(text);
+                            }
+                        }
+                        testWorld.clearProvider();
+                        moddedBonemeal = cache;//Reset to the previous value
+                    }
+                    String[] ids = config.get(optionsCategory[names.length], "Sapling-Log-Leaves names in world: "+name, temp.toArray(new String[1]), "Add group on new line").getStringList();
+                    if(config.hasChanged())
+                        config.save();
+                    parseTreeConfig(ids, true);//Apply the final settings
+                }
             }
-            if (event.phase == TickEvent.Phase.END) {
+            else {
                 World world = event.world;
                 if (!globalDimensionBlacklist.contains(world.provider.dimensionId) && !world.activeChunkSet.isEmpty()) {
                     Iterator<?> it = world.activeChunkSet.iterator();

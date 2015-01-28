@@ -166,6 +166,7 @@ public final class TreeUtils {
 				} else {
 					isNotTree = true;
 				}
+				checked ++;
 			}
 			// Ground found is also true at this point by definition
 			return (!isNotTree && (topFound || leafLayersFound > MIN_LEAF_LAYER-1));

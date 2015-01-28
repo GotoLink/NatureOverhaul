@@ -1,3 +1,7 @@
+== Nature Overhaul 0.10.0 ==
+* Improved tree detection for better default configuration, also world specific
+* Fixed dimension blacklist configuration category
+
 == Nature Overhaul 0.9.2 ==
 * Changed lumberjack items and sapling-log-leaves options into multiple lines
 * Changed flower tall bushes behavior
