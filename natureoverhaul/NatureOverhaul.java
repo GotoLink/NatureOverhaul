@@ -51,7 +51,7 @@ public final class NatureOverhaul {
     public final HashSet<Integer> globalDimensionBlacklist = new HashSet<Integer>();
     public boolean wildAnimalsBreed = true;
 	public int wildAnimalBreedRate = 0, wildAnimalDeathRate = 0, growthType = 0, fireRange = 2, despawnTimeSapling = 6000;
-    private ArrayList<Block> logID = new ArrayList<Block>(), leafID = new ArrayList<Block>(), saplingID = new ArrayList<Block>();
+    private ArrayList<Block> saplingID = new ArrayList<Block>();
     private ArrayList<Item> axes = new ArrayList<Item>();
 	private static Map<Block, NOType> IDToTypeMapping = new IdentityHashMap<Block, NOType>();
 	private static Map<Block, Boolean> IDToGrowingMapping = new IdentityHashMap<Block, Boolean>(), IDToDyingMapping = new IdentityHashMap<Block, Boolean>();
@@ -100,8 +100,6 @@ public final class NatureOverhaul {
 					addMapping(i, false, -1, true, ((IBlockDeath) i).getDeathRate(), -1.0F, -1.0F, NOType.CUSTOM);
 				} else if (i instanceof BlockSapling) {
 					saplingID.add(i);
-				} else if (i instanceof BlockLog) {
-					logID.add(i);
 				} else if (i instanceof BlockNetherWart) {//In the Nether, we don't use biome dependent parameter
 					addMapping(i, growSets[3], growthRates[3], dieSets[3], deathRates[3], 0.0F, 0.0F, NOType.NETHERSTALK);
 				} else if (i instanceof BlockGrass || i instanceof BlockMycelium) {
@@ -114,8 +112,6 @@ public final class NatureOverhaul {
 					addMapping(i, growSets[7], growthRates[7], dieSets[7], deathRates[7], 0.9F, 1.0F, NOType.MUSHROOM);
 				} else if (i instanceof BlockHugeMushroom) {
 					addMapping(i, growSets[8], growthRates[8], dieSets[8], deathRates[8], 0.9F, 1.0F, NOType.MUSHROOMCAP);
-				} else if (i instanceof BlockLeavesBase) {
-					leafID.add(i);
 				} else if (i instanceof BlockCrops || i instanceof BlockStem) {
 					addMapping(i, growSets[10], growthRates[10], dieSets[10], deathRates[10], 1.0F, 1.0F, NOType.FERTILIZED);
 				} else if (i instanceof BlockBush) {//Flowers, bushes, lilypad, tallgrass
@@ -173,14 +169,10 @@ public final class NatureOverhaul {
     /**
      * Parse the given array of string for blocks and range of block subtypes.
      * Clear the block lists that #getTreeConfig() rely on.
-     * Return the parsed tree collection.
      *
      * @param ids the data to parse
-     * @param doApply true to apply behavior to blocks, register tree system
-     * @return the collection that the array could be parsed to
      */
-    private ArrayList<TreeData> parseTreeConfig(String[] ids, boolean doApply) {
-        ArrayList<TreeData> result = new ArrayList<TreeData>();
+    private void parseTreeConfig(String[] ids) {
         for (String param : ids) {
             if (param != null && !param.isEmpty()) {
                 String[] temp = param.split("-");
@@ -207,10 +199,7 @@ public final class NatureOverhaul {
                                         for (String meta2 : lefMeta) {
                                             try {
                                                 int e = Integer.parseInt(meta2.trim());
-                                                TreeData data = new TreeData(idSaplin, idLo, idLef, a, o, e);
-                                                result.add(data);
-                                                if(doApply)
-                                                    data.register();
+                                                new TreeData(idSaplin, idLo, idLef, a, o, e).register();
                                             }catch (NumberFormatException ignored){
                                             }
                                         }
@@ -220,56 +209,28 @@ public final class NatureOverhaul {
                             }catch (NumberFormatException ignored){
                             }
                         }
-                        if(doApply) {
-                            if (IDToTypeMapping.get(idSaplin) != NOType.SAPLING)
-                                addMapping(idSaplin, growSets[0], 0, dieSets[0], deathRates[0], 0.8F, 0.8F, NOType.SAPLING);
-                            if (IDToTypeMapping.get(idLo) != NOType.LOG)
-                                addMapping(idLo, growSets[1], growthRates[1], dieSets[1], deathRates[1], 1.0F, 1.0F, NOType.LOG, 5, 5);
-                            if (IDToTypeMapping.get(idLef) != NOType.LEAVES)
-                                addMapping(idLef, growSets[9], growthRates[9], dieSets[9], deathRates[9], 1.0F, 1.0F, NOType.LEAVES, 60, 10);
-                        }
+                        if (IDToTypeMapping.get(idSaplin) != NOType.SAPLING)
+                            addMapping(idSaplin, growSets[0], 0, dieSets[0], deathRates[0], 0.8F, 0.8F, NOType.SAPLING);
+                        if (IDToTypeMapping.get(idLo) != NOType.LOG)
+                            addMapping(idLo, growSets[1], growthRates[1], dieSets[1], deathRates[1], 1.0F, 1.0F, NOType.LOG, 5, 5);
+                        if (IDToTypeMapping.get(idLef) != NOType.LEAVES)
+                            addMapping(idLef, growSets[9], growthRates[9], dieSets[9], deathRates[9], 1.0F, 1.0F, NOType.LEAVES, 60, 10);
                     }
                 }
             }
         }
-        if(doApply){
-            saplingID = null;
-            logID = null;
-            leafID = null;
-        }
-        return result;
+        saplingID = null;
     }
 
     /**
-     * Get the tree configuration based on the blocks registered in PostInit.
-     * The result is parsable with #parseTreeConfig(String[], boolean).
-     * Only applicable till a world is loaded, as the blocks lists will be cleared.
-     *
-     * @return the default tree configuration, as array of string
+     * Get the subtype list based on the given sapling block.
      */
-    private String[] getTreeConfig() {
-        ArrayList<String> temp = new ArrayList<String>();
-        for (int index = 0; index < logID.size() || index < leafID.size() || index < saplingID.size(); index++) {
-            Block sapling = saplingID.get(index<saplingID.size()?index:0);
-            Block log = logID.get(index<logID.size()?index:0);
-            Block leaf = leafID.get(index<leafID.size()?index:0);
-            Set<Integer> sapData = new HashSet<Integer>();
-            for (int meta = 0; meta < 16; meta++) {
-                sapData.add(sapling.damageDropped(meta));
-            }
-            String gData = GameData.getBlockRegistry().getNameForObject(log);
-            String fData = GameData.getBlockRegistry().getNameForObject(leaf);
-            for (int meta : sapData) {
-                if(meta>3){
-                    gData = GameData.getBlockRegistry().getNameForObject(logID.get(index+1<logID.size()?index+1:1));
-                    fData = GameData.getBlockRegistry().getNameForObject(leafID.get(index+1<leafID.size()?index+1:1));
-                }
-                StringBuilder tempData = new StringBuilder("(").append(meta%4).append(",").append(meta%4+4).append(",").append(meta%4+8).append(",").append(meta%4+12);
-                String option = new StringBuilder(GameData.getBlockRegistry().getNameForObject(sapling)).append("(").append(meta).append(")-").append(gData).append(tempData).append(")-").append(fData).append(tempData).append(")").toString();
-                temp.add(option);
-            }
+    private HashSet<Integer> getTreeConfig(Block sapling) {
+        HashSet<Integer> sapData = new HashSet<Integer>();
+        for (int meta = 0; meta < 16; meta++) {
+            sapData.add(sapling.damageDropped(meta));
         }
-        return temp.toArray(new String[1]);
+        return sapData;
     }
 
     private void setBiomes() {
@@ -305,9 +266,9 @@ public final class NatureOverhaul {
             //Set options as able to be used on a server,get the instance back
             option = optionClass.getMethod("setServerMode").invoke(option);
             //"addBooleanOption" and "addSliderOption" aren't static, we need options class and an instance
-            Method addBoolean = optionClass.getMethod("addBooleanOption", new Class[] { String.class, boolean.class });
-            Method addSlider = optionClass.getMethod("addSliderOption", new Class[] { String.class, int.class, int.class });
-            Method addMap = optionClass.getMethod("addMappedOption", new Class[] { String.class, String[].class, int[].class });
+            Method addBoolean = optionClass.getMethod("addBooleanOption", String.class, boolean.class);
+            Method addSlider = optionClass.getMethod("addSliderOption", String.class, int.class, int.class);
+            Method addMap = optionClass.getMethod("addMappedOption", String.class, String[].class, int[].class);
             Method setSliderValue = Class.forName("moapi.ModOptionSlider").getMethod("setValue", int.class);
             //To create a submenu
             Method addSubOption = optionClass.getMethod("addSubOption", String.class);
@@ -441,6 +402,9 @@ public final class NatureOverhaul {
         }
     }
 
+    /**
+     * Fetch all basic options from the configuration
+     */
     private void getBasicOptions() {
         //Sapling options
         autoSapling = config.getBoolean(optionsCategory[0], "AutoSapling", true);
@@ -519,25 +483,27 @@ public final class NatureOverhaul {
                     ArrayList<String> temp = new ArrayList<String>();
                     String name = event.world.getWorldInfo().getWorldName();
                     if(!config.getCategory(optionsCategory[names.length]).containsKey("Sapling-Log-Leaves names in world: "+name)) {
-                        ArrayList<TreeData> list = parseTreeConfig(getTreeConfig(), false);//default config based on block types
                         final boolean cache = moddedBonemeal;
                         moddedBonemeal = false;//Avoid catching our own setup in ForgeEvents
                         SaplingTestWorld testWorld = new SaplingTestWorld((WorldServer) event.world);
-                        for (TreeData entry : list) {
-                            TreeData data = testWorld.getTree(entry.getBlock(TreeData.Component.SAPLING), entry.getMeta(TreeData.Component.SAPLING));
-                            if (data != null) {
-                                String text = data.toString();
-                                if (!temp.contains(text))
-                                    temp.add(text);
+                        for (Block entry : saplingID) {//default config based on block types
+                            Set<Integer> set = getTreeConfig(entry);
+                            for(int type : set) {
+                                TreeData data = testWorld.getTree(entry, type);
+                                if (data != null) {
+                                    String text = data.toString();
+                                    if (!temp.contains(text))
+                                        temp.add(text);
+                                }
                             }
                         }
                         testWorld.clearProvider();
                         moddedBonemeal = cache;//Reset to the previous value
                     }
-                    String[] ids = config.get(optionsCategory[names.length], "Sapling-Log-Leaves names in world: "+name, temp.toArray(new String[1]), "Add group on new line").getStringList();
+                    String[] ids = config.get(optionsCategory[names.length], "Sapling-Log-Leaves names in world: "+name, temp.toArray(new String[temp.size()]), "Add group on new line").getStringList();
                     if(config.hasChanged())
                         config.save();
-                    parseTreeConfig(ids, true);//Apply the final settings
+                    parseTreeConfig(ids);//Apply the final settings
                 }
             }
             else {
@@ -642,7 +608,7 @@ public final class NatureOverhaul {
 	/**
 	 * The death general method.
      * Called by {@link #onUpdateTick(World, int, int, int, Block)} when conditions are fulfilled.
-	 **/
+	 */
 	public static void death(World world, int i, int j, int k, Block id) {
 		if (id instanceof IBlockDeath) {
 			((IBlockDeath) id).death(world, i, j, k, id);
@@ -677,8 +643,7 @@ public final class NatureOverhaul {
 	 * Get the growth probability.
      * Called by {@link #onUpdateTick(World, int, int, int, Block)}.
 	 * 
-	 * @return growth probability for given blockid and NOType at given
-	 *         coordinates
+	 * @return growth probability for given blockid and NOType at given coordinates
 	 */
 	public static float getGrowthProb(World world, int i, int j, int k, Block id, NOType type) {
 		float freq = getGrowthRate(id);
@@ -704,7 +669,7 @@ public final class NatureOverhaul {
 	/**
 	 * The general growing method.
      * Called by {@link #onUpdateTick(World, int, int, int, Block)} when conditions are fulfilled.
-	 **/
+	 */
 	public static void grow(World world, int i, int j, int k, Block id) {
 		if (id instanceof IGrowable) {
 			((IGrowable) id).grow(world, i, j, k, id);

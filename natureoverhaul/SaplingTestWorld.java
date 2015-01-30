@@ -1,5 +1,7 @@
 package natureoverhaul;
 
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.command.IEntitySelector;
@@ -11,14 +13,13 @@ import net.minecraft.item.ItemDye;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.*;
-import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraftforge.common.util.FakePlayerFactory;
-import net.minecraftforge.common.util.ForgeDirection;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +38,7 @@ public final class SaplingTestWorld extends World{
     private final WorldServer wrapped;
 
     public SaplingTestWorld(WorldServer world){
-        super(world.getSaveHandler(), world.getWorldInfo().getWorldName(), null, world.provider, world.theProfiler);
+        super(world.getSaveHandler(), world.getWorldInfo().getWorldName(), null, new DummyProviderWrapper(world.provider), world.theProfiler);
         this.wrapped = world;
         this.chunkProvider = this.wrapped.getChunkProvider();
         //No need for those data:
@@ -62,7 +63,7 @@ public final class SaplingTestWorld extends World{
         int tries = 0;
         do {
             tries++;
-            if(tries == 50){//A lot of fail, try the "big tree" setup
+            if(tries == 25){//A lot of fail, try the "big tree" setup
                 this.environment = new Chunk(this, 0, 0);
                 int min = 7 & 15, max = 8 & 15;
                 this.environment.func_150807_a(min, h, min, sapling, saplingMeta);
@@ -79,9 +80,6 @@ public final class SaplingTestWorld extends World{
             if(success) {//Bonemeal has been consumed
                 int y = h - 1;
                 int maxY = getTopSolidBlock(7, 7);//The top of a tree, hopefully
-                if(maxY == -1){
-                    maxY = getHeight();
-                }
                 Block tempTrunk;
                 do {
                     y++;
@@ -102,7 +100,7 @@ public final class SaplingTestWorld extends World{
                     }
                 }
             }
-        }while(tries<100);//Should cover all randomness
+        }while(tries<50);//Should cover all randomness
         return null;
     }
 
@@ -118,21 +116,21 @@ public final class SaplingTestWorld extends World{
                 return k + 1;
             }
         }
-        return -1;
+        return getHeight();
     }
 
     /**
      * Clear the world data, allows GC
      */
     public void clearProvider(){
-        this.wrapped.provider.registerWorld(this.wrapped);
+        ((DummyProviderWrapper)this.provider).clear();
         this.environment = null;
+        this.worldInfo = null;
     }
 
     //don't try to setup stuff on the covered world
     @Override
-    protected void initialize(WorldSettings settings){
-    }
+    protected void initialize(WorldSettings settings){}
 
     @Override
     public Block getBlock(int x, int y, int z) {
@@ -167,8 +165,7 @@ public final class SaplingTestWorld extends World{
     }
 
     @Override
-    public void markAndNotifyBlock(int x, int y, int z, Chunk chunk, Block oldBlock, Block newBlock, int flag){
-    }
+    public void markAndNotifyBlock(int x, int y, int z, Chunk chunk, Block oldBlock, Block newBlock, int flag){}
 
     @Override
     public boolean setBlockMetadataWithNotify(int x, int y, int z, int meta, int flag){
@@ -184,12 +181,10 @@ public final class SaplingTestWorld extends World{
     }
 
     @Override
-    public void markBlocksDirtyVertical(int x, int z, int minY, int maxY){
-    }
+    public void markBlocksDirtyVertical(int x, int z, int minY, int maxY){}
 
     @Override
-    public void notifyBlockOfNeighborChange(int x, int y, int z, final Block block){
-    }
+    public void notifyBlockOfNeighborChange(int x, int y, int z, final Block block){}
 
     @Override//Some raytracing
     public MovingObjectPosition func_147447_a(Vec3 vec3, Vec3 vec, boolean bool, boolean bool1, boolean bool2){
@@ -197,12 +192,10 @@ public final class SaplingTestWorld extends World{
     }
 
     @Override
-    public void playSoundAtEntity(Entity entity, String sound, float volume, float pitch){
-    }
+    public void playSoundAtEntity(Entity entity, String sound, float volume, float pitch){}
 
     @Override
-    public void playSoundToNearExcept(EntityPlayer player, String sound, float volume, float pitch){
-    }
+    public void playSoundToNearExcept(EntityPlayer player, String sound, float volume, float pitch){}
 
     @Override
     public boolean addWeatherEffect(Entity entity){
@@ -215,16 +208,13 @@ public final class SaplingTestWorld extends World{
     }
 
     @Override
-    public void removeEntity(Entity entity){
-    }
+    public void removeEntity(Entity entity){}
 
     @Override
-    public void removePlayerEntityDangerously(Entity entity){
-    }
+    public void removePlayerEntityDangerously(Entity entity){}
 
     @Override
-    public void addWorldAccess(IWorldAccess access){
-    }
+    public void addWorldAccess(IWorldAccess access){}
 
     @Override
     public List getCollidingBoundingBoxes(Entity entity, AxisAlignedBB box){
@@ -320,4 +310,54 @@ public final class SaplingTestWorld extends World{
 
     @Override
     public void addTileEntity(TileEntity entity){}
+
+    /**
+     * Wrap the original WorldProvider, only allow getters to run
+     */
+    public static final class DummyProviderWrapper extends WorldProvider
+    {
+        private final WorldProvider wrapped;
+        public DummyProviderWrapper(WorldProvider worldProvider){
+            this.wrapped = worldProvider;
+        }
+
+        @Override protected void generateLightBrightnessTable(){}
+
+        @Override
+        @SideOnly(Side.CLIENT)
+        public float[] calcSunriseSunsetColors(float x, float z)
+        {
+            return null;
+        }
+
+        @Override public String getDimensionName() { return wrapped.getDimensionName(); }
+
+        @Override public boolean canCoordinateBeSpawn(int x, int z){ return wrapped.canCoordinateBeSpawn(x, z); }
+
+        @Override public ChunkCoordinates getEntrancePortalLocation(){ return wrapped.getEntrancePortalLocation(); }
+
+        @Override public int getAverageGroundLevel() { return wrapped.getAverageGroundLevel(); }
+
+        @Override public boolean isSurfaceWorld(){ return wrapped.isSurfaceWorld(); }
+
+        @Override public boolean canRespawnHere(){ return wrapped.canRespawnHere(); }
+
+        @Override public String getWelcomeMessage(){ return null; }
+
+        @Override public String getDepartMessage(){ return null; }
+
+        @Override public double getMovementFactor(){ return wrapped.getMovementFactor(); }
+
+        @Override public void setWorldTime(long time) {}
+
+        @Override public void setSpawnPoint(int x, int y, int z) {}
+
+        @Override public void resetRainAndThunder(){}
+
+        public void clear() {
+            this.worldObj = null;
+            this.terrainType = null;
+            this.worldChunkMgr = null;
+        }
+    }
 }
