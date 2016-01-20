@@ -3,34 +3,30 @@ package natureoverhaul.behaviors;
 import natureoverhaul.Utils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockDoublePlant;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
 
 public class BehaviorPlant extends BehaviorDeathDisappear {
     public int growthRadius = 2, growthAttempt = 18;
-    public final boolean metaSensitive;
-    public BehaviorPlant(boolean metaSensitive){
+    public BehaviorPlant(){
         super(null, 5);
-        this.metaSensitive = metaSensitive;
     }
 
 	@Override
-	public void grow(World world, int i, int j, int k, Block id) {
-		int coord[];
+	public void grow(World world, BlockPos pos, IBlockState id) {
+		BlockPos coord;
 		for (int attempt = 0; attempt < growthAttempt; attempt++) {
-			coord = Utils.findRandomNeighbour(i, j, k, growthRadius);
-			if (id.canPlaceBlockAt(world, coord[0], coord[1], coord[2]) && !world.getBlock(coord[0], coord[1], coord[2]).getMaterial().isLiquid()) {
-                if(id instanceof BlockDoublePlant){
-                    if(world.getBlock(i, j-1, k) == id){
-                        j--;
+			coord = Utils.findRandomNeighbour(pos, growthRadius);
+			if (id.getBlock().canPlaceBlockAt(world, coord) && !world.getBlockState(coord).getBlock().getMaterial().isLiquid()) {
+                if(id.getBlock() instanceof BlockDoublePlant){
+                    if(world.getBlockState(pos.down()).equals(id)){
+                        pos = pos.down();
                     }
-                    ((BlockDoublePlant)id).func_149889_c(world, coord[0], coord[1], coord[2], world.getBlockMetadata(i, j, k), 3);
+                    ((BlockDoublePlant)id).placeAt(world, coord, ((BlockDoublePlant) id).getVariant(world, pos), 3);
                     return;
                 }
-				if (!metaSensitive) {
-					world.setBlock(coord[0], coord[1], coord[2], id);
-				} else {
-					world.setBlock(coord[0], coord[1], coord[2], id, world.getBlockMetadata(i, j, k), 3);
-				}
+				world.setBlockState(coord, id);
 				return;
 			}
 		}

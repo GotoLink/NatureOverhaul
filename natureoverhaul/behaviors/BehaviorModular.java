@@ -3,6 +3,8 @@ package natureoverhaul.behaviors;
 import natureoverhaul.IBlockDeath;
 import natureoverhaul.IGrowable;
 import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
 
 /**
@@ -18,17 +20,17 @@ public class BehaviorModular extends Behavior{
     }
 
     @Override
-    public void death(World world, int i, int j, int k, Block id) {
-        deathModule.death(world, i, j, k, id);
+    public void death(World world, BlockPos pos, IBlockState id) {
+        deathModule.death(world, pos, id);
     }
 
     @Override
-    public boolean hasDied(World world, int i, int j, int k, Block id) {
-        return deathModule.hasDied(world, i, j, k, id);
+    public boolean hasDied(World world, BlockPos pos, IBlockState id) {
+        return deathModule.hasDied(world, pos, id);
     }
 
     @Override
-    public void grow(World world, int i, int j, int k, Block id) {
-        growthModule.grow(world, i, j, k, id);
+    public void grow(World world, BlockPos pos, IBlockState id) {
+        growthModule.grow(world, pos, id);
     }
 }

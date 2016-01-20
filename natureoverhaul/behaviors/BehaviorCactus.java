@@ -3,6 +3,8 @@ package natureoverhaul.behaviors;
 import natureoverhaul.TreeUtils;
 import natureoverhaul.Utils;
 import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
 
 public class BehaviorCactus extends BehaviorStarving{
@@ -12,25 +14,24 @@ public class BehaviorCactus extends BehaviorStarving{
     }
 
 	@Override
-	public void grow(World world, int i, int j, int k, Block id) {
+	public void grow(World world, BlockPos pos, IBlockState id) {
 		//Grow on top if too low, or on a neighbor spot
-		if (TreeUtils.getTreeHeight(world, i, j, k, id) > maxHeight) {//Find a neighbor spot for new one
-			int[] coord;
+		if (TreeUtils.getTreeHeight(world, pos, id) > maxHeight) {//Find a neighbor spot for new one
+			BlockPos coord;
 			for (int attempt = 0; attempt < growthAttempt; attempt++) {
-				coord = Utils.findRandomNeighbour(i, j, k, growthRadius);
-				if (id.canPlaceBlockAt(world, coord[0], coord[1], coord[2])) {
-					world.setBlock(coord[0], coord[1], coord[2], id);
+				coord = Utils.findRandomNeighbour(pos, growthRadius);
+				if (id.getBlock().canPlaceBlockAt(world, coord)) {
+					world.setBlockState(coord, id);
 					return;
 				}
 			}
 		} else {
-			int height = j;
 			// Get to the top
-			while (world.getBlock(i, height + 1, k) == id) {
-				height = height + 1;
+			while (world.getBlockState(pos.up()) == id) {
+				pos = pos.up();
 			}
-			if (world.isAirBlock(i, height + 1, k))
-				world.setBlock(i, height + 1, k, id);//Grow on top
+			if (world.isAirBlock(pos.up()))
+				world.setBlockState(pos.up(), id);//Grow on top
 		}
 	}
 }

@@ -4,10 +4,11 @@ import natureoverhaul.NatureOverhaul;
 import natureoverhaul.Utils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockFire;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
+import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.world.World;
-
-import static net.minecraftforge.common.util.ForgeDirection.*;
 
 public class BehaviorFire extends BehaviorDeathDisappear {
 	protected int limit = 15;
@@ -16,15 +17,15 @@ public class BehaviorFire extends BehaviorDeathDisappear {
     }
 
 	@Override
-	public void death(World world, int i, int j, int k, Block id) {
-		super.death(world, i, j, k, id);
-		if (isBurnableGround(world.getBlock(i, j - 1, k))) {
-			world.setBlock(i, j - 1, k, getBurnedGround());
+	public void death(World world, BlockPos pos, IBlockState id) {
+		super.death(world, pos, id);
+		if (isBurnableGround(world.getBlockState(pos.down()).getBlock())) {
+			world.setBlockState(pos.down(), getBurnedGround());
 		}
 	}
 
-	public Block getBurnedGround() {
-		return Blocks.dirt;
+	public IBlockState getBurnedGround() {
+		return Blocks.dirt.getDefaultState();
 	}
 
 	public int getRange() {
@@ -32,24 +33,24 @@ public class BehaviorFire extends BehaviorDeathDisappear {
 	}
 
 	@Override
-	public void grow(World world, int i, int j, int k, Block block) {
-		if (block instanceof BlockFire) {
-			int l = world.getBlockMetadata(i, j, k);
+	public void grow(World world, BlockPos pos, IBlockState block) {
+		if (block.getBlock() instanceof BlockFire) {
+			int l = (Integer) block.getValue(BlockFire.AGE);
 			if (l > 0) {
-				world.setBlockMetadataWithNotify(i, j, k, l - 1, 4);
+				world.setBlockState(pos, block.withProperty(BlockFire.AGE, l-1), 4);
 			}
-			if (isBurnableGround(world.getBlock(i, j - 1, k))) {
-				world.setBlock(i, j - 1, k, getBurnedGround());
+			if (isBurnableGround(world.getBlockState(pos.down()).getBlock())) {
+				world.setBlockState(pos.down(), getBurnedGround());
 			}
 		}
-		int[] neighbour;
+		BlockPos neighbour;
 		Block nId;
         int tries = 0;
 		while (tries < limit) {
-			neighbour = Utils.findRandomNeighbour(i, j, k, getRange());
-			nId = world.getBlock(neighbour[0], neighbour[1], neighbour[2]);
-			if (canNeighborBurn(world, neighbour[0], neighbour[1], neighbour[2], nId)) {
-				world.setBlock(neighbour[0], neighbour[1], neighbour[2], block, 0, 3);
+			neighbour = Utils.findRandomNeighbour(pos, getRange());
+			nId = world.getBlockState(neighbour).getBlock();
+			if (canNeighborBurn(world, neighbour, nId)) {
+				world.setBlockState(neighbour, block);
 			}
 			tries++;
 		}
@@ -59,8 +60,8 @@ public class BehaviorFire extends BehaviorDeathDisappear {
 		return id == Blocks.grass;
 	}
 
-	private boolean canNeighborBurn(World world, int x, int y, int z, Block block) {
-		return block.isAir(world, x, y, z) || block.isFlammable(world, x, y, z, WEST) || block.isFlammable(world, x, y, z, EAST) || block.isFlammable(world, x, y, z, UP)
-				|| block.isFlammable(world, x, y, z, DOWN) || block.isFlammable(world, x, y, z, SOUTH) || block.isFlammable(world, x, y, z, NORTH);
+	private boolean canNeighborBurn(World world, BlockPos pos, Block block) {
+		return block.isAir(world, pos) || block.isFlammable(world, pos, EnumFacing.WEST) || block.isFlammable(world, pos, EnumFacing.EAST) || block.isFlammable(world, pos, EnumFacing.UP)
+				|| block.isFlammable(world, pos, EnumFacing.DOWN) || block.isFlammable(world, pos, EnumFacing.SOUTH) || block.isFlammable(world, pos, EnumFacing.NORTH);
 	}
 }

@@ -2,8 +2,10 @@ package natureoverhaul.behaviors;
 
 import natureoverhaul.Utils;
 import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
 
 public class BehaviorCocoa extends BehaviorDeathDisappear {
@@ -17,9 +19,9 @@ public class BehaviorCocoa extends BehaviorDeathDisappear {
 	 * 
 	 * @return true if can drop in these coordinates
 	 */
-	public boolean canDropItem(World world, int i, int j, int k) {
+	public boolean canDropItem(World world, BlockPos pos) {
 		// Cocoa can grow in the named biomes
-		return world.isAirBlock(i, j, k) && isValidBiome(world, i, k, minTemp, maxTemp, minRainfall);
+		return world.isAirBlock(pos) && isValidBiome(world, pos, minTemp, maxTemp, minRainfall);
 	}
 
 	/**
@@ -31,10 +33,10 @@ public class BehaviorCocoa extends BehaviorDeathDisappear {
 	}
 
 	@Override
-	public void grow(World world, int i, int j, int k, Block id) {
+	public void grow(World world, BlockPos pos, IBlockState id) {
 		//Emit item if possible
-		if (canDropItem(world, i, j - 1, k)) {
-			Utils.emitItem(world, i, j - 1, k, getDroppedItem());
+		if (canDropItem(world, pos.down())) {
+			Utils.emitItem(world, pos.down(), getDroppedItem());
 		}
 	}
 }

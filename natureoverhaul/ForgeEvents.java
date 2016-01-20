@@ -1,8 +1,12 @@
 package natureoverhaul;
 
-import cpw.mods.fml.common.eventhandler.Event;
-import cpw.mods.fml.common.eventhandler.EventPriority;
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumParticleTypes;
+import net.minecraftforge.fml.common.eventhandler.Event;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import natureoverhaul.events.FarmingEvent;
 import natureoverhaul.events.LumberJackEvent;
 import natureoverhaul.events.WildBreedingEvent;
@@ -46,7 +50,7 @@ public final class ForgeEvents {
     public void onLivingUpdateEvent(LivingEvent.LivingUpdateEvent event) {
         if (NatureOverhaul.INSTANCE.wildAnimalsBreed && event.entityLiving instanceof EntityAnimal) {
             EntityAnimal ent = (EntityAnimal) event.entityLiving;
-            if (!ent.worldObj.isRemote && !ent.isNoDespawnRequired() && ent.getGrowingAge() == 0 && !ent.isInLove() && !ent.hasCustomNameTag()) {
+            if (!ent.worldObj.isRemote && !ent.isNoDespawnRequired() && ent.getGrowingAge() == 0 && !ent.isInLove() && !ent.hasCustomName()) {
                 EntityAnimal mate = getNearbyMate(ent);
                 if (mate != null && ent.getRNG().nextFloat() < 1 / NatureOverhaul.INSTANCE.wildAnimalBreedRate) {
                     EntityAgeable entityageable = ent.createChild(mate);//create the baby
@@ -63,7 +67,7 @@ public final class ForgeEvents {
                             double d0 = random.nextGaussian() * 0.02D;
                             double d1 = random.nextGaussian() * 0.02D;
                             double d2 = random.nextGaussian() * 0.02D;
-                            ent.worldObj.spawnParticle("heart", ent.posX + random.nextFloat() * ent.width * 2.0F - ent.width, ent.posY + 0.5D + random.nextFloat() * ent.height,
+                            ent.worldObj.spawnParticle(EnumParticleTypes.HEART, ent.posX + random.nextFloat() * ent.width * 2.0F - ent.width, ent.posY + 0.5D + random.nextFloat() * ent.height,
                                     ent.posZ + random.nextFloat() * ent.width * 2.0F - ent.width, d0, d1, d2);
                         }
                     }
@@ -82,7 +86,7 @@ public final class ForgeEvents {
     @SuppressWarnings("unchecked")
     public static EntityAnimal getNearbyMate(EntityAnimal ent) {
         double d0 = 8.0D;//search entities around
-        List<EntityAnimal> list = ent.worldObj.getEntitiesWithinAABB(ent.getClass(), ent.boundingBox.expand(d0, d0, d0));
+        List<EntityAnimal> list = ent.worldObj.getEntitiesWithinAABB(ent.getClass(), ent.getEntityBoundingBox().expand(d0, d0, d0));
         d0 = Double.MAX_VALUE;
         EntityAnimal entityanimal = null;
         for (EntityAnimal entityanimal1 : list) {
@@ -103,17 +107,15 @@ public final class ForgeEvents {
             Item item = event.entityItem.getEntityItem().getItem();
             if (item instanceof IPlantable) {
                 World world = event.player.worldObj;
-                int[] info;
-                Block id;
-                int meta;
+                BlockPos info;
+                IBlockState id;
                 for (int tries = 0; tries < 40; tries++) {
-                    info = Utils.findRandomNeighbour((int) event.player.posX, (int) event.player.posY - 1, (int) event.player.posZ, 3);
-                    if (world.getBlock(info[0], info[1], info[2]) == (item == Items.nether_wart ? Blocks.soul_sand : Blocks.farmland)
-                            && world.isAirBlock(info[0], info[1] + 1, info[2])) {
-                        if (!MinecraftForge.EVENT_BUS.post(new FarmingEvent(event.player, (IPlantable) item, info[0], info[1], info[2]))) {
-                            id = ((IPlantable) item).getPlant(world, info[0], info[1], info[2]);
-                            meta = ((IPlantable) item).getPlantMetadata(world, info[0], info[1], info[2]);
-                            world.setBlock(info[0], info[1] + 1, info[2], id, meta, 3);
+                    info = Utils.findRandomNeighbour(new BlockPos(event.player).down(), 3);
+                    if (world.getBlockState(info).getBlock() == (item == Items.nether_wart ? Blocks.soul_sand : Blocks.farmland)
+                            && world.isAirBlock(info.up())) {
+                        if (!MinecraftForge.EVENT_BUS.post(new FarmingEvent(event.player, (IPlantable) item, info))) {
+                            id = ((IPlantable) item).getPlant(world, info);
+                            world.setBlockState(info.up(), id);
                             event.setCanceled(true);
                             break;
                         }
@@ -126,19 +128,22 @@ public final class ForgeEvents {
     /**
      * Event for AutoSapling, from Clinton Alexander idea.
      */
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onSaplingItemDead(ItemExpireEvent event) {
         if (NatureOverhaul.INSTANCE.autoSapling) {
             EntityItem ent = event.entityItem;
             if (ent.motionX < 0.001 && ent.motionZ < 0.001) {
                 ItemStack item = ent.getEntityItem();
-                if(item!=null && item.getItem() instanceof ItemBlock){
-                    Block id = Block.getBlockFromItem(item.getItem());
-                    int x = MathHelper.floor_double(ent.posX);
-                    int y = MathHelper.floor_double(ent.posY);
-                    int z = MathHelper.floor_double(ent.posZ);
-                    if (NatureOverhaul.isRegistered(id) && Utils.getType(id) == NOType.SAPLING && id.canPlaceBlockAt(ent.worldObj, x, y, z)) {
-                        ent.worldObj.setBlock(x, y, z, id, item.getItemDamage(), 3);
+                if(item!=null && item.stackSize > 0 && item.getItem() instanceof ItemBlock){
+                    Block id = ((ItemBlock) item.getItem()).block;
+                    if (NatureOverhaul.isRegistered(id) && Utils.getType(id.getDefaultState()) == NOType.SAPLING){
+                        BlockPos pos = new BlockPos(ent);
+                        if(ent.worldObj.canBlockBePlaced(id, pos, false, EnumFacing.UP, null, item)) {
+                            IBlockState state = id.getStateFromMeta(item.getItem().getMetadata(item.getMetadata()));
+                            if(ent.worldObj.setBlockState(pos, state)){
+                                item.stackSize--;
+                            }
+                        }
                     }
                 }
             }
@@ -150,7 +155,7 @@ public final class ForgeEvents {
      */
     @SubscribeEvent
     public void onBoneMealUse(BonemealEvent event) {
-        if (NatureOverhaul.INSTANCE.moddedBonemeal && applyBonemeal(event.world, event.x, event.y, event.z, event.block)) {
+        if (NatureOverhaul.INSTANCE.moddedBonemeal && applyBonemeal(event.world, event.pos, event.block)) {
             event.setResult(Event.Result.ALLOW);//BoneMeal is consumed, but doesn't act vanilla
         }
     }
@@ -159,11 +164,12 @@ public final class ForgeEvents {
      * Apply bonemeal to the location clicked
      * @return true if item is applied
      */
-    private boolean applyBonemeal(World world, int i, int j, int k, Block id) {
+    private boolean applyBonemeal(World world, BlockPos pos, IBlockState state) {
+        Block id = state.getBlock();
         if (NatureOverhaul.isRegistered(id) && NatureOverhaul.isGrowing(id)) {
-            if (Utils.getType(id) != NOType.GRASS) {
+            if (Utils.getType(state) != NOType.GRASS) {
                 if(!world.isRemote){
-                    NatureOverhaul.grow(world, i, j, k, id);
+                    NatureOverhaul.grow(world, pos, state);
                 }
                 return true;
             }
@@ -181,17 +187,17 @@ public final class ForgeEvents {
             if (itemstack != null) {
                 //Check for an axe in player hand
                 if (NatureOverhaul.isAxe(itemstack.getItem())) {
-                    Block id = event.block;
+                    IBlockState id = event.state;
                     //Check for a registered log block
-                    if (NatureOverhaul.isLog(id, event.blockMetadata) && !MinecraftForge.EVENT_BUS.post(new LumberJackEvent(event, itemstack))) {
-                        if (TreeUtils.isTree(event.world, event.x, event.y, event.z, Utils.getType(id), true)) {
+                    if (NatureOverhaul.isLog(id) && !MinecraftForge.EVENT_BUS.post(new LumberJackEvent(event, itemstack))) {
+                        if (TreeUtils.isTree(event.world, event.pos, Utils.getType(id), true)) {
                             //Damage axe compared to the number of blocks found
-                            int damage = TreeUtils.killTree(event.world, event.x, event.y, event.z, id, NatureOverhaul.INSTANCE.killLeaves);
+                            int damage = TreeUtils.killTree(event.world, event.pos, id, NatureOverhaul.INSTANCE.killLeaves);
                             itemstack.damageItem(damage - 1, event.harvester);
                             if (itemstack.stackSize <= 0)
                                 event.harvester.destroyCurrentEquippedItem();
                             //Drop logs
-                            Utils.emitItem(event.world, event.x, event.y, event.z, new ItemStack(id, damage, event.blockMetadata));
+                            event.drops.add(new ItemStack(id.getBlock(), damage, id.getBlock().damageDropped(id)));
                         }
                     }
                 }

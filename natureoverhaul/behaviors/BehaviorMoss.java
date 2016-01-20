@@ -3,29 +3,30 @@ package natureoverhaul.behaviors;
 import natureoverhaul.NatureOverhaul;
 import natureoverhaul.Utils;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockStoneBrick;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
 import org.apache.commons.lang3.ArrayUtils;
 
 public class BehaviorMoss extends BehaviorDeathSwitch {
-    private static Block[] mossy = {Blocks.mossy_cobblestone, Blocks.stonebrick};
-    private static Block[] smooth = {Blocks.cobblestone, Blocks.stonebrick};
-    private static int[] mossMeta = {0, 1};
+    private static IBlockState[] mossy = {Blocks.mossy_cobblestone.getDefaultState(), Blocks.stonebrick.getStateFromMeta(BlockStoneBrick.MOSSY_META)};
+    private static IBlockState[] smooth = {Blocks.cobblestone.getDefaultState(), Blocks.stonebrick.getDefaultState()};
     public int growthAttemp = 15;
 
     public BehaviorMoss(){
         super(null, new Starve(15));
     }
 
-    public static void addMossData(Block moss, Block norm, int meta){
-        ArrayUtils.add(mossy, moss);
-        ArrayUtils.add(smooth, norm);
-        ArrayUtils.add(mossMeta, meta);
+    public static void addMossData(IBlockState moss, IBlockState norm){
+        mossy = ArrayUtils.add(mossy, moss);
+        smooth = ArrayUtils.add(smooth, norm);
     }
 
     public static boolean isMossyBlock(Block test){
-        for(Block block:mossy){
-            if(block==test){
+        for(IBlockState block:mossy){
+            if(block.getBlock()==test){
                 return true;
             }
         }
@@ -33,9 +34,9 @@ public class BehaviorMoss extends BehaviorDeathSwitch {
     }
 
     @Override
-	public Block getDeadBlock(Block living) {
+	public IBlockState getDeadBlock(IBlockState living) {
 		for(int i=0; i<mossy.length; i++){
-            if(living==mossy[i]){
+            if(living.equals(mossy[i])){
                 return smooth[i];
             }
         }
@@ -43,32 +44,23 @@ public class BehaviorMoss extends BehaviorDeathSwitch {
 	}
 
 	@Override
-	public void grow(World world, int i, int j, int k, Block id) {
+	public void grow(World world, BlockPos pos, IBlockState id) {
 		//Moss grows on both stone (or only cobblestone), changing only one block
-		if(world.getBlockMetadata(i, j, k) == getGrowthMeta(id)) {
-            Block iD;
-            int coord[];
+		if(ArrayUtils.contains(mossy, id)) {
+            IBlockState iD;
+            BlockPos coord;
             for (int attempt = 0; attempt < growthAttemp; attempt++) {
-                coord = Utils.findRandomNeighbour(i, j, k, 1);
-                iD = world.getBlock(coord[0], coord[1], coord[2]);
+                coord = Utils.findRandomNeighbour(pos, 1);
+                iD = world.getBlockState(coord);
                 if (canGrowOn(id, iD)) {
-                    world.setBlock(coord[0], coord[1], coord[2], id, getGrowthMeta(id), 3);
+                    world.setBlockState(coord, id);
                     return;
                 }
             }
         }
 	}
 
-    public boolean canGrowOn(Block living, Block area){
-        return (NatureOverhaul.INSTANCE.mossCorruptStone && area == Blocks.stone && living == mossy[0]) || area == getDeadBlock(living);
-    }
-
-    public int getGrowthMeta(Block living){
-        for(int i=0; i<mossy.length; i++){
-            if(living==mossy[i]){
-                return mossMeta[i];
-            }
-        }
-        return -1;
+    public boolean canGrowOn(IBlockState living, IBlockState area){
+        return (NatureOverhaul.INSTANCE.mossCorruptStone && area == Blocks.stone && living.getBlock() == mossy[0]) || area.equals(getDeadBlock(living));
     }
 }

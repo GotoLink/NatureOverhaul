@@ -1,6 +1,8 @@
 package natureoverhaul.behaviors;
 
 import natureoverhaul.IBehave;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 
@@ -12,12 +14,12 @@ public abstract class Behavior implements IBehave {
 	}
 
 	@Override
-	public float getDeathRate() {
+	public float getDeathRate(IBlockState state) {
 		return this.data[1];
 	}
 
 	@Override
-	public float getGrowthRate() {
+	public float getGrowthRate(IBlockState state) {
 		return this.data[0];
 	}
 
@@ -46,8 +48,8 @@ public abstract class Behavior implements IBehave {
 		this.data[0] = rate;
 	}
 
-    public boolean isValidBiome(World world, int i, int k, float minTemp, float maxTemp, float minRainfall){
-        BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
+    public boolean isValidBiome(World world, BlockPos pos, float minTemp, float maxTemp, float minRainfall){
+        BiomeGenBase biome = world.getBiomeGenForCoords(pos);
         return biome.temperature >= minTemp && biome.temperature <= maxTemp && biome.rainfall > minRainfall;
     }
 }

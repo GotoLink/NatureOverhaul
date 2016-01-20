@@ -3,6 +3,7 @@ package natureoverhaul.behaviors;
 import natureoverhaul.NatureOverhaul;
 import natureoverhaul.Utils;
 import net.minecraft.block.Block;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
 
 /**
@@ -24,12 +25,12 @@ public class Starve {
     /**
      * @return the maximum number of same block, a block can live with
      */
-    public int getMaxNeighbour(World world, int i, int j, int k){ return maxNeighbour; }
+    public int getMaxNeighbour(World world, BlockPos pos){ return maxNeighbour; }
 
     /**
      * @return the radius to search neighbors for, in blocks
      */
-    public int getStarvingRadius(World world, int i, int j, int k) {
+    public int getStarvingRadius(World world, BlockPos pos) {
         return starvingRadius;
     }
 
@@ -38,18 +39,21 @@ public class Starve {
      *
      * @return True if block has starved
      */
-    public boolean hasStarved(World world, int i, int j, int k, Block id){
-        int radius = getStarvingRadius(world, i, j, k);
-        int max = getMaxNeighbour(world, i, j, k);
+    public boolean hasStarved(World world, BlockPos pos, Block id){
+        int radius = getStarvingRadius(world, pos);
+        int max = getMaxNeighbour(world, pos);
         int foundNeighbours = 0;
         if (radius > 0 && radius < maxRadius) {
+            int i = pos.getX();
+            int j = pos.getY();
+            int k = pos.getZ();
             for (int x = i - radius; x < i + radius; x++) {
                 for (int z = k - radius; z < k + radius; z++) {
-                    if(world.getChunkProvider().chunkExists(x>>4, z>>4)) {
+                    if(world.getChunkProvider().chunkExists(x >> 4, z >> 4)) {
                         for (int y = j - radius; y < j + radius; y++) {
                             if (i != x || j != y || k != z) {
-                                Block blockID = world.getBlock(x, y, z);
-                                if (foundNeighbours <= max && (id == blockID || (NatureOverhaul.isRegistered(blockID) && Utils.getType(blockID) == Utils.getType(id)))) {
+                                Block blockID = world.getBlockState(new BlockPos(x, y, z)).getBlock();
+                                if (foundNeighbours <= max && (id == blockID || (NatureOverhaul.isRegistered(blockID) && Utils.equalType(blockID, id)))) {
                                     foundNeighbours++;
                                 }
                             }

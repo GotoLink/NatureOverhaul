@@ -1,8 +1,10 @@
 package natureoverhaul;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
 
 import java.util.Random;
@@ -22,9 +24,9 @@ public final class Utils {
 	 * @param item
 	 *            {@link ItemStack} to emit
 	 */
-	public static void emitItem(World world, int i, int j, int k, ItemStack item) {
+	public static void emitItem(World world, BlockPos pos, ItemStack item) {
 		if (!world.isRemote) {
-			EntityItem entityitem = new EntityItem(world, i, j, k, item);
+			EntityItem entityitem = new EntityItem(world, pos.getX(), pos.getY(), pos.getZ(), item);
 			world.spawnEntityInWorld(entityitem);
 		}
 	}
@@ -32,12 +34,11 @@ public final class Utils {
 	/**
 	 * Randomize given coordinates within range
 	 *
-	 * @param range
-	 *            The limiting value for the distance in each direction
-	 * @return An array of randomized coordinates
+	 * @param range The limiting value for the distance in each direction
+	 * @return the randomized coordinates, as a BlockPos
 	 */
-	public static int[] findRandomNeighbour(int i, int j, int k, int range) {
-		int[] coord = new int[] { i, j, k };
+	public static BlockPos findRandomNeighbour(BlockPos pos, int range) {
+		int[] coord = new int[] { pos.getX(), pos.getY(), pos.getZ() };
         if(range>0) {
             Random rand = new Random();
             int dist;
@@ -49,23 +50,22 @@ public final class Utils {
                     coord[index] -= dist;
             }
         }
-		return coord;
+		return new BlockPos(coord[0], coord[1], coord[2]);
 	}
 
 	/**
-	 * Gets the j location of the lowest block of the specified {@link NOType}
+	 * Gets the height of the lowest block of the specified {@link NOType}
 	 * below the block from given coordinates.
 	 *
 	 * @param type
 	 *            The {@link NOType} searched
 	 * @return lowest block j location
 	 */
-	public static int getLowestTypeJ(World world, int i, int j, int k, NOType type) {
-		int low = j;
-		while (getType(world.getBlock(i, low - 1, k)) == type) {
-			low--;
+	public static BlockPos getLowestType(World world, BlockPos pos, NOType type) {
+		while (getType(world.getBlockState(pos.down())) == type) {
+			pos = pos.down();
 		}
-		return low;
+		return pos;
 	}
 
 	/**
@@ -94,8 +94,8 @@ public final class Utils {
 	 * @param block
 	 * @return The stored {@link NOType} from the given block
 	 */
-	public static NOType getType(Block block) {
-		return NatureOverhaul.getIDToTypeMapping().get(block);
+	public static NOType getType(IBlockState block) {
+		return NatureOverhaul.getIDToTypeMapping().get(block.getBlock());
 	}
 
 	/**
@@ -108,19 +108,27 @@ public final class Utils {
 	 *            If center block should be ignored
 	 * @return True if at least one block is nearby
 	 */
-	public static boolean hasNearbyBlock(World world, int i, int j, int k, Block id, int radius, boolean ignoreSelf) {
+	public static boolean hasNearbyBlock(World world, BlockPos pos, IBlockState id, int radius, boolean ignoreSelf) {
 		for (int y = -radius; y <= radius; y++) {
 			for (int x = -radius; x <= radius; x++) {
 				for (int z = -radius; z <= radius; z++) {
 					if (ignoreSelf && x == 0 && y == 0 && z == 0) {
 						z++;
 					}
-					if (world.getBlock(i + x, j + y, k + z) == id) {
+					if (equal(world.getBlockState(pos.add(x, y, z)), id)) {
 						return true;
 					}
 				}
 			}
 		}
 		return false;
+	}
+
+	public static boolean equal(IBlockState left, IBlockState right) {
+		return left.getBlock() == right.getBlock() && left.equals(right);
+	}
+
+	public static boolean equalType(Block left, Block right){
+		return NatureOverhaul.getIDToTypeMapping().get(left) == NatureOverhaul.getIDToTypeMapping().get(right);
 	}
 }

@@ -3,7 +3,8 @@ package natureoverhaul.behaviors;
 import natureoverhaul.IBlockDeath;
 import natureoverhaul.IGrowable;
 import natureoverhaul.NatureOverhaul;
-import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
 
 public class BehaviorStarving extends BehaviorModular {
@@ -16,7 +17,7 @@ public class BehaviorStarving extends BehaviorModular {
     }
 
     @Override
-    public final boolean hasDied(World world, int i, int j, int k, Block id) {
-        return NatureOverhaul.INSTANCE.useStarvingSystem && starve.hasStarved(world, i, j, k, id);
+    public final boolean hasDied(World world, BlockPos pos, IBlockState id) {
+        return NatureOverhaul.INSTANCE.useStarvingSystem && starve.hasStarved(world, pos, id.getBlock());
     }
 }

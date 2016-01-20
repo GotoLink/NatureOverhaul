@@ -1,5 +1,6 @@
 package natureoverhaul.behaviors;
 
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 
@@ -15,9 +16,9 @@ public class BehaviorSapling extends BehaviorDeathDisappear{
         }
 
         @Override
-        public int getMaxNeighbour(World world, int i, int j, int k) {
-            int maxNeighbours = super.getMaxNeighbour(world, i, j, k);
-            BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
+        public int getMaxNeighbour(World world, BlockPos pos) {
+            int maxNeighbours = super.getMaxNeighbour(world, pos);
+            BiomeGenBase biome = world.getBiomeGenForCoords(pos);
             if (biome.temperature > 1F) {
                 maxNeighbours = 1;
             }
@@ -30,9 +31,9 @@ public class BehaviorSapling extends BehaviorDeathDisappear{
         }
 
         @Override
-        public int getStarvingRadius(World world, int i, int j, int k) {
-            int radius = super.getStarvingRadius(world, i, j, k);
-            BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
+        public int getStarvingRadius(World world, BlockPos pos) {
+            int radius = super.getStarvingRadius(world, pos);
+            BiomeGenBase biome = world.getBiomeGenForCoords(pos);
             if (biome.temperature > 1F) {
                 radius = 4;
             }

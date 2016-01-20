@@ -4,7 +4,9 @@ import natureoverhaul.NOType;
 import natureoverhaul.NatureOverhaul;
 import natureoverhaul.Utils;
 import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
 
 public class BehaviorMushroom extends BehaviorDeathDisappear{
@@ -14,16 +16,16 @@ public class BehaviorMushroom extends BehaviorDeathDisappear{
     }
 
 	@Override
-	public void grow(World world, int i, int j, int k, Block id) {
+	public void grow(World world, BlockPos pos, IBlockState id) {
 		//Small chance of having a mushroom tree, grown using vanilla method
-		if (Math.random() < NatureOverhaul.getGrowthProb(world, i, j, k, Blocks.brown_mushroom_block, NOType.MUSHROOMCAP))
-			super.grow(world, i, j, k, id);
+		if (Math.random() < NatureOverhaul.getGrowthProb(world, pos, Blocks.brown_mushroom_block.getDefaultState(), NOType.MUSHROOMCAP))
+			super.grow(world, pos, id);
 		else{//Grow a similar mushroom nearby
-			int coord[];
+			BlockPos coord;
 			for (int attempt = 0; attempt < growthAttempt; attempt++) {
-				coord = Utils.findRandomNeighbour(i, j, k, growthRadius);
-				if (id.canPlaceBlockAt(world, coord[0], coord[1], coord[2])) {
-					world.setBlock(coord[0], coord[1], coord[2], id);
+				coord = Utils.findRandomNeighbour(pos, growthRadius);
+				if (id.getBlock().canPlaceBlockAt(world, coord)) {
+					world.setBlockState(coord, id);
 					return;
 				}
 			}

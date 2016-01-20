@@ -1,3 +1,6 @@
+== Nature Overhaul 0.10.1 ==
+* Minor optimizations
+
 == Nature Overhaul 0.10.0 ==
 * Improved tree detection for better default configuration, also world specific
 * Fixed dimension blacklist configuration category

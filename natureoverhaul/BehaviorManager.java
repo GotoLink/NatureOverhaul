@@ -3,11 +3,11 @@ package natureoverhaul;
 import natureoverhaul.behaviors.*;
 import net.minecraft.block.Block;
 
-import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 
 public final class BehaviorManager {
-	private static Map<Block, IBehave> blockBehaviors = new HashMap<Block, IBehave>();
+	private static Map<Block, IBehave> blockBehaviors = new IdentityHashMap<Block, IBehave>(42);
     /**
      * Behavior doing nothing, for error handling
      */
@@ -68,7 +68,7 @@ public final class BehaviorManager {
                 return new BehaviorMushroom();
             case NETHERSTALK:
             case PLANT:
-                return new BehaviorPlant(true);
+                return new BehaviorPlant();
             case SAPLING:
                 return new BehaviorSapling();
             default:

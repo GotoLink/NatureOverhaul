@@ -1,8 +1,12 @@
 package natureoverhaul.behaviors;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
+
+import java.util.Iterator;
 
 public class BehaviorGrass extends BehaviorDeathSwitch {
     public int growthRadius = 1;
@@ -11,21 +15,18 @@ public class BehaviorGrass extends BehaviorDeathSwitch {
     }
 
 	@Override
-	public Block getDeadBlock(Block living) {
-		return Blocks.dirt;
+	public IBlockState getDeadBlock(IBlockState living) {
+		return Blocks.dirt.getDefaultState();
 	}
 
 	@Override
-	public void grow(World world, int i, int j, int k, Block id) {
-		//Replace surrounding dirt with grass
-		int scanSize = growthRadius;
-		for (int x = i - scanSize; x <= i + scanSize; x++) {
-			for (int y = j - scanSize; y <= j + scanSize; y++) {
-				for (int z = k - scanSize; z <= k + scanSize; z++) {
-					if (isExtendBlockId(world.getBlock(x, y, z))) {
-						world.setBlock(x, y, z, id);
-					}
-				}
+	//Replace surrounding dirt with grass
+	public void grow(World world, BlockPos pos, IBlockState id) {
+		Iterator<BlockPos> positions = BlockPos.getAllInBox(pos.add(-growthRadius, -growthRadius, -growthRadius), pos.add(growthRadius, growthRadius, growthRadius)).iterator();
+		while(positions.hasNext()) {
+			BlockPos next = positions.next();
+			if (isExtendBlockId(world.getBlockState(next).getBlock())) {
+				world.setBlockState(next, id);
 			}
 		}
 	}

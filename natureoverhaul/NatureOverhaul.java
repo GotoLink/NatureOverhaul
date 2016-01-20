@@ -1,32 +1,35 @@
 package natureoverhaul;
 
 import com.google.common.collect.ImmutableMap;
-import cpw.mods.fml.client.config.IConfigElement;
-import cpw.mods.fml.client.event.ConfigChangedEvent;
-import cpw.mods.fml.common.*;
-import cpw.mods.fml.common.Mod.EventHandler;
-import cpw.mods.fml.common.event.FMLInitializationEvent;
-import cpw.mods.fml.common.event.FMLInterModComms;
-import cpw.mods.fml.common.event.FMLPostInitializationEvent;
-import cpw.mods.fml.common.event.FMLPreInitializationEvent;
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.gameevent.TickEvent;
-import cpw.mods.fml.common.registry.GameData;
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
 import natureoverhaul.behaviors.BehaviorFire;
 import natureoverhaul.behaviors.BehaviorMoss;
 import net.minecraft.block.*;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemAxe;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
+import net.minecraft.world.WorldType;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.client.config.IConfigElement;
+import net.minecraftforge.fml.client.event.ConfigChangedEvent;
+import net.minecraftforge.fml.common.*;
+import net.minecraftforge.fml.common.Mod.EventHandler;
+import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLInterModComms;
+import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.minecraftforge.fml.common.registry.GameData;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.logging.log4j.Logger;
 
 import java.lang.reflect.Method;
@@ -93,11 +96,11 @@ public final class NatureOverhaul {
 		for (Iterator itr=GameData.getBlockRegistry().iterator();itr.hasNext(); i = (Block)itr.next()) {
 			if (i != null) {
 				if (i instanceof IGrowable && i instanceof IBlockDeath) {//Priority to Blocks using the api
-					addMapping(i, true, ((IGrowable) i).getGrowthRate(), true, ((IBlockDeath) i).getDeathRate(), -1.0F, -1.0F, NOType.CUSTOM);
+					addMapping(i, true, ((IGrowable) i).getGrowthRate(i.getDefaultState()), true, ((IBlockDeath) i).getDeathRate(i.getDefaultState()), -1.0F, -1.0F, NOType.CUSTOM);
 				} else if (i instanceof IGrowable) {
-					addMapping(i, true, ((IGrowable) i).getGrowthRate(), false, -1, -1.0F, -1.0F, NOType.CUSTOM);
+					addMapping(i, true, ((IGrowable) i).getGrowthRate(i.getDefaultState()), false, -1, -1.0F, -1.0F, NOType.CUSTOM);
 				} else if (i instanceof IBlockDeath) {
-					addMapping(i, false, -1, true, ((IBlockDeath) i).getDeathRate(), -1.0F, -1.0F, NOType.CUSTOM);
+					addMapping(i, false, -1, true, ((IBlockDeath) i).getDeathRate(i.getDefaultState()), -1.0F, -1.0F, NOType.CUSTOM);
 				} else if (i instanceof BlockSapling) {
 					saplingID.add(i);
 				} else if (i instanceof BlockNetherWart) {//In the Nether, we don't use biome dependent parameter
@@ -124,7 +127,7 @@ public final class NatureOverhaul {
 					addMapping(i, growSets[13], 0, dieSets[13], 0, 0.0F, 0.0F, NOType.CUSTOM);
 					BehaviorManager.setBehavior(i, new BehaviorFire().setData(growthRates[13], deathRates[13]));
 				}
-				if (i.getMaterial().isOpaque() && i.renderAsNormalBlock() && i.isCollidable()) {
+				if (i.getMaterial().isOpaque() && i.isFullCube() && i.isCollidable()) {
 					IDToFirePropagateMapping.put(
 							i,
 							config.getInt(optionsCategory[13] + ".Spreading", i.getUnlocalizedName().substring(5),
@@ -140,10 +143,10 @@ public final class NatureOverhaul {
         Item it = null;
 		for (Iterator itr = GameData.getItemRegistry().iterator();itr.hasNext(); it=(Item)itr.next()) {
 			if (it instanceof ItemAxe) {
-				temp.add(GameData.getItemRegistry().getNameForObject(it));
+				temp.add(GameData.getItemRegistry().getNameForObject(it).toString());
 			}
 		}
-		String[] ids = config.get(optionsCategory[1], "Lumberjack compatible items", temp.toArray(new String[1]), "Separate item names on new lines").getStringList();
+		String[] ids = config.get(optionsCategory[1], "Lumberjack compatible items", temp.toArray(new String[temp.size()]), "Separate item names on new lines").getStringList();
 		for (String param : ids) {
 			if (param != null && !param.equals("")) {
 				try {
@@ -199,8 +202,8 @@ public final class NatureOverhaul {
                                         for (String meta2 : lefMeta) {
                                             try {
                                                 int e = Integer.parseInt(meta2.trim());
-                                                new TreeData(idSaplin, idLo, idLef, a, o, e).register();
-                                            }catch (NumberFormatException ignored){
+                                                new TreeData(idSaplin.getStateFromMeta(a), idLo.getStateFromMeta(o), idLef.getStateFromMeta(e)).register();
+                                            }catch (Exception ignored){
                                             }
                                         }
                                     }catch (NumberFormatException ignored){
@@ -228,7 +231,7 @@ public final class NatureOverhaul {
     private HashSet<Integer> getTreeConfig(Block sapling) {
         HashSet<Integer> sapData = new HashSet<Integer>();
         for (int meta = 0; meta < 16; meta++) {
-            sapData.add(sapling.damageDropped(meta));
+            sapData.add(sapling.damageDropped(sapling.getStateFromMeta(meta)));
         }
         return sapData;
     }
@@ -244,9 +247,9 @@ public final class NatureOverhaul {
                 }else if(tempt>0.1F)
                         tempt = 0.1F;
                 biomeGenBase.setTemperatureRainfall(tempt, rainf);
-                boolean snow = config.getBoolean(biomeGenBase.biomeName, "Biomes.Snowing", biomeGenBase.func_150559_j(), "");
+                boolean snow = config.getBoolean("Biomes.Snowing", biomeGenBase.biomeName, biomeGenBase.isSnowyBiome());
                 boolean rain = ObfuscationReflectionHelper.getPrivateValue(BiomeGenBase.class, biomeGenBase, "enableRain", "field_76765_S");
-                rain = config.getBoolean(biomeGenBase.biomeName, "Biomes.Raining", rain, "");
+                rain = config.getBoolean("Biomes.Raining", biomeGenBase.biomeName, rain);
                 ObfuscationReflectionHelper.setPrivateValue(BiomeGenBase.class, biomeGenBase, snow, "enableSnow", "field_76766_R");
                 ObfuscationReflectionHelper.setPrivateValue(BiomeGenBase.class, biomeGenBase, rain, "enableRain", "field_76765_S");
             }
@@ -475,11 +478,13 @@ public final class NatureOverhaul {
 	@SubscribeEvent
 	public void tickStart(TickEvent.WorldTickEvent event) {
         if(event.side.isServer()){
+            if(event.world.getWorldInfo().getTerrainType() == WorldType.DEBUG_WORLD)
+                return;
             if (event.phase == TickEvent.Phase.START){
                 if(api != null) {
                     tryRefreshWithMOAPIValues();
                 }
-                if(saplingID != null && event.world instanceof WorldServer && event.world.provider.dimensionId == 0){
+                if(saplingID != null && event.world instanceof WorldServer && event.world.provider.getDimensionId() == 0){
                     ArrayList<String> temp = new ArrayList<String>();
                     String name = event.world.getWorldInfo().getWorldName();
                     if(!config.getCategory(optionsCategory[names.length]).containsKey("Sapling-Log-Leaves names in world: "+name)) {
@@ -489,7 +494,7 @@ public final class NatureOverhaul {
                         for (Block entry : saplingID) {//default config based on block types
                             Set<Integer> set = getTreeConfig(entry);
                             for(int type : set) {
-                                TreeData data = testWorld.getTree(entry, type);
+                                TreeData data = testWorld.getTree(entry.getStateFromMeta(type));
                                 if (data != null) {
                                     String text = data.toString();
                                     if (!temp.contains(text))
@@ -508,29 +513,31 @@ public final class NatureOverhaul {
             }
             else {
                 World world = event.world;
-                if (!globalDimensionBlacklist.contains(world.provider.dimensionId) && !world.activeChunkSet.isEmpty()) {
-                    Iterator<?> it = world.activeChunkSet.iterator();
-                    while (it.hasNext()) {
-                        ChunkCoordIntPair chunkIntPair = (ChunkCoordIntPair) it.next();
+                if (!globalDimensionBlacklist.contains(world.provider.getDimensionId()) && !world.activeChunkSet.isEmpty()) {
+                    int j1 = world.getGameRules().getInt("randomTickSpeed");
+                    if(j1<=0)
+                        return;
+                    for (Object it : world.activeChunkSet) {
+                        ChunkCoordIntPair chunkIntPair = (ChunkCoordIntPair) it;
                         int k = chunkIntPair.chunkXPos * 16;
                         int l = chunkIntPair.chunkZPos * 16;
                         Chunk chunk = null;
                         if (world.getChunkProvider().chunkExists(chunkIntPair.chunkXPos, chunkIntPair.chunkZPos)) {
                             chunk = world.getChunkFromChunkCoords(chunkIntPair.chunkXPos, chunkIntPair.chunkZPos);
                         }
-                        if (chunk != null && chunk.isChunkLoaded && chunk.isTerrainPopulated) {
+                        if (chunk != null && chunk.isLoaded() && chunk.isTerrainPopulated()) {
                             int i2, k2, l2, i3;
-                            Block j3;//Vanilla like random ticks for blocks
+                            IBlockState j3;//Vanilla like random ticks for blocks
                             for (ExtendedBlockStorage blockStorage : chunk.getBlockStorageArray()) {
                                 if (blockStorage != null && !blockStorage.isEmpty() && blockStorage.getNeedsRandomTick()) {
-                                    for (int j2 = 0; j2 < 3; ++j2) {
+                                    for (int j2 = 0; j2 < j1; ++j2) {
                                         this.updateLCG = this.updateLCG * 3 + 1013904223;
                                         i2 = this.updateLCG >> 2;
                                         k2 = i2 & 15;
                                         l2 = i2 >> 8 & 15;
                                         i3 = i2 >> 16 & 15;
-                                        j3 = blockStorage.getBlockByExtId(k2, i3, l2);
-                                        if (j3!=Blocks.air && isRegistered(j3)) {
+                                        j3 = blockStorage.get(k2, i3, l2);
+                                        if (j3.getBlock()!=Blocks.air && isRegistered(j3.getBlock())) {
                                             onUpdateTick(world, k2 + k, i3 + blockStorage.getYLocation(), l2 + l, j3);
                                         }
                                     }
@@ -580,10 +587,10 @@ public final class NatureOverhaul {
                 if (dieSets[index] != IDToDyingMapping.get(i))
                     IDToDyingMapping.put(i, dieSets[index]);
                 IBehave behav = BehaviorManager.getBehavior(i);
-                if (growthRates[index] != behav.getGrowthRate()) {
+                if (growthRates[index] != behav.getGrowthRate(i.getDefaultState())) {
                     behav.setGrowthRate(growthRates[index]);
                 }
-                if (deathRates[index] != behav.getDeathRate()) {
+                if (deathRates[index] != behav.getDeathRate(i.getDefaultState())) {
                     behav.setDeathRate(deathRates[index]);
                 }
             }
@@ -607,13 +614,13 @@ public final class NatureOverhaul {
 
 	/**
 	 * The death general method.
-     * Called by {@link #onUpdateTick(World, int, int, int, Block)} when conditions are fulfilled.
+     * Called by {@link #onUpdateTick(World, int, int, int, IBlockState)} when conditions are fulfilled.
 	 */
-	public static void death(World world, int i, int j, int k, Block id) {
-		if (id instanceof IBlockDeath) {
-			((IBlockDeath) id).death(world, i, j, k, id);
+	public static void death(World world, BlockPos pos, IBlockState state) {
+		if (state.getBlock() instanceof IBlockDeath) {
+			((IBlockDeath) state.getBlock()).death(world, pos, state);
 		} else {
-			BehaviorManager.getBehavior(id).death(world, i, j, k, id);
+			BehaviorManager.getBehavior(state.getBlock()).death(world, pos, state);
 		}
 	}
 
@@ -622,10 +629,10 @@ public final class NatureOverhaul {
 	 * 
 	 * @return apple growth probability at given coordinates
 	 */
-	public static float getAppleGrowthProb(World world, int i, int j, int k) {
+	public static float getAppleGrowthProb(World world, BlockPos pos) {
 		float freq = INSTANCE.growSets[names.length] ? INSTANCE.growthRates[names.length] * 1.5F : -1F;
 		if (INSTANCE.biomeModifiedRate && freq > 0) {
-			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
+			BiomeGenBase biome = world.getBiomeGenForCoords(pos);
 			if (biome.rainfall == 0 || biome.temperature > 1.5F) {
 				return 0.01F;
 			} else {
@@ -641,14 +648,14 @@ public final class NatureOverhaul {
 
 	/**
 	 * Get the growth probability.
-     * Called by {@link #onUpdateTick(World, int, int, int, Block)}.
+     * Called by {@link #onUpdateTick(World, int, int, int, IBlockState)}.
 	 * 
 	 * @return growth probability for given blockid and NOType at given coordinates
 	 */
-	public static float getGrowthProb(World world, int i, int j, int k, Block id, NOType type) {
+	public static float getGrowthProb(World world, BlockPos pos, IBlockState id, NOType type) {
 		float freq = getGrowthRate(id);
 		if (INSTANCE.biomeModifiedRate && freq > 0 && type != NOType.NETHERSTALK) {
-			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
+			BiomeGenBase biome = world.getBiomeGenForCoords(pos);
 			if (type != NOType.CACTUS && ((biome.rainfall == 0) || (biome.temperature > 1.5F))) {
 				return 0.01F;
 			} else if (type != NOType.CUSTOM) {
@@ -668,13 +675,13 @@ public final class NatureOverhaul {
 
 	/**
 	 * The general growing method.
-     * Called by {@link #onUpdateTick(World, int, int, int, Block)} when conditions are fulfilled.
+     * Called by {@link #onUpdateTick(World, int, int, int, IBlockState)} when conditions are fulfilled.
 	 */
-	public static void grow(World world, int i, int j, int k, Block id) {
-		if (id instanceof IGrowable) {
-			((IGrowable) id).grow(world, i, j, k, id);
+	public static void grow(World world, BlockPos pos, IBlockState state) {
+		if (state.getBlock() instanceof IGrowable) {
+			((IGrowable) state.getBlock()).grow(world, pos, state);
 		} else {
-			BehaviorManager.getBehavior(id).grow(world, i, j, k, id);
+			BehaviorManager.getBehavior(state.getBlock()).grow(world, pos, state);
 		}
 	}
 
@@ -696,8 +703,8 @@ public final class NatureOverhaul {
 	 *            the block id to check
 	 * @return true if block is a log
 	 */
-	public static boolean isLog(Block id, int meta) {
-		return TreeData.getTree(id, meta, TreeData.Component.TRUNK)!=null || IDToTypeMapping.get(id) == NOType.MUSHROOMCAP;
+	public static boolean isLog(IBlockState id) {
+		return TreeData.getTree(id, TreeData.Component.TRUNK)!=null || IDToTypeMapping.get(id.getBlock()) == NOType.MUSHROOMCAP;
 	}
 
 	public static boolean isRegistered(Block id) {
@@ -713,17 +720,17 @@ public final class NatureOverhaul {
 	 *            The id the block is registered with.
 	 * @param isGrowing
 	 *            Whether the block can call
-	 *            {@link #grow(World, int, int, int, Block)} on tick.
+	 *            {@link #grow(World, BlockPos, IBlockState)} on tick.
 	 * @param growthRate
-	 *            How often the {@link #grow(World, int, int, int, Block)}
+	 *            How often the {@link #grow(World, BlockPos, IBlockState)}
 	 *            method will be called.
 	 * @param isMortal
 	 *            Whether the block can call
-	 *            {@link #death(World, int, int, int, Block)} method on
+	 *            {@link #death(World, BlockPos, IBlockState)} method on
 	 *            tick.
 	 * @param deathRate
 	 *            How often the
-	 *            {@link #death(World, int, int, int, Block)} method will
+	 *            {@link #death(World, BlockPos, IBlockState)} method will
 	 *            be called.
 	 * @param optTemp
 	 *            The optimal temperature parameter for the growth.
@@ -765,15 +772,15 @@ public final class NatureOverhaul {
 
 	/**
 	 * Get the death probability.
-     * Called by {@link #onUpdateTick(World, int, int, int, Block)}.
+     * Called by {@link #onUpdateTick(World, int, int, int, IBlockState)}.
 	 * 
 	 * @return Death probability for given blockid and NOType at given
 	 *         coordinates
 	 */
-	private float getDeathProb(World world, int i, int j, int k, Block id, NOType type) {
+	private float getDeathProb(World world, BlockPos pos, IBlockState id, NOType type) {
 		float freq = getDeathRate(id);
 		if (biomeModifiedRate && freq > 0 && type != NOType.NETHERSTALK) {
-			BiomeGenBase biome = world.getBiomeGenForCoords(i, k);
+			BiomeGenBase biome = world.getBiomeGenForCoords(pos);
 			if (type != NOType.CACTUS && ((biome.rainfall == 0) || (biome.temperature > 1.5F))) {
 				return 1F;
 			} else if (type != NOType.CUSTOM) {
@@ -787,19 +794,19 @@ public final class NatureOverhaul {
 			return -1F;
 	}
 
-	public static float getDeathRate(Block id) {
-		if (id instanceof IBlockDeath) {
-			return ((IBlockDeath) id).getDeathRate();
+	public static float getDeathRate(IBlockState id) {
+		if (id.getBlock() instanceof IBlockDeath) {
+			return ((IBlockDeath) id).getDeathRate(id);
 		} else {
-			return BehaviorManager.getBehavior(id).getDeathRate();
+			return BehaviorManager.getBehavior(id.getBlock()).getDeathRate(id);
 		}
 	}
 
-	public static float getGrowthRate(Block id) {
-		if (id instanceof IGrowable) {
-			return ((IGrowable) id).getGrowthRate();
+	public static float getGrowthRate(IBlockState id) {
+		if (id.getBlock() instanceof IGrowable) {
+			return ((IGrowable) id).getGrowthRate(id);
 		} else {
-			return BehaviorManager.getBehavior(id).getGrowthRate();
+			return BehaviorManager.getBehavior(id.getBlock()).getGrowthRate(id);
 		}
 	}
 
@@ -839,25 +846,25 @@ public final class NatureOverhaul {
 		fireRange = getIntFrom(getSlider, fireOption, "Propagation range");
 	}
 
-	public static float getOptRain(Block id) {
-		return BehaviorManager.getBehavior(id).getOptRain();
+	public static float getOptRain(IBlockState id) {
+		return BehaviorManager.getBehavior(id.getBlock()).getOptRain();
 	}
 
-	public static float getOptTemp(Block id) {
-		return BehaviorManager.getBehavior(id).getOptTemp();
+	public static float getOptTemp(IBlockState id) {
+		return BehaviorManager.getBehavior(id.getBlock()).getOptTemp();
 	}
 
 	/**
-	 * Called by {@link #onUpdateTick(World, int, int, int, Block)}.
+	 * Called by {@link #onUpdateTick(World, int, int, int, IBlockState)}.
      * Checks whether this block has died on this tick for any reason
 	 * 
 	 * @return True if plant has died
 	 */
-	private boolean hasDied(World world, int i, int j, int k, Block id) {
-		if (id instanceof IBlockDeath) {
-			return ((IBlockDeath) id).hasDied(world, i, j, k, id);
+	private boolean hasDied(World world, BlockPos pos, IBlockState state) {
+		if (state.getBlock() instanceof IBlockDeath) {
+			return ((IBlockDeath) state.getBlock()).hasDied(world, pos, state);
 		} else {
-			return BehaviorManager.getBehavior(id).hasDied(world, i, j, k, id);
+			return BehaviorManager.getBehavior(state.getBlock()).hasDied(world, pos, state);
 		}
 	}
 
@@ -869,19 +876,21 @@ public final class NatureOverhaul {
 	 * Called from the world tick {@link #tickStart(TickEvent.WorldTickEvent)} with a
 	 * {@link #isRegistered(Block)} block. Checks with {@link #isGrowing(Block)} or
 	 * {@link #isMortal(Block)} booleans, and probabilities with
-	 * {@link #getGrowthProb(World, int, int, int, Block, NOType)} or
-	 * {@link #getDeathProb(World, int, int, int, Block, NOType)} then call
-	 * {@link #grow(World, int, int, int, Block)} or
-	 * {@link #death(World, int, int, int, Block)}.
+	 * {@link #getGrowthProb(World, BlockPos, IBlockState, NOType)} or
+	 * {@link #getDeathProb(World, BlockPos, IBlockState, NOType)} then call
+	 * {@link #grow(World, BlockPos, IBlockState)} or
+	 * {@link #death(World, BlockPos, IBlockState)}.
 	 */
-	private void onUpdateTick(World world, int i, int j, int k, Block id) {
-		NOType type = Utils.getType(id);
-		if (isGrowing(id) && world.rand.nextFloat() < getGrowthProb(world, i, j, k, id, type)) {
-			grow(world, i, j, k, id);
+	private void onUpdateTick(World world, int i, int j, int k, IBlockState id) {
+        Block block = id.getBlock();
+		NOType type = IDToTypeMapping.get(block);
+        BlockPos pos = new BlockPos(i, j, k);
+		if (isGrowing(block) && world.rand.nextFloat() < getGrowthProb(world, pos, id, type)) {
+			grow(world, pos, id);
 			return;
 		}
-		if (isMortal(id) && (hasDied(world, i, j, k, id) || world.rand.nextFloat() < getDeathProb(world, i, j, k, id, type))) {
-			death(world, i, j, k, id);
+		if (isMortal(block) && (hasDied(world, pos, id) || world.rand.nextFloat() < getDeathProb(world, pos, id, type))) {
+			death(world, pos, id);
 		}
 	}
 }

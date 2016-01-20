@@ -1,8 +1,8 @@
 package natureoverhaul.events;
 
-import cpw.mods.fml.common.eventhandler.Cancelable;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.event.world.BlockEvent;
+import net.minecraftforge.fml.common.eventhandler.Cancelable;
 
 @Cancelable
 public class LumberJackEvent extends BlockEvent {
@@ -20,7 +20,7 @@ public class LumberJackEvent extends BlockEvent {
 	 *            the axe used
 	 */
 	public LumberJackEvent(HarvestDropsEvent event, ItemStack it) {
-		super(event.x, event.y, event.z, event.world, event.block, event.blockMetadata);
+		super(event.world, event.pos, event.state);
 		this.harvest = event;
 		this.axe = it;
 	}

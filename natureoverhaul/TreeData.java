@@ -1,6 +1,7 @@
 package natureoverhaul;
 
-import cpw.mods.fml.common.registry.GameData;
+import net.minecraft.block.state.IBlockState;
+import net.minecraftforge.fml.common.registry.GameData;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTTagCompound;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -15,27 +16,20 @@ public final class TreeData {
         SAPLING,TRUNK,LEAF
     }
     private static HashSet<TreeData> trees = new HashSet<TreeData>();
-    private final Block sapling, log, leaves;
-    private final int sapMeta, logMeta, leafMeta;
-    public TreeData(Block sapling, Block log, Block leaves, int sapMeta, int logMeta, int leafMeta){
+    private final IBlockState sapling, log, leaves;
+    public TreeData(IBlockState sapling, IBlockState log, IBlockState leaves){
         this.sapling = sapling;
         this.log = log;
         this.leaves = leaves;
-        this.sapMeta = sapMeta;
-        this.logMeta = logMeta;
-        this.leafMeta = leafMeta;
     }
 
     public TreeData(NBTTagCompound compound){
         NBTTagCompound tag = compound.getCompoundTag("Sapling");
-        this.sapling = Block.getBlockFromName(tag.getString("Block"));
-        this.sapMeta = tag.getInteger("Metadata");
+        this.sapling = Block.getBlockFromName(tag.getString("Block")).getStateFromMeta(tag.getInteger("Metadata"));
         tag = compound.getCompoundTag("Trunk");
-        this.log = Block.getBlockFromName(tag.getString("Block"));
-        this.logMeta = tag.getInteger("Metadata");
+        this.log = Block.getBlockFromName(tag.getString("Block")).getStateFromMeta(tag.getInteger("Metadata"));
         tag = compound.getCompoundTag("Leaf");
-        this.leaves = Block.getBlockFromName(tag.getString("Block"));
-        this.leafMeta = tag.getInteger("Metadata");
+        this.leaves = Block.getBlockFromName(tag.getString("Block")).getStateFromMeta(tag.getInteger("Metadata"));
     }
 
     public boolean isValid(){
@@ -43,19 +37,20 @@ public final class TreeData {
     }
 
     public void register(){
-        trees.add(this);
+        if(isValid())
+            trees.add(this);
     }
 
-    public static TreeData getTree(Block block, int meta, Component component){
+    public static TreeData getTree(IBlockState block, Component component){
         for(TreeData data:trees){
-            if(data.getBlock(component) == block && data.getMeta(component) == meta){
+            if(data.getState(component).equals(block)){
                 return data;
             }
         }
         return null;
     }
 
-    public Block getBlock(Component component){
+    public IBlockState getState(Component component){
         switch (component){
             case SAPLING:
                 return sapling;
@@ -67,21 +62,20 @@ public final class TreeData {
         return null;
     }
 
-    public int getMeta(Component component){
-        switch (component){
-            case SAPLING:
-                return sapMeta;
-            case TRUNK:
-                return logMeta;
-            case LEAF:
-                return leafMeta;
-        }
+    public Block getBlock(Component component){
+        return getState(component).getBlock();
+    }
+
+    private int getMeta(Component component){
+        IBlockState state = getState(component);
+        if(state!=null)
+            state.getBlock().getMetaFromState(state);
         return -1;
     }
 
     @Override
     public int hashCode(){
-        return new HashCodeBuilder().append(sapling).append(log).append(leaves).append(sapMeta).append(logMeta).append(leafMeta).toHashCode();
+        return new HashCodeBuilder().append(sapling).append(log).append(leaves).toHashCode();
     }
 
     @Override
@@ -94,7 +88,7 @@ public final class TreeData {
         }
         if(obj instanceof TreeData){
             for(Component component:Component.values()){
-                if(((TreeData) obj).getBlock(component)!=this.getBlock(component) || ((TreeData) obj).getMeta(component)!=this.getMeta(component))
+                if(!((TreeData) obj).getState(component).equals(this.getState(component)))
                     return false;
             }
             return true;

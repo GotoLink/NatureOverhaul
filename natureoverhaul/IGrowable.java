@@ -1,6 +1,8 @@
 package natureoverhaul;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
 
 /**
@@ -15,12 +17,12 @@ public interface IGrowable {
 	 * @return The rate used for randomizing growth, set to negative value to
 	 *         disable
 	 */
-	public float getGrowthRate();
+	public float getGrowthRate(IBlockState state);
 
 	/**
 	 * Grows a block at given location
 	 */
-	public void grow(World world, int i, int j, int k, Block id);
+	public void grow(World world, BlockPos pos, IBlockState state);
 
 	/**
 	 * Called when corresponding config value has changed
