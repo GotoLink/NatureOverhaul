@@ -110,9 +110,18 @@ public final class TreeUtils {
 			}
 			if (!branchFound)//We went to the top
 			{
-				world.setBlockState(node, meta);
-                world.setBlockState(node.up(), leafMeta);
-                putBlocksAround(world, node, leafMeta);
+				BlockPos start = node.down(2).north(2).west(2);
+				BlockPos end = node.down().south(2).east(2);
+				Iterable<BlockPos> iterable = BlockPos.getAllInBox(start, end);//5*5*2 box
+				for(BlockPos i : iterable){
+					if(world.isAirBlock(i.up(2))) {
+						IBlockState orig = world.getBlockState(i);
+						if (Utils.equal(meta, orig) || Utils.equal(leafMeta, orig)) {
+							world.setBlockState(i.up(2), orig);
+						}
+					}
+				}
+				world.setBlockState(node.up(2), leafMeta);
 			} else//We found at least a branch
 			{
 				current = branchs.get(world.rand.nextInt(branchs.size()));

@@ -43,7 +43,8 @@ public final class TreeData {
 
     public static TreeData getTree(IBlockState block, Component component){
         for(TreeData data:trees){
-            if(data.getState(component).equals(block)){
+            IBlockState temp = data.getState(component);
+            if(Utils.equal(temp, block)){
                 return data;
             }
         }
@@ -69,7 +70,7 @@ public final class TreeData {
     private int getMeta(Component component){
         IBlockState state = getState(component);
         if(state!=null)
-            state.getBlock().getMetaFromState(state);
+            return state.getBlock().getMetaFromState(state);
         return -1;
     }
 
@@ -88,7 +89,7 @@ public final class TreeData {
         }
         if(obj instanceof TreeData){
             for(Component component:Component.values()){
-                if(!((TreeData) obj).getState(component).equals(this.getState(component)))
+                if(!Utils.equal(((TreeData) obj).getState(component), this.getState(component)))
                     return false;
             }
             return true;
