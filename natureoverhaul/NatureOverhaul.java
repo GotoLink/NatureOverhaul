@@ -125,14 +125,19 @@ public final class NatureOverhaul {
 					BehaviorManager.setBehavior(i, new BehaviorFire().setData(growthRates[13], deathRates[13]));
 				}
 				if (i.getMaterial().isOpaque() && i.renderAsNormalBlock() && i.isCollidable()) {
-					IDToFirePropagateMapping.put(
-							i,
-							config.getInt(optionsCategory[13] + ".Spreading", i.getUnlocalizedName().substring(5),
-                                    Blocks.fire.getEncouragement(i)));
-					IDToFireCatchMapping.put(
-							i,
-							config.getInt(optionsCategory[13]+".Flammability", i.getUnlocalizedName().substring(5),
-									Blocks.fire.getFlammability(i)));
+                    String name = i.getUnlocalizedName();
+                    if(name.startsWith("tile."))
+                        name = name.substring(5);
+                    if(name.length() > 0) {
+                        IDToFirePropagateMapping.put(
+                                i,
+                                config.getInt(optionsCategory[13] + ".Spreading", name,
+                                        Blocks.fire.getEncouragement(i)));
+                        IDToFireCatchMapping.put(
+                                i,
+                                config.getInt(optionsCategory[13] + ".Flammability", name,
+                                        Blocks.fire.getFlammability(i)));
+                    }
 				}
 			}
 		}
@@ -324,7 +329,7 @@ public final class NatureOverhaul {
         } catch (ClassNotFoundException c) {
             api = null;
             logger.info("NatureOverhaul couldn't use MOAPI, continuing with values in config file.");
-        } catch (ReflectiveOperationException n) {
+        } catch (Exception n) {
             api = null;
             logger.warn("NatureOverhaul failed to use MOAPI, please report to NO author:", n);
         }//Even if it fails, we can still rely on settings stored in Forge recommended config file.
@@ -564,7 +569,7 @@ public final class NatureOverhaul {
             getMOAPIValues(optionClass, subOption, lumberJackOption, miscOption, animalsOption, fireOption);
         } catch (SecurityException s) {
             api = null;
-        } catch (ReflectiveOperationException i) {
+        } catch (Exception i) {
             api = null;
         }
         refreshBehaviors();
@@ -759,7 +764,7 @@ public final class NatureOverhaul {
 	/**
 	 * Helper reflection method for booleans
 	 */
-	public static boolean getBooleanFrom(Method meth, Object option, String name) throws ReflectiveOperationException {
+	public static boolean getBooleanFrom(Method meth, Object option, String name) throws Exception {
 		return Boolean.class.cast(meth.invoke(option, name));
 	}
 
@@ -806,12 +811,11 @@ public final class NatureOverhaul {
     /**
      * Helper reflection method for ints
      */
-	public static int getIntFrom(Method meth, Object obj, String name) throws ReflectiveOperationException {
+	public static int getIntFrom(Method meth, Object obj, String name) throws Exception {
 		return Integer.class.cast(meth.invoke(obj, name));
 	}
 
-	private void getMOAPIValues(Class<?> optionClass, Object subOption, Object lumberJackOption, Object miscOption, Object animalsOption, Object fireOption) throws SecurityException,
-			ReflectiveOperationException {
+	private void getMOAPIValues(Class<?> optionClass, Object subOption, Object lumberJackOption, Object miscOption, Object animalsOption, Object fireOption) throws Exception {
 		Method getBoolean = optionClass.getMethod("getBooleanValue", String.class);
 		Method getSlider = optionClass.getMethod("getSliderValue", String.class);
 		Method getMap = optionClass.getMethod("getMappedValue", String.class);
